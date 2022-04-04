@@ -1,0 +1,20 @@
+- hosts: postgres
+  connection: lxd
+  tasks:
+  - apt:
+      name: 
+        - postgresql
+        - python3-psycopg2 # this enables postgresql modules usage.
+      update_cache: yes
+      cache_valid_time: 3600
+  - name: Check posgresql Version
+    connection: lxd
+    become: yes
+    become_user: postgres
+    postgresql_info:
+      filter: ver*,ext*
+    register: postgresql_version_info
+
+  - name: Get Postgresql version info
+    debug:
+      msg: " Major: {{  postgresql_version_info.version.major }}, and Minor: {{ postgresql_version_info.version.minor }} "

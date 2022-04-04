@@ -1,0 +1,11 @@
+---
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: loading variables
+      include_vars: ../vars/containers2.yml
+
+    - name: posgresql ip address 
+      debug:
+        msg: "{{ containers2.postgres.ip }}"
+      

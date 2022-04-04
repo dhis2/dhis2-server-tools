@@ -1,0 +1,33 @@
+config: {}
+networks:
+- config:
+    ipv4.address: 192.168.0.1/24
+    ipv4.nat: "true"
+    ipv6.address: none
+  description: ""
+  managed: false
+  name: "{{lxd_bridge_interface}}"
+  type: ""
+storage_pools:
+- config: {}
+  description: ""
+  name: default
+  driver: dir
+profiles:
+- config:
+    environment.TZ: "{{ time_zone }}"
+    user.user-data: |
+      package_upgrade: true
+  description: "Default LXD profile"
+  devices:
+    eth0:
+      name: eth0
+      nictype: bridged
+      parent: lxdbr0
+      type: nic
+    root:
+      path: /
+      pool: default
+      type: disk
+  name: default
+cluster: null

@@ -1,0 +1,9 @@
+- hosts: all
+  connection: community.general.lxd
+  pre_tasks:
+    - name: Load varibales into the play
+      connection: local
+      include_vars:
+        file: containers.yml
+  roles:
+    - role: dhis2

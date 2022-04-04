@@ -1,0 +1,49 @@
+---
+# tasks file for ./roles/postgresql
+
+# create postgresql container
+- name: Create postgres container
+  connection: local
+  community.general.lxd_container:
+    name: postgres
+    state: started
+    profiles: [ "default" ]
+    wait_for_ipv4_addresses: true
+    ignore_volatile_options: false
+    timeout: 600
+    source:
+      type: image
+      mode: pull
+      server: https://images.linuxcontainers.org
+      protocol: simplestreams
+      alias: ubuntu/{{ containers[1].guest_os }} 
+    devices:
+      eth0:
+        nictype:  "{{ containers[1].nictype | default ('bridged') }}"
+        parent:   "{{ containers[1].network | default ('lxdbr0') }}"
+        type:     "{{ containers[1].interface_type | default ('nic') }}"
+        ipv4.address: "{{ containers[1].ip | default(omit)}}"
+  delegate_to: postgres
+ 
+# Install postgresql and other packages 
+- name: Installing postgresql in the container
+  connection: lxd
+  apt:
+    name: 
+      - postgresql
+      - python3-psycopg2
+    update_cache: yes
+    cache_valid_time: 3600
+  delegate_to: postgres
+
+# Check postgresql Version
+- name: Check posgresql Version
+  connection: lxd
+  become: yes
+  become_user: postgres
+  postgresql_info:
+    filter: ver*,ext*
+  delegate_to: postgres
+  register: postgresql_version_info
+
+

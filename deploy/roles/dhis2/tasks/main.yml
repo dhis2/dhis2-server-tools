@@ -1,0 +1,144 @@
+---
+# tasks file for ./roles/dhis2
+# set up dhis2 on a container
+# get free address 
+#
+#
+# SET variables 
+# PROXY_IP: 
+# JAVA_VERSION
+- block:
+  - name: Get free address
+    connection: local
+    command:
+      cmd: "lxc list -cn4 --format csv |awk -F '.' '/1[0-9]? / {print strtonum($4)}'"
+    register: used_address
+    tags: [ never ]
+
+# Check if Postgres container exists
+- name: Check if postgres container exists
+  connection: lxd
+  ping:
+    #data: crash
+
+- name: Check if Postgres service is installed
+  connection: lxd
+  apt: 
+    name: postgresql
+    state: present
+
+- name: Check posgresql Version
+  connection: lxd
+  become: yes
+  become_user: postgres
+  postgresql_info:
+    filter: ver*,ext*
+  register: postgresql_version_info
+
+- name: Get Postgresql version info
+  debug:
+    msg: " Major: {{  postgresql_version_info.version.major }}, and Minor: {{ postgresql_version_info.version.minor }} "
+    
+# Check if database already exists, run only if database is installed 
+
+
+- name: Create db role if it does not exist
+  become: yes
+  become_user: postgres
+  postgresql_user:
+    state: present
+    name: "{{ item.name }}"
+    password: md59543f1d82624df2b31672ec0f7050460
+  when:  item.createdb
+  with_items:
+    - "{{ instances }}"
+  delegate_to: postgres
+  
+- name: Create database if it does not exist
+  connection: lxd
+  become: yes
+  become_user: postgres
+  postgresql_db:
+    name: "{{ item.name }}"
+    conn_limit: "{{ db_connection_limit | default(100) }}"
+    owner: "{{ db_owner | default( item.name ) }}"
+  when: item.createdb
+  with_items:
+    - "{{ instances }}"
+  delegate_to: postgres
+
+#- set_vars:
+#    pg_major: 
+#- name: check if dhis2 database exists
+#  connection: lxd
+#  become: yes
+#  become_user: postgres
+#  command:
+#    cmd: "psql  --csv -qt -c '\du' postgres| cut -d,  -f1 |grep -w dhis2" # replace name 
+#  tags: [ never ]
+
+#- name: check if dhis2 user exists
+#  connection: lxd
+#  become: yes
+#  become_user: postgres
+#  command:
+#    cmd: "psql  --csv -qt -c '\du' postgres| cut -d,  -f1 |grep -w {{ containers.postgres }}" # replace name 
+## Check if database user already exists
+#
+#- name: check user database exists
+#  connection: lxd
+#  become: yes
+#  become_user: postgres
+#  shell:
+#    cmd: 
+#  delegate_to: "{{ containers[0].name }}"
+
+# Creating database 
+# conditions, user exists, 
+
+# Fixing pg_hba.conf permissions
+
+- name: Creating instances 
+  connection: local
+  lxd_container:
+    name: "{{ item.name }}"
+    state: started
+    source:
+      type: image
+      mode: pull
+      server: https://images.linuxcontainers.org
+      protocol:  simplestreams
+      alias: ubuntu/{{ item.guestos | default('20.04')}}/amd64
+    profiles: ["default"]
+    wait_for_ipv4_addresses: true
+    ignore_volatile_options: false
+    timeout: 600
+    devices:
+      eth0:
+        nictype: "{{ item.nictype | default ('bridged') }}"
+        parent: "{{ item.network | default ('lxdbr0') }}"
+        type: "{{ item.interface_type | default ('nic') }}"
+        ipv4.address: "{{ item.ip_address | default(omit)}}"
+  with_items:
+    - "{{ instances }}"
+
+- name: Deploy dhis2 instances
+  connection: lxd
+  ansible.builtin.script:
+    args:
+      executable: /usr/bin/bash
+    cmd: ../templates/tomcat_default.j2
+  delegate_to: "{{ item.name }}"
+  with_items:
+    - "{{ instances }}"
+  tags: [ run_shell ]
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Server port="-1" >
+
+  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
+  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
+  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
+
+  <GlobalNamingResources>
+    <Resource name="UserDatabase" auth="Container"
+              type="org.apache.catalina.UserDatabase"
+              description="User database that can be updated and saved"
+              factory="org.apache.catalina.users.MemoryUserDatabaseFactory"
+              pathname="conf/tomcat-users.xml" />
+  </GlobalNamingResources>
+
+  <Service name="Catalina">
+  
+    <Executor name="tomcatThreadPool" namePrefix="tomcat-http-" 
+           maxThreads="100" minSpareThreads="10" /> 
+                    
+    <Connector port="8080" protocol="HTTP/1.1"  proxyPort="443" scheme="https" 
+        URIEncoding="UTF-8" 
+        executor="tomcatThreadPool" connectionTimeout="20000" relaxedQueryChars="[,]"/>
+ 
+    <Engine name="Catalina" defaultHost="localhost">
+
+      <Realm className="org.apache.catalina.realm.LockOutRealm">
+        <!-- This Realm uses the UserDatabase configured in the global JNDI
+             resources under the key "UserDatabase".  Any edits
+             that are performed against this UserDatabase are immediately
+             available for use by the Realm.  -->
+        <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
+               resourceName="UserDatabase"/>
+      </Realm>
+
+      <Host name="localhost"  appBase="webapps" 
+            unpackWARs="false" autoDeploy="false"
+            xmlValidation="false" xmlNamespaceAware="false" >
+        <!-- Mark HTTP as HTTPS forward from SSL termination at nginx proxy -->
+        <Valve className="org.apache.catalina.valves.RemoteIpValve"
+            remoteIpHeader="x-forwarded-for"
+            remoteIpProxiesHeader="x-forwarded-by"
+            protocolHeader="x-forwarded-proto"
+        />
+
+        <!-- Access log processes all example.
+             Documentation at: /docs/config/valve.html
+             Note: The pattern used is equivalent to using pattern="common" -->
+<!--        <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
+               prefix="localhost_access_log" suffix=".txt"
+               pattern="%h %l %u %t &quot;%r&quot; %s %b" />
+-->
+
+        <!-- reduce information disclosure on error pages -->
+        <Valve className="org.apache.catalina.valves.ErrorReportValve"
+               showReport="false"
+               showServerInfo="false"/>
+
+      </Host>
+    </Engine>
+  </Service>
+</Server>
+

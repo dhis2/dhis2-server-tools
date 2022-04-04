@@ -1,0 +1,8 @@
+---
+# handlers file for ./roles/ufw
+- name: Reload ufw
+  connection: local
+  become: true
+  become_user: root
+  community.general.ufw:
+    state: reloaded

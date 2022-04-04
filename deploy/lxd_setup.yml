@@ -1,0 +1,13 @@
+- hosts: localhost
+  connection: local
+  pre_tasks:
+    - name: Load default variables from a file
+      include_vars:
+        file: containers.yml
+  roles:
+    - ufw
+    - lxd-init
+    - create-container
+  post_tasks:
+    - debug:
+        msg: "Playbook executed. Point your browser to https://{{ fqdn }} to access dhis2"

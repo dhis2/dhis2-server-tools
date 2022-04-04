@@ -1,0 +1,4 @@
+---
+# vars file for ./roles/dhis2
+PROXY_IP: "{{ containers[0].ip }}"
+JAVA_VERSION: 

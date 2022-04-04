@@ -1,0 +1,24 @@
+---
+# defaults file for ./roles/dhis2
+PROXY_IP: "{{ containers[0].ip }}"
+instances:
+  - name: dhis2
+    ip_address: 192.168.1.10
+    createdb: yes
+    tomcat_setup: filler
+    glowroot_setup: default
+    apm: 
+    PROXY: filler
+    PROXY_IP: 
+    JAVA_VERSION: "11"
+    guestos: "20.04"
+
+  - name: training 
+    createdb: yes
+    tomcat_setup: filler
+    glowroot_setup: default
+    apm: filler
+    proxy: filler
+    proxy_ip: filler
+    java_version: "11"
+    guestos: "20.04"
