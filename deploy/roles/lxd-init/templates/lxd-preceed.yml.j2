@@ -1,10 +1,10 @@
 config: {}
 networks:
 - config:
-    ipv4.address: 192.168.0.1/24
+    ipv4.address: "{{ lxd_network }}"
     ipv4.nat: "true"
     ipv6.address: none
-    ipv4.dhcp.ranges: 192.168.1.10-192.168.1.19
+    ipv4.dhcp.ranges: 
   description: ""
   managed: false
   name: "{{lxd_bridge_interface}}"

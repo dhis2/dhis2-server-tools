@@ -6,39 +6,23 @@ apm: "glowroot"
 proxy: "apache2"
 
 # lxd profile varibles
-time_zone: "Africa/Accra"
+time_zone: "Africa/Nairobi"
 
 lxd_network: "192.168.0.1/24"
 lxd_bridge_interface: lxdbr0
-
-
-# lxd container related variables 
 containers:
-  proxy:
-    ip: "192.168.0.2"
-    type: "proxy"
-    guest_os: 20.04
-  postgres:
-    ip: "192.168.0.20"
-    type: "postgres"
-    guest_os: "20.04"
-  monitor:
-    ip: "192.168.0.2"
-    type: "munin_monitor"
-    guest_os: 20.04
+ - name: "proxy"
+   ip: "192.168.0.2"
+   type: "apache_proxy"
+   guest_os: 20.04
 
-      #containers:
-      # - name: "proxy"
-      #   ip: "192.168.0.2"
-      #   type: "apache_proxy"
-      #   guest_os: 20.04
-      #
-      # - name: "postgres"
-      #   ip: "192.168.0.20"
-      #   type: "postgres"
-      #   guest_os: 20.04
-      #
-      # - name: "monitor"
-      #   ip: "192.168.0.30"
-      #   type: "munin_monitor"
-      #   guest_os: 20.04
+ - name: "postgres"
+   ip: "192.168.0.20"
+   type: "postgres"
+   guest_os: 20.04
+
+ - name: "monitor"
+   ip: "192.168.0.30"
+   type: "munin_monitor"
+   guest_os: 20.04
+interface_ip: "{{ lxd_network.split(".")[:3] +  }}"

@@ -1,5 +1,6 @@
-- hosts: all
+- hosts: proxy,postgres
   connection: community.general.lxd
+  gather_facts: no
   pre_tasks:
     - name: Load varibales into the play
       connection: local
