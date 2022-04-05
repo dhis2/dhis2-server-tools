@@ -1,9 +1,9 @@
 ---
 # defaults file for ./roles/lxd-init
-xd_noreboot: true
+lxd_noreboot: true
 
 lxd_cluster: false
-lxd_cluster_secret: <>
+lxd_cluster_secret: "your_secret_here"
 time_zone: "Africa/Nairobi"
 lxd_with_zfs_backend: true
 lxd_zfs_size: 16GB
