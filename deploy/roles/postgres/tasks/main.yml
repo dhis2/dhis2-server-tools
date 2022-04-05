@@ -1,6 +1,5 @@
 ---
 # tasks file for ./roles/postgresql
-
 # create postgresql container
 - name: Create postgres container
   connection: local
@@ -27,7 +26,7 @@
  
 # Install postgresql and other packages 
 - name: Installing postgresql in the container
-  connection: lxd
+  connection: community.general.lxd
   apt:
     name: 
       - postgresql
@@ -38,12 +37,10 @@
 
 # Check postgresql Version
 - name: Check posgresql Version
-  connection: lxd
+  connection: community.general.lxd
   become: yes
   become_user: postgres
   postgresql_info:
     filter: ver*,ext*
   delegate_to: postgres
   register: postgresql_version_info
-
-

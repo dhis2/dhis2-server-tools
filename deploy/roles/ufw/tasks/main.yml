@@ -6,8 +6,7 @@
   changed_when: False
   ignore_errors: True
   register: ufw_check
-- name: UFW is inactive, please
-  debug:
+- debug:
     msg:
       - "---- UFW in disabled ---- "
       - "    Please enable it to continue with the setup"
@@ -18,6 +17,8 @@
 - meta: end_play 
   when: "'inactive' in ufw_check.stdout"
 
+
+# This bit should be run after the proxy has been initiated, do it on a prosxy role
 - name: Configure host to NAT to the proxy container
   become: true
   become_user: root
@@ -43,5 +44,6 @@
     - "{{ containers }}"
   notify: 
     - Reload ufw
+  tags: [never]
 
 

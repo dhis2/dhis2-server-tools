@@ -4,7 +4,7 @@ postgres
 monitor
 
 [containers:vars]
-ansible_connection=lxd
+#ansible_connection=lxd
 ansible_user=root
 ansible_lxd_remote=local
 

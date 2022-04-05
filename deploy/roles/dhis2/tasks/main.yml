@@ -119,19 +119,31 @@
         parent: "{{ item.network | default ('lxdbr0') }}"
         type: "{{ item.interface_type | default ('nic') }}"
         ipv4.address: "{{ item.ip_address | default(omit)}}"
+        # ipv4.address: "{{ hostvars[item].ip_address }}" # here you could make use of host vars
   with_items:
     - "{{ instances }}"
 
-- name: Deploy dhis2 instances
-  connection: lxd
-  ansible.builtin.script:
-    args:
-      executable: /usr/bin/bash
-    cmd: ../templates/tomcat_default.j2
-  delegate_to: "{{ item.name }}"
-  with_items:
-    - "{{ instances }}"
-  tags: [ run_shell ]
+# copy over tomcat_default template and run from the containers
+
+- block: 
+  - name: Copy setup template to intances. 
+    connection: lxd
+    template:
+      src: tomcat_setup.j2
+      dest: /tmp/tomcat_setup.sh
+      mode: '0700'
+      owner: root
+      group: root
+    delegate_to: "{{ item.name }}" # ensuring its copied over to dhis2 instances only 
+    with_items:
+      - "{{ instances }}"
+    tags: [ run_shell ]
+
+# - name: Execute tomcat_setup.sh script withing the containers
+#    ansible.builtin.script: 
+
+
+
 
 
 
