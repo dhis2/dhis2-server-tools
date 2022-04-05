@@ -4,7 +4,7 @@ networks:
     ipv4.address: "{{ lxd_network }}"
     ipv4.nat: "true"
     ipv6.address: none
-    ipv4.dhcp.ranges: 
+    ipv4.dhcp.ranges: "{{ '.'.join(lxd_network.split('.')[:3]) + '.10-' + '.'.join(lxd_network.split('.')[:3])+'.20'}}" 
   description: ""
   managed: false
   name: "{{lxd_bridge_interface}}"
