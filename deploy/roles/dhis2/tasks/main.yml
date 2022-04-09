@@ -113,8 +113,6 @@
   with_items:
     - "{{ instances }}"
 
-# copy over tomcat_default template and run from the containers
-
 - block:
   - name: Copy setup template to intances. 
     connection: lxd
