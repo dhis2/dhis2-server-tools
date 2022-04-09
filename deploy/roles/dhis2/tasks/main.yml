@@ -1,4 +1,3 @@
----
 # tasks file for ./roles/dhis2
 # set up dhis2 on a container
 # get free address 
@@ -20,12 +19,14 @@
   connection: lxd
   ping:
     #data: crash
+  delegate_to: postgres
 
 - name: Check if Postgres service is installed
   connection: lxd
   apt: 
     name: postgresql
     state: present
+  delegate_to: postgres
 
 - name: Check posgresql Version
   connection: lxd
@@ -34,13 +35,13 @@
   postgresql_info:
     filter: ver*,ext*
   register: postgresql_version_info
+  delegate_to: postgres
 
 - name: Get Postgresql version info
   debug:
     msg: " Major: {{  postgresql_version_info.version.major }}, and Minor: {{ postgresql_version_info.version.minor }} "
     
 # Check if database already exists, run only if database is installed 
-
 
 - name: Create db role if it does not exist
   become: yes
@@ -54,18 +55,6 @@
     - "{{ instances }}"
   delegate_to: postgres
   
-- name: Create database if it does not exist
-  connection: lxd
-  become: yes
-  become_user: postgres
-  postgresql_db:
-    name: "{{ item.name }}"
-    conn_limit: "{{ db_connection_limit | default(100) }}"
-    owner: "{{ db_owner | default( item.name ) }}"
-  when: item.createdb
-  with_items:
-    - "{{ instances }}"
-  delegate_to: postgres
 
 #- set_vars:
 #    pg_major: 
@@ -77,6 +66,7 @@
 #    cmd: "psql  --csv -qt -c '\du' postgres| cut -d,  -f1 |grep -w dhis2" # replace name 
 #  tags: [ never ]
 
+--- 
 #- name: check if dhis2 user exists
 #  connection: lxd
 #  become: yes
@@ -125,7 +115,7 @@
 
 # copy over tomcat_default template and run from the containers
 
-- block: 
+- block:
   - name: Copy setup template to intances. 
     connection: lxd
     template:
@@ -139,18 +129,9 @@
       - "{{ instances }}"
     tags: [ run_shell ]
 
-# - name: Execute tomcat_setup.sh script withing the containers
-#    ansible.builtin.script: 
-
-
-
-
-
-
-
-
-
-
+  - name: Execute tomcat_setup.sh script withing the containers
+    script:
+      tomcat_setup.j2
 
 
 

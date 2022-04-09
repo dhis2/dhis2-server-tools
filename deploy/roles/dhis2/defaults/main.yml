@@ -3,7 +3,7 @@
 PROXY_IP: "{{ containers[0].ip }}"
 instances:
   - name: dhis2
-    ip_address: 192.168.1.10
+    ip_address: "192.168.1.10 | default('omit if its not on the network')"
     createdb: yes
     tomcat_setup: filler
     glowroot_setup: default
@@ -22,3 +22,4 @@ instances:
     proxy_ip: filler
     java_version: "11"
     guestos: "20.04"
+
