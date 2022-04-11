@@ -1,10 +1,19 @@
-- hosts: proxy,postgres
+- hosts: postgres
   connection: community.general.lxd
   gather_facts: no
+
+#vars_prompt:
+#- name: "instance_name"
+#      prompt: "Provision a new dhis2 instance\nDatabase must already be setup prior to running.\nInstance name:"
+#default: "dhis2"
+#    private: no
+  
   pre_tasks:
     - name: Load varibales into the play
       connection: local
       include_vars:
         file: containers.yml
+    
   roles:
+    - role: postgres
     - role: dhis2

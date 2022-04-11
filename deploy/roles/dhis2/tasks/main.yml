@@ -6,6 +6,8 @@
 # SET variables 
 # PROXY_IP: 
 # JAVA_VERSION
+# You could use prompt module to get variables from the user. 
+
 - block:
   - name: Get free address
     connection: local
@@ -18,17 +20,19 @@
 - name: Check if postgres container exists
   connection: lxd
   ping:
-    #data: crash
   delegate_to: postgres
 
-- name: Check if Postgres service is installed
+# Ensure postgresql database is installed on posgresql containter, 
+# NOTE: this will install the database if its not already installed. 
+
+- name: Ensure postgres database is installed
   connection: lxd
   apt: 
     name: postgresql
     state: present
   delegate_to: postgres
 
-- name: Check posgresql Version
+- name: check posgresql Version
   connection: lxd
   become: yes
   become_user: postgres
@@ -37,11 +41,17 @@
   register: postgresql_version_info
   delegate_to: postgres
 
-- name: Get Postgresql version info
+# display posgresql version information
+- name: Postgresql version info
   debug:
     msg: " Major: {{  postgresql_version_info.version.major }}, and Minor: {{ postgresql_version_info.version.minor }} "
     
 # Check if database already exists, run only if database is installed 
+
+- name: Generate instance password
+  set_fact:
+    instance_password: "{{ lookup('password', '/dev/null', seed=inventory_hostname) }}"
+
 
 - name: Create db role if it does not exist
   become: yes
@@ -49,45 +59,28 @@
   postgresql_user:
     state: present
     name: "{{ item.name }}"
-    password: md59543f1d82624df2b31672ec0f7050460
+    password: "{{ instance_password }}"
+      #no_password_changes: yes
   when:  item.createdb
   with_items:
     - "{{ instances }}"
   delegate_to: postgres
-  
 
-#- set_vars:
-#    pg_major: 
-#- name: check if dhis2 database exists
-#  connection: lxd
-#  become: yes
-#  become_user: postgres
-#  command:
-#    cmd: "psql  --csv -qt -c '\du' postgres| cut -d,  -f1 |grep -w dhis2" # replace name 
-#  tags: [ never ]
+- name: Create intances DBs
+  connection: lxd
+  become: yes
+  become_user: postgres
+  delegate_to: postgres
+  community.general.postgresql_db:
+    name: "{{ item.name }}"
+    state: present
+    owner: "{{ item.name }}"
+  with_items:
+    - "{{ instances }}"
 
---- 
-#- name: check if dhis2 user exists
-#  connection: lxd
-#  become: yes
-#  become_user: postgres
-#  command:
-#    cmd: "psql  --csv -qt -c '\du' postgres| cut -d,  -f1 |grep -w {{ containers.postgres }}" # replace name 
-## Check if database user already exists
-#
-#- name: check user database exists
-#  connection: lxd
-#  become: yes
-#  become_user: postgres
-#  shell:
-#    cmd: 
-#  delegate_to: "{{ containers[0].name }}"
 
-# Creating database 
-# conditions, user exists, 
 
-# Fixing pg_hba.conf permissions
-
+# Creating dhis2 instance(s)
 - name: Creating instances 
   connection: local
   lxd_container:
@@ -113,23 +106,62 @@
   with_items:
     - "{{ instances }}"
 
+# Fixing pg_hba.conf permissions
+- name: Fixing pg_hba.conf permissions, allowing instances to connect
+  connection: lxd
+  lineinfile:
+    path: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf
+    insertafter: EOF
+    line: "host    {{item.name}}    {{item.name}}    {{item.name}}.lxd    md5"
+  with_items:
+    - "{{ instances }}"
+  delegate_to: postgres
+
+# setting up dhis2
 - block:
   - name: Copy setup template to intances. 
     connection: lxd
+    delegate_to: "{{ item.name }}" # ensuring its copied over to dhis2 instances only 
     template:
       src: tomcat_setup.j2
       dest: /tmp/tomcat_setup.sh
       mode: '0700'
       owner: root
       group: root
-    delegate_to: "{{ item.name }}" # ensuring its copied over to dhis2 instances only 
     with_items:
       - "{{ instances }}"
-    tags: [ run_shell ]
 
   - name: Execute tomcat_setup.sh script withing the containers
-    script:
-      tomcat_setup.j2
+    connection: lxd
+    delegate_to: "{{ item.name }}"
+    shell:  /tmp/tomcat_setup.sh
+    with_items:
+      - "{{ instances }}"
 
+# Download and Extract dhis2 into the instances 
+- name: Ensure instance(s) directory exists
+  delegate_to: "{{ item.name }}"
+  connection: lxd
+  file:
+    path:  /var/lib/tomcat9/webapps/{{item.name}}
+    state: directory
+  with_items: 
+  - "{{ instances }}"
 
+- name: Ensure instance(s) directory exists
+  delegate_to: "{{ item.name }}"
+  connection: lxd
+  apt:
+    name: unzip
+  with_items: 
+  - "{{ instances }}"
 
+- name: Download and unurchive dhis2 file
+  connection: lxd
+  delegate_to: "{{ item.name }}"
+  ansible.builtin.unarchive:
+    src: "https://releases.dhis2.org/2.37/dhis2-stable-latest.war"
+    dest: /var/lib/tomcat9/webapps/{{item.name}}
+    remote_src: yes
+  with_items:
+    - "{{ instances }}"
