@@ -1,0 +1,39 @@
+---
+# tasks file for ./roles/proxy
+- name: Install nginx
+  apt:
+    name: nginx
+    update_cache: yes
+    cache_valid_time: 3600
+    state: latest
+
+- name: Disabling nginx version show
+  lineinfile:
+    dest: /etc/nginx/nginx.conf
+    regex: '.*server_tokens off'
+    line: "\tserver_tokens off;"
+    insertafter: "types_hash_max_size"
+  notify: reload nginx
+
+# ssl certificate configuration
+
+
+# Site configuration 
+- name: Site configuration
+  template:
+    src: nginx.j2
+    dest: /etc/nginx/sites-available/{{ domain_name }}
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Enable configuration
+  file:
+    src: "/etc/nginx/sites-available/{{domain_name}}"
+    dest: "/etc/nginx/sites-enabled/{{domain_name}}"
+    state: link
+    owner: root
+    group: root
+    mode: 0644
+  notify: reload nginx
+

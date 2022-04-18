@@ -48,7 +48,7 @@ connection.driver_class = org.postgresql.Driver
 
 # Database connection URL
 # connection.url = jdbc:postgresql://postgres/dhis
-connection.url = jdbc:postgresql:xxxx
+connection.url = jdbc:postgresql://postgres/{{ item.name }}
 
 # Database username
   connection.username = {{ item.name }}

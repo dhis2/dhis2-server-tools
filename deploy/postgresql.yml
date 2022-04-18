@@ -1,4 +1,4 @@
-- hosts: postgres
+- hosts: localhost
   gather_facts: no
   pre_tasks:
     - name: Load varibales into the play

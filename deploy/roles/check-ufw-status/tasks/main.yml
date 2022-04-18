@@ -1,6 +1,0 @@
----
-# tasks file for ./roles/check-ufw-status
-- name: check ufw status
-  command:  ufw status
-  register: ufw_status
-

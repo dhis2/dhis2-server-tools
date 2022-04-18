@@ -4,7 +4,7 @@ PROXY_IP: "{{ containers[0].ip }}"
 JAVA_VERSION: "11"
 instances:
   - name: dhis2
-    ip_address: "{{ '192.168.1.10' | ipaddr(lxd_network) |  default(omit) }}"
+    #ip_address: "{{ '192.168.1.10' | ipaddr(lxd_network) |  default(omit) }}"
     createdb: yes
     tomcat_setup: filler
     glowroot_setup: default

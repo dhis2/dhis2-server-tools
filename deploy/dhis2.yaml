@@ -1,4 +1,4 @@
-- hosts: postgres
+- hosts: localhost
   connection: community.general.lxd
   gather_facts: no
 

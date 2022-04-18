@@ -1,2 +1,28 @@
 ---
 # handlers file for ./roles/dhis2
+# stopping tomcat9
+- name: stop tomcat
+  connection: community.general.lxd
+  ansible.builtin.service:
+    name: tomcat9
+    state: stopped
+  delegate_to: "{{ item.name }}"
+  loop: "{{ instances }}"
+
+# starting tomcat9 
+- name: start tomcat
+  connection: community.general.lxd
+  ansible.builtin.service:
+    name: tomcat9
+    state: started
+  delegate_to: "{{ item.name }}"
+  loop: "{{ instances }}"
+
+# restarting tomcat 9 
+- name: restart tomcat
+  connection: community.general.lxd
+  ansible.builtin.service:
+    name: tomcat9
+    state: restarted
+  delegate_to: "{{ item.name }}"
+  loop: "{{ instances }}"

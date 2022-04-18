@@ -21,8 +21,9 @@
         nictype:  "{{ containers[1].nictype | default ('bridged') }}"
         parent:   "{{ containers[1].network | default ('lxdbr0') }}"
         type:     "{{ containers[1].interface_type | default ('nic') }}"
-        ipv4.address: "{{ containers[1].ip | default(omit)}}"
-  delegate_to: postgres
+        ipv4.address: "{{ containers[1].ip | ipaddr(lxd_network) | default(omit)}}" 
+        # ipaddr ensures that the address variable is is in lxd_network to be usable. 
+          #delegate_to: postgres
  
 # Install postgresql and other packages 
 - name: Installing postgresql in the container

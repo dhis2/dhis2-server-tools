@@ -18,7 +18,7 @@
 
 # Check if Postgres container exists
 - name: Check if postgres container exists
-  connection: lxd
+  connection: community.general.lxd
   ping:
   delegate_to: postgres
 
@@ -26,14 +26,14 @@
 # NOTE: this will install the database if its not already installed. 
 
 - name: Ensure postgres database is installed
-  connection: lxd
+  connection: community.general.lxd
   apt: 
     name: postgresql
     state: present
   delegate_to: postgres
 
 - name: check posgresql Version
-  connection: lxd
+  connection: community.general.lxd
   become: yes
   become_user: postgres
   postgresql_info:
@@ -52,13 +52,12 @@
   set_fact:
     instance_password: "{{ lookup('password', '/dev/null', seed=inventory_hostname) }}"
 
-
 - name: Create db role if it does not exist
   become: yes
   become_user: postgres
   postgresql_user:
-    state: present
     name: "{{ item.name }}"
+    state: present
     password: "{{ instance_password }}"
       #no_password_changes: yes
   when:  item.createdb
@@ -67,11 +66,11 @@
   delegate_to: postgres
 
 - name: Create intances DBs
-  connection: lxd
+  connection: community.general.lxd
   become: yes
   become_user: postgres
   delegate_to: postgres
-  community.general.postgresql_db:
+  postgresql_db:
     name: "{{ item.name }}"
     state: present
     owner: "{{ item.name }}"
@@ -83,7 +82,7 @@
 # Creating dhis2 instance(s)
 - name: Creating instances 
   connection: local
-  lxd_container:
+  community.general.lxd_container:
     name: "{{ item.name }}"
     state: started
     source:
@@ -108,7 +107,7 @@
 
 # Fixing pg_hba.conf permissions
 - name: Fixing pg_hba.conf permissions, allowing instances to connect
-  connection: lxd
+  connection: community.general.lxd
   lineinfile:
     path: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf
     insertafter: EOF
@@ -118,46 +117,50 @@
   delegate_to: postgres
 
 # setting up dhis2
-- block:
-  - name: Copy setup template to intances. 
-    connection: lxd
-    delegate_to: "{{ item.name }}" # ensuring its copied over to dhis2 instances only 
-    template:
-      src: tomcat_setup.j2
-      dest: /tmp/tomcat_setup.sh
-      mode: '0700'
-      owner: root
-      group: root
-    with_items:
-      - "{{ instances }}"
+- name: Copy setup template to intances. 
+  connection: community.general.lxd
+  template:
+    src: tomcat_setup.j2
+    dest: /tmp/tomcat_setup.sh
+    mode: '0700'
+    owner: root
+    group: root
+  delegate_to: "{{ item.name }}" # ensuring its copied over to dhis2 instances only 
+  with_items:
+    - "{{ instances }}"
 
-  - name: Execute tomcat_setup.sh script withing the containers
-    connection: lxd
-    delegate_to: "{{ item.name }}"
-    shell:  /tmp/tomcat_setup.sh
-    with_items:
-      - "{{ instances }}"
+# Execute copied over tomcat_setup.sh script
+- name: Execute tomcat_setup.sh script withing the containers
+  connection: community.general.lxd
+  delegate_to: "{{ item.name }}"
+  shell:  /tmp/tomcat_setup.sh
+  with_items:
+    - "{{ instances }}"
+  tags: []
 
-# Download and Extract dhis2 into the instances 
+# Creating application directories
 - name: Ensure instance(s) directory exists
   delegate_to: "{{ item.name }}"
-  connection: lxd
+  connection: community.general.lxd
   file:
     path:  /var/lib/tomcat9/webapps/{{item.name}}
     state: directory
   with_items: 
   - "{{ instances }}"
+  notify: stop tomcat
 
-- name: Ensure instance(s) directory exists
+# installs unzip withing the containers 
+- name: Installing unzip, used to extract tomcat war files with the containers.
   delegate_to: "{{ item.name }}"
-  connection: lxd
+  connection: community.general.lxd
   apt:
     name: unzip
   with_items: 
   - "{{ instances }}"
-
+    
+# Download and Extract dhis2 into the instances 
 - name: Download and unurchive dhis2 file
-  connection: lxd
+  connection: community.general.lxd
   delegate_to: "{{ item.name }}"
   ansible.builtin.unarchive:
     src: "https://releases.dhis2.org/2.37/dhis2-stable-latest.war"
@@ -165,3 +168,4 @@
     remote_src: yes
   with_items:
     - "{{ instances }}"
+  notify: start tomcat
