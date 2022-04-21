@@ -1,0 +1,25 @@
+# 
+# Site configuration 
+- name: Site configuration
+  connection: community.general.lxd
+  template:
+    src: nginx.j2
+    dest: /etc/nginx/sites-available/{{ fqdn }}
+    owner: root
+    group: root
+    mode: 0644
+  delegate_to: proxy
+  loop: "{{ instances }}"
+
+- name: Enable configuration
+  connection: community.general.lxd
+  file:
+    src: "/etc/nginx/sites-available/{{ fqdn }}"
+    dest: "/etc/nginx/sites-enabled/{{ fqdn }}"
+    state: link
+    owner: root
+    group: root
+    mode: 0644
+  notify: reload nginx
+  delegate: proxy
+

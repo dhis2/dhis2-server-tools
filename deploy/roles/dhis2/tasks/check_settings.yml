@@ -1,0 +1,28 @@
+
+- name: Ensure admin email is defined
+  fail:
+    msg: "Your dhis2 administrator email is not defined. Please define existing email address to deploy dhis2 in 'email' variable"
+  when: (email is not defined) or (email == None) or (not email)
+
+- name: Ensure fqdm is defined
+  fail:
+    msg: "Your dhis2 hostname is not defined. Please define existing and working hostname to deploy dhis2 in 'fqdm' variable. fqdm should be resolved to one of public IP addresses of your server."
+  when: (fqdm is not defined) or (fqdm == None) or (not fqdm)
+
+- name: Try to resolve fqdm "{{ fqdm }}"
+  set_fact:
+    fqdm_ip: "{% if lookup('dig', fqdm) | ipaddr %}{{ lookup('dig', fqdm) }}{% else %}{% endif %}"
+
+- name: Ensure fqdm "{{ fqdm }}" has been resolved
+  fail:
+    msg: "Your dhis2 fqdm '{{ fqdm }}' couldn't be resolved to IP address. Please ensure DNS settings of your domain are actual. Keep in mind the DNS could take long to update"
+  when: (fqdm_ip == None) or (not fqdm_ip)
+
+- name: Set "public_ip" to "{{fqdm_ip }}" if it empty in config.yaml
+  set_fact:
+    public_ip: "{{ fqdm_ip }}"
+  when: (public_ip is not defined) or (public_ip == None) or (not public_ip)
+
+- name: Process SSL availability
+  set_fact:
+    ssl_enabled: "{% if certbot_enabled or (custom_ssl_cert is defined and custom_ssl_cert|length > 0 and custom_ssl_key is defined and custom_ssl_key|length > 0) %}true{% else %}false{% endif %}"

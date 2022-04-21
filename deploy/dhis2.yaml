@@ -16,4 +16,5 @@
     
   roles:
     - role: postgres
+    - role: proxy
     - role: dhis2

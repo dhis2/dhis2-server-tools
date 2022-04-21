@@ -15,25 +15,7 @@
     insertafter: "types_hash_max_size"
   notify: reload nginx
 
-# ssl certificate configuration
+- name: Remove default nginx site 
+  file: name=/etc/nginx/sites-enabled/default state=absent
 
-
-# Site configuration 
-- name: Site configuration
-  template:
-    src: nginx.j2
-    dest: /etc/nginx/sites-available/{{ domain_name }}
-    owner: root
-    group: root
-    mode: 0644
-
-- name: Enable configuration
-  file:
-    src: "/etc/nginx/sites-available/{{domain_name}}"
-    dest: "/etc/nginx/sites-enabled/{{domain_name}}"
-    state: link
-    owner: root
-    group: root
-    mode: 0644
-  notify: reload nginx
 

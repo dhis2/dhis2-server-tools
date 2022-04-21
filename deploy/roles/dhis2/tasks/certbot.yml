@@ -1,0 +1,26 @@
+# tasks file for nginx certbot
+# generating ssl certificate for nginx with certbot
+
+# install letsecrypt client 
+- name: Validate settings
+  include_tasks: check_settings.yml
+
+- name: Install Lets En client
+  connection: community.general.lxd
+  apt:
+    name:
+      - certbot
+      - python3-certbot-nginx
+  delegate_to: proxy
+- 
+
+# Obtain ssl certificate
+- name: 
+  shell:
+    cmd: certbot --nginx -d {{fqdm}} -d {{fqdm}}
+  delegate_to: proxy
+
+- name: Create letsencrypt certificate
+  shell: certbot  certonly -n --webroot -w /var/www/letsencrypt -m {{ fqdm }} --agree-tos -d {{ fqdm }}
+  args:
+    creates: /etc/letsencrypt/live/{{ fqdm }}

@@ -42,6 +42,17 @@
   become: yes
   become_user: postgres
   postgresql_info:
-    filter: ver*,ext*
+    filter: ver*
   delegate_to: postgres
   register: postgresql_version_info
+
+# Allow postgress listening on all the interfacess
+- name: Allow posgress listening on network
+  connection: community.general.lxd
+  delegate_to: postgres
+  lineinfile:
+    dest: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/postgresql.conf
+    regex: "^#?listen_addresses"
+    line: "listen_addresses '*'"
+  notify: Restart postgres
+# harden postgre host network, allow its access from dhis2 instances only, use ufw. 
