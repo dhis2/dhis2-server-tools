@@ -161,7 +161,7 @@
   connection: community.general.lxd
   delegate_to: "{{ item.name }}"
   ansible.builtin.unarchive:
-    src: "https://releases.dhis2.org/2.37/dhis2-stable-latest.war"
+    src: "https://releases.dhis2.org/{{ version }}/dhis2-stable-latest.war"
     dest: /var/lib/tomcat9/webapps/{{item.name}}
     remote_src: yes
   with_items:

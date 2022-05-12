@@ -1,21 +1,60 @@
 ---
 # tasks file for ./roles/proxy
 - name: Install nginx
+  connection: lxd 
   apt:
     name: nginx
     update_cache: yes
     cache_valid_time: 3600
     state: latest
+  delegate_to: proxy
+- name: Install certbot
+  connection: lxd
+  apt:
+    name: certbot
+    update_cache: yes
+    cache_valid_time: 3600
+    state: latest
+  delegate_to: proxy
 
 - name: Disabling nginx version show
+  connection: lxd
   lineinfile:
     dest: /etc/nginx/nginx.conf
     regex: '.*server_tokens off'
     line: "\tserver_tokens off;"
     insertafter: "types_hash_max_size"
   notify: reload nginx
+  delegate_to: proxy
 
 - name: Remove default nginx site 
+  connection: lxd
   file: name=/etc/nginx/sites-enabled/default state=absent
+  delegate_to: proxy 
+- name: Generate TLS/SSL Certificate with certbot
+
+- name: Porting proxy nginx configuration
+  connection: lxd
+  template:
+    src: site-config.j2
+    dst: "/etc/nginx/sites-available/{{fqdm}}"
+    owner: root
+    group: root
+    mode: 644
+  delegate_to: proxy
+
+- name: Enable nginx configuration
+  connection: lxd
+  file:
+    src: "/etc/nginx/sites-available/{{fqdm}}"
+    dst: "/etc/nginx/sites-enabled/{{fqdm}}"
+    state: link
+    owner: root
+    group: root
+    mode: 0644
+  notify: Reload Nginx
+  delegate_to: proxy
+
+
 
 

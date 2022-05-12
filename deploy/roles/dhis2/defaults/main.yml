@@ -12,6 +12,8 @@ instances:
     PROXY: filler
     PROXY_IP: 
     guestos: "20.04"
+    dhis2_url: 
+    version: 
 
   - name: training 
     createdb: yes
@@ -22,6 +24,8 @@ instances:
     proxy_ip: filler
     java_version: "11"
     guestos: "20.04" 
+    version: 
+    dhis2_url: 
       
   
 

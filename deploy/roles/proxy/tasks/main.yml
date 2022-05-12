@@ -12,7 +12,8 @@
     source:
       type: image
       mode: pull
-      server: https://image.linuxcontainers.org
+      server: https://images.linuxcontainers.org
+      protocol: simplestreams
       alias: ubuntu/{{containers[0].guest_os | default(20.04)}}
     devices:
       eth0:
