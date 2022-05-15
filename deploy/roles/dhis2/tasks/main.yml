@@ -145,7 +145,7 @@
     state: directory
   with_items: 
   - "{{ instances }}"
-  notify: stop tomcat
+  notify: Stop Tomcat
 
 # installs unzip withing the containers 
 - name: Installing unzip, used to extract tomcat war files with the containers.
@@ -161,18 +161,14 @@
   connection: community.general.lxd
   delegate_to: "{{ item.name }}"
   ansible.builtin.unarchive:
-    src: "https://releases.dhis2.org/2.37/dhis2-stable-latest.war"
+    # src: "https://releases.dhis2.org/{{ version }}/dhis2-stable-latest.war"
+    src: https://releases.dhis2.org/2.37/dhis2-stable-2.37.3.war
     dest: /var/lib/tomcat9/webapps/{{item.name}}
     remote_src: yes
   with_items:
     - "{{ instances }}"
-  notify: start tomcat
+  notify: Start Tomcat
 
 # proxy configuration
 - name: Deploy proxy configuration
   include_tasks: "{{proxy}}.yml"
-
-# generating ssl cert with certbot configuration
-- name: SSL certificate with Certbot
-  include_tasks: certbot.yml
-

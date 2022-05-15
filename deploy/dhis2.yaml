@@ -1,7 +1,7 @@
 - hosts: localhost
   connection: community.general.lxd
   gather_facts: no
-
+    # prompt users to enter variables 
 #vars_prompt:
 #- name: "instance_name"
 #      prompt: "Provision a new dhis2 instance\nDatabase must already be setup prior to running.\nInstance name:"

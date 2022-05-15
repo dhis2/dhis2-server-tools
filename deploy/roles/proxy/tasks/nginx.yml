@@ -1,21 +1,67 @@
 ---
 # tasks file for ./roles/proxy
+# Installing Certbot, used for ssl/tls certificate generation. 
+- name: Install certbot
+  connection: lxd
+  apt:
+    name: certbot
+    update_cache: yes
+    cache_valid_time: 3600
+    state: latest
+  delegate_to: proxy
+    
+# Generating TLS/SSL certificate with certbot
+- name: Generate TLS/SSL Certificate with certbot
+  connection: lxd
+  shell: certbot certonly -d {{fqdn}} --standalone -m {{email}} --agree-tos -n --no-eff-email
+  delegate_to: proxy
+  tags: [  ]
+
 - name: Install nginx
+  connection: lxd 
   apt:
     name: nginx
     update_cache: yes
     cache_valid_time: 3600
     state: latest
+  delegate_to: proxy
 
+# Disabling nginx version show for security reasons 
 - name: Disabling nginx version show
+  connection: lxd
   lineinfile:
     dest: /etc/nginx/nginx.conf
     regex: '.*server_tokens off'
     line: "\tserver_tokens off;"
     insertafter: "types_hash_max_size"
-  notify: reload nginx
+  notify: Reload Nginx
+  delegate_to: proxy
 
 - name: Remove default nginx site 
+  connection: lxd
   file: name=/etc/nginx/sites-enabled/default state=absent
+  delegate_to: proxy 
 
+# Coping nginx configuration to the proxy 
+- name: Porting proxy nginx configuration
+  connection: lxd
+  template:
+    src: site-config.j2
+    dest: /etc/nginx/sites-available/{{fqdn}}
+    owner: root
+    group: root
+    mode: 644
+  delegate_to: proxy
 
+# Enable nginx configuration by creating a symlink 
+- name: Enable nginx configuration
+  connection: lxd
+  file:
+    src: "/etc/nginx/sites-available/{{fqdn}}"
+    dest: "/etc/nginx/sites-enabled/{{fqdn}}"
+    state: link
+    owner: root
+    group: root
+    mode: 0644
+  notify: Reload Nginx
+  delegate_to: proxy

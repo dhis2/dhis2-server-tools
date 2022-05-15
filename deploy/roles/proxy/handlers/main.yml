@@ -6,3 +6,11 @@
   become_user: root
   community.general.ufw:
     state: reloaded
+
+- name: Reload Nginx
+  connection: lxd
+  service:
+    name: nginx
+    state: reloaded
+  delegate_to: proxy
+
