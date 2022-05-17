@@ -1,6 +1,6 @@
 # Global vars file
-fqdn: "dhis2.kipkurgat.org"
-email: "kipkurgat12@gmail.com"
+fqdn: "xxx.xxx.xxx"
+email: "xxxx@xxxx"
 monitoring: "munin"
 apm: "glowroot"
 proxy: "nginx"
