@@ -28,4 +28,17 @@ instances:
     dhis2_url: 
       
   
+  - name: test 
+    createdb: yes
+    tomcat_setup: filler
+    glowroot_setup: default
+    apm: filler
+    proxy: filler
+    proxy_ip: filler
+    java_version: "11"
+    guestos: "20.04" 
+    version: 
+    dhis2_url: 
+      
+  
 

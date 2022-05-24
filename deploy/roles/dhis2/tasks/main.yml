@@ -65,7 +65,8 @@
     - "{{ instances }}"
   delegate_to: postgres
 
-- name: Create intances DBs
+# Creating instances databases
+- name: "Creating instances databases"
   connection: community.general.lxd
   become: yes
   become_user: postgres
@@ -76,6 +77,17 @@
     owner: "{{ item.name }}"
   with_items:
     - "{{ instances }}"
+
+# Creating postgis extension
+- name: Creating postgis extension
+  connection: community.general.lxd
+  become: yes
+  become_user: postgres
+  community.postgresql.postgresql_ext:
+    name: postgis
+    db: "{{ item.name }}"
+  loop: "{{ instances }}"
+  delegate_to: postgres
 
 # Creating dhis2 instance(s)
 - name: Creating instances 
@@ -109,7 +121,7 @@
   lineinfile:
     path: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf
     insertafter: EOF
-    line: "host    {{item.name}}    {{item.name}}    {{item.name}}.lxd    md5"
+    line: "host    {{item.name}}    {{item.name}}    {{item.name}}    md5"
   with_items:
     - "{{ instances }}"
   delegate_to: postgres
@@ -172,3 +184,4 @@
 # proxy configuration
 - name: Deploy proxy configuration
   include_tasks: "{{proxy}}.yml"
+

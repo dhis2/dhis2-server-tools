@@ -28,7 +28,7 @@ ansible-galaxy collection install community.general -f      # add community gene
 # --------------------------------
 # additional ansible dependencies 
 # --------------------------------
-sudo apt-get install -y python-netaddr                      #required for ipaddr filter module 
+sudo apt-get install -y python3-netaddr                      #required for ipaddr filter module 
 
 # Ensure a user is a member of lxd group
 # sudo usermod -aG lxd $USER
