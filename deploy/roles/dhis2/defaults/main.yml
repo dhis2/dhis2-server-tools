@@ -4,41 +4,23 @@ PROXY_IP: "{{ containers[0].ip }}"
 JAVA_VERSION: "11"
 instances:
   - name: dhis2
-    #ip_address: "{{ '192.168.1.10' | ipaddr(lxd_network) |  default(omit) }}"
     createdb: yes
-    tomcat_setup: filler
-    glowroot_setup: default
-    apm: 
-    PROXY: filler
-    PROXY_IP: 
-    guestos: "20.04"
-    dhis2_url: 
-    version: 
+    # tomcat_setup: filler
+    # glowroot_setup: default
+    # apm: 
+    # PROXY: filler
+    # PROXY_IP: 
+    # guestos: "20.04"
+    # dhis2_version: 
+    #ip_address: "{{ '192.168.1.10' | ipaddr(lxd_network) |  default(omit) }}"
 
   - name: training 
     createdb: yes
-    tomcat_setup: filler
-    glowroot_setup: default
-    apm: filler
-    proxy: filler
-    proxy_ip: filler
-    java_version: "11"
-    guestos: "20.04" 
-    version: 
-    dhis2_url: 
-      
-  
-  - name: test 
-    createdb: yes
-    tomcat_setup: filler
-    glowroot_setup: default
-    apm: filler
-    proxy: filler
-    proxy_ip: filler
-    java_version: "11"
-    guestos: "20.04" 
-    version: 
-    dhis2_url: 
-      
-  
-
+    # # tomcat_setup: filler
+    # # glowroot_setup: default
+    # # apm: 
+    # # proxy: 
+    # # proxy_ip: 
+    # # java_version: "11"
+    # # guestos: "20.04" 
+    # # dhis2_version: 

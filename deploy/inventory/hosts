@@ -1,10 +1,48 @@
-[containers]
-proxy 
-postgres
-monitor
+[hosts]
+dhis2       ansible_host=192.168.0.10   ssh_port=22
+training    ansible_host=192.168.0.12   ssh_port=22
+postgres    ansible_host=192.168.0.20   ssh_port=22 ansible_connection=lxd
+proxy       ansible_host=192.168.0.2    ssh_port=22
 
-[containers:vars]
-#ansible_connection=lxd
-ansible_user=root
-ansible_lxd_remote=local
+
+
+
+
+# containers 
+# [containers]
+# proxy
+
+# [lxd_databases]
+# postgres
+
+# [lxd_instances]
+# dhis2  ip=192.168.0.10 
+# training ip=192.168.0.11
+
+# [containers:children]
+# lxd_instances
+# lxd_databases
+    
+# [containers:vars]
+# ansible_connection=community.general.lxd
+
+
+# ssh hosts 
+# [ssh_hosts]
+# proxy ansible_host=192.168.0.2 ssh_port=22
+
+# [ssh_databases]
+# ssh_postgres    ansible_host=192.168.0.20 ssh_port=22
+# [ssh_instances]
+# dhis2       ansible_host=192.168.0.10   ssh_port=22
+# training    ansible_host=192.168.0.12   ssh_port=22y
+
+# [ssh_hosts:children]
+# ssh_databases
+# ssh_instances
+
+# [ssh_hosts:vars]
+# ansible_connection=ssh
+# ansible_ssh_user=ktito
+# ansible_remote_user=ktito
 

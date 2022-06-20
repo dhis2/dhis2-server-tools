@@ -1,27 +1,8 @@
 ---
-# tasks file for ./roles/proxy
-
-- name: Create proxy container
-  connection: local
-  community.general.lxd_container:
-    name: proxy
-    state: started
-    profiles: ["default"]
-    ignore_volatile_options: false
-    timeout: 600
-    source:
-      type: image
-      mode: pull
-      server: https://images.linuxcontainers.org
-      protocol: simplestreams
-      alias: ubuntu/{{containers[0].guest_os | default(20.04)}}
-    devices:
-      eth0:
-        nictype:  "{{ containers[0].nictype | default ('bridged') }}"
-        parent:   "{{ containers[0].network | default ('lxdbr0') }}"
-        type:     "{{ containers[0].interface_type | default ('nic') }}"
-        ipv4.address: "{{ containers[0].ip | ipaddr(lxd_network) | default(omit)}}" 
-
+- name: include {{ ansible_connection }} related tasks 
+  include_tasks: "{{ ansible_connection }}.yml"
+# run proxy specifig tasks
 - name: Proxy setup 
-  include: "{{proxy}}.yml"
+  include_tasks: "{{proxy}}.yml"
+  when: proxy_is_enabled
 

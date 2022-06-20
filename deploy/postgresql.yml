@@ -1,8 +1,0 @@
-- hosts: localhost
-  gather_facts: no
-  pre_tasks:
-    - name: Load varibales into the play
-      include_vars:
-        file: containers.yml
-  roles:
-    - postgres

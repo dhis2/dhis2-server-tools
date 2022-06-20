@@ -24,3 +24,4 @@
   shell: certbot  certonly -n --webroot -w /var/www/letsencrypt -m {{ fqdm }} --agree-tos -d {{ fqdm }}
   args:
     creates: /etc/letsencrypt/live/{{ fqdm }}
+  ignore_errors: true

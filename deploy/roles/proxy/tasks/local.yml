@@ -1,0 +1,29 @@
+# tasks file for ./roles/proxy
+# Create proxy container, if dhis2 is being setup locally.
+- name: Create proxy container
+  vars:
+    ansible_connection: local
+  community.general.lxd_container:
+    name: proxy
+    state: started
+    profiles: ["default"]
+    ignore_volatile_options: false
+    timeout: 600
+    source:
+      type: image
+      mode: pull
+      #server: https://images.linuxcontainers.org
+      server: https://cloud-images.ubuntu.com/releases
+      fingerprint: e3e1bd82cdc7
+      protocol: simplestreams
+      #alias: ubuntu/{{containers[0].guest_os | default(20.04)}}
+    devices:
+      eth0:
+        nictype:  "{{ containers[0].nictype | default ('bridged') }}"
+        parent:   "{{ containers[0].network | default ('lxdbr0') }}"
+        type:     "{{ containers[0].interface_type | default ('nic') }}"
+        ipv4.address: "{{ containers[0].ip | ipaddr(lxd_network) | default(omit)}}" 
+  when: 
+    - dhis2_setup_environment == "lxd"
+    - proxy_is_enabled
+

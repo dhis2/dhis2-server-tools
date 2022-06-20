@@ -1,0 +1,31 @@
+---
+# this playbook deploys database (postgresql), proxy (nginx/apache2) and dhis2 instaces. 
+- name: Deployin dhis2 
+  gather_facts: False
+  connection: lxd
+  vars:
+    remote_addr: "{{ ansible_host }}"
+  hosts: 127.0.0.1
+
+# tasks that run before everything else
+  pre_tasks:
+    - name: Load varibales into the play
+      connection: local
+      include_vars:
+        file: containers.yml
+      check_mode: no
+    - debug: var=dhis2_setup_environment
+    - debug: var=ansible_host
+
+# play roles, those on top of the list are played first.
+  roles:
+    - role: postgres
+      connection: "{{ 'community.general.lxd' if dhis2_setup_environment == 'lxd' else 'ssh' }}"
+    - role: proxy
+      connection: "{{ 'community.general.lxd' if dhis2_setup_environment == 'lxd' else 'ssh' }}"
+    - role: dhis2
+      connection: "{{ 'community.general.lxd' if dhis2_setup_environment == 'lxd' else 'ssh' }}"
+
+# # Play for ssh connectin 
+# - name: Deply dhis2 over ssh  hosts
+#   hosts: ssh_hosts

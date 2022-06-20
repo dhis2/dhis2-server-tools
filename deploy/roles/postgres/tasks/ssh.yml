@@ -1,0 +1,7 @@
+---
+- name: Install acl package, needed when switching to postgres user
+  ansible.builtin.apt:
+    name: acl
+    state: present
+    update_cache: yes
+  delegate_to: postgres

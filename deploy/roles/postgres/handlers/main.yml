@@ -1,8 +1,16 @@
 ---
 # handlers file for ./roles/postgresql
-- name: Restart postgres
+# Restart postgresql service
+- name: Restart Postgres
   connection: community.general.lxd
   ansible.builtin.service:
     name: postgresql
     state: restarted
+  delegate_to: postgres
+
+# Reload postgresql service 
+- name: Reload Postgres
+  ansible.builtin.service:
+    name: postgresql
+    state: reloaded
   delegate_to: postgres

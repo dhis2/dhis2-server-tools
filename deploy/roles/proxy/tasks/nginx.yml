@@ -2,23 +2,29 @@
 # tasks file for ./roles/proxy
 # Installing Certbot, used for ssl/tls certificate generation. 
 - name: Install certbot
-  connection: lxd
+  #connection: lxd
   apt:
     name: certbot
     update_cache: yes
     cache_valid_time: 3600
     state: latest
   delegate_to: proxy
-    
+  when: certbot_enabled
+# Check if ther cert exists 
+- name: Check if certificate already exists.
+  stat:
+    path: /etc/letsencrypt/live/{{ fqdn }}/cert.pem
+  register: letsencrypt_cert
+  delegate_to: proxy
+
 # Generating TLS/SSL certificate with certbot
 - name: Generate TLS/SSL Certificate with certbot
-  connection: lxd
   shell: certbot certonly -d {{fqdn}} --standalone -m {{email}} --agree-tos -n --no-eff-email
   delegate_to: proxy
-  tags: [  ]
+  when: not letsencrypt_cert.stat.exists
 
 - name: Install nginx
-  connection: lxd 
+  #connection: lxd 
   apt:
     name: nginx
     update_cache: yes
@@ -28,7 +34,7 @@
 
 # Disabling nginx version show for security reasons 
 - name: Disabling nginx version show
-  connection: lxd
+  #connection: lxd
   lineinfile:
     dest: /etc/nginx/nginx.conf
     regex: '.*server_tokens off'
@@ -38,27 +44,28 @@
   delegate_to: proxy
 
 - name: Remove default nginx site 
-  connection: lxd
   file: name=/etc/nginx/sites-enabled/default state=absent
   delegate_to: proxy 
 
 # Coping nginx configuration to the proxy 
-- name: Porting proxy nginx configuration
-  connection: lxd
-  template:
-    src: site-config.j2
-    dest: /etc/nginx/sites-available/{{fqdn}}
-    owner: root
-    group: root
-    mode: 644
+- block:
+  - stat: path=/etc/nginx/sites-available/{{ fqdn }}
+    register: site_config
+  - name: Porting proxy nginx configuration
+    template:
+      src: site-config.j2
+      dest: /etc/nginx/sites-available/{{fqdn}}
+      owner: root
+      group: root
+      mode: 644
+    when: not site_config.stat.exists
   delegate_to: proxy
 
-# Enable nginx configuration by creating a symlink 
+# Enable nginx configuration by creating a symlink
 - name: Enable nginx configuration
-  connection: lxd
-  file:
-    src: "/etc/nginx/sites-available/{{fqdn}}"
-    dest: "/etc/nginx/sites-enabled/{{fqdn}}"
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ fqdn }}"
+    dest: "/etc/nginx/sites-enabled/{{ fqdn }}"
     state: link
     owner: root
     group: root

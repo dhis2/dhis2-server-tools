@@ -8,14 +8,14 @@ connection.dialect = org.hibernate.dialect.PostgreSQLDialect
 connection.driver_class = org.postgresql.Driver
 
 # Database connection URL
-connection.url = jdbc:postgresql: "{{ conetainer_address }}"
+connection.url = jdbc:postgresql://postgres/{{ item.name }}
 
 # Database username
-connection.username = "{{ username }}"
+connection.username =  {{ item.name }}
 
 
 # Database password (sensitive)
-connection.password = "{{ connection_password }}"
+connection.password =  {{ db_password }}
 
 # Database schema behavior, can be 'validate', 'update', 'create', 'create-drop'
 connection.schema = update

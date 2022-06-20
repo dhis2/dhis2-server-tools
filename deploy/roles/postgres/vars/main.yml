@@ -1,2 +1,3 @@
 ---
 # vars file for ./roles/postgresql
+#ansible_connection: "{{ 'community.general.lxd' if dhis2_setup_environment == 'lxd' else 'ssh'}}"

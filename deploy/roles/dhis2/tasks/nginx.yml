@@ -1,6 +1,6 @@
 # Nginx location configuration
 - name: Adding location configuration to nginx confuration
-  connection: community.general.lxd
+  #connection: community.general.lxd
   blockinfile:
     path: "/etc/nginx/sites-available/{{fqdn}}"
     marker: "# {mark} {{ item.name }} block configuration."
@@ -20,3 +20,5 @@
   loop: "{{ instances }}"
   notify: Reload Nginx
   delegate_to: proxy
+
+- meta: flush_handlers

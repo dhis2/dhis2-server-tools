@@ -33,3 +33,13 @@
   ansible.builtin.service:
     name: nginx
     state: reloaded
+
+- name: Reload Postgres
+  delegate_to: postgres
+  ansible.builtin.service:
+    name: postgresql
+    state: reloaded
+
+
+  
+
