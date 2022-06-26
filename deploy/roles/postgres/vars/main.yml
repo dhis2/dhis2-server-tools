@@ -1,3 +1,5 @@
 ---
 # vars file for ./roles/postgresql
-#ansible_connection: "{{ 'community.general.lxd' if dhis2_setup_environment == 'lxd' else 'ssh'}}"
+# ansible_host: "{{ 'postgres' if dhis2_setup_environment == 'lxd' else hostvars['ansible_host']}}"
+# ansible_host: "{{ inventory_hostname if dhis2_setup_environment == 'lxd' else hostvars['ansible_host'] }}"
+ansible_host: "{{ inventory_hostname if ansible_connection == 'lxd' else hostvars[inventory_hostname]['ansible_host']}}"

@@ -1,13 +1,22 @@
 ---
 # handlers file for ./roles/dhis2
+- name: Reload Postgres
+  vars:
+    ansible_host: "{{ hostvars[inventory_hostname]['database_host'] if ansible_connection == 'lxd' else  hostvars[hostvars[inventory_hostname]['database_host']]['ansible_host']}}"
+  delegate_to: "{{ hostvars[inventory_hostname]['database_host'] }}"
+  ansible.builtin.service:
+    name: postgresql
+    state: reloaded
+  when:
+    - database_host is defined 
+
 # stopping tomcat9
 - name: Stop Tomcat
   connection: community.general.lxd
   ansible.builtin.service:
     name: tomcat9
     state: stopped
-  delegate_to: "{{ item.name }}"
-  loop: "{{ instances }}"
+  when: inventory_hostname in groups['instances']
 
 # starting tomcat9 
 - name: Start Tomcat
@@ -15,8 +24,7 @@
   ansible.builtin.service:
     name: tomcat9
     state: started
-  delegate_to: "{{ item.name }}"
-  loop: "{{ instances }}"
+  when: inventory_hostname in groups['instances']
 
 # restarting tomcat 9 
 - name: Restart Tomcat
@@ -24,8 +32,7 @@
   ansible.builtin.service:
     name: tomcat9
     state: restarted
-  delegate_to: "{{ item.name }}"
-  loop: "{{ instances }}"
+  when: inventory_hostname in groups['instances']
 
 - name: Reload Nginx
   connection: community.general.lxd
@@ -33,13 +40,4 @@
   ansible.builtin.service:
     name: nginx
     state: reloaded
-
-- name: Reload Postgres
-  delegate_to: postgres
-  ansible.builtin.service:
-    name: postgresql
-    state: reloaded
-
-
-  
 

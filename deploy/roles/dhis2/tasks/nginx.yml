@@ -1,13 +1,12 @@
 # Nginx location configuration
 - name: Adding location configuration to nginx confuration
-  #connection: community.general.lxd
   blockinfile:
     path: "/etc/nginx/sites-available/{{fqdn}}"
-    marker: "# {mark} {{ item.name }} block configuration."
+    marker: "# {mark} {{ item }} block configuration."
     insertafter: "# Proxy pass to the backend"
     block: |2
-        location /{{item.name}} {
-          proxy_pass http://{{ item.name+':8080' }}/{{item.name}};
+        location /{{item}} {
+          proxy_pass http://{{ item+':8080' }}/{{item}};
           proxy_redirect off;
           proxy_set_header Host $host;
           proxy_set_header X-Real-IP $remote_addr;
@@ -17,8 +16,9 @@
           proxy_buffers 8 128k;
           proxy_busy_buffers_size 256k;
           }
-  loop: "{{ instances }}"
+  loop: "{{ groups['instances'] }}"
   notify: Reload Nginx
   delegate_to: proxy
-
+  run_once: true
+  when: hostvars[inventory_hostname]['proxy_is_enabled'] 
 - meta: flush_handlers

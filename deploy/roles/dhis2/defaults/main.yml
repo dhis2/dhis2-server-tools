@@ -1,6 +1,6 @@
 ---
-# defaults file for ./roles/dhis2
-PROXY_IP: "{{ containers[0].ip }}"
+# defaults file for ./roles/dhis2ssh
+PROXY_IP: "{{ hostvars['proxy']['ansible_host']}}"
 JAVA_VERSION: "11"
 instances:
   - name: dhis2
@@ -11,7 +11,6 @@ instances:
     # PROXY: filler
     # PROXY_IP: 
     # guestos: "20.04"
-    # dhis2_version: 
     #ip_address: "{{ '192.168.1.10' | ipaddr(lxd_network) |  default(omit) }}"
 
   - name: training 
@@ -24,3 +23,4 @@ instances:
     # # java_version: "11"
     # # guestos: "20.04" 
     # # dhis2_version: 
+ansible_host: "{{ inventory_hostname if dhis2_setup_environment == 'lxd' else hostvars[inventory_hostname]['ansible_host']}}"

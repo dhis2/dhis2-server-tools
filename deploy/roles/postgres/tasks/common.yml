@@ -1,23 +1,11 @@
 ---
 # tasks below  are run on the containers/vms
-
-- name: Install pre-requisites
-  ansible.builtin.apt:
-    update_cache: yes
-    cache_valid_time: 3600
-    name:
-      - ca-certificates
-  register: apt_status
-  until: apt_status is success
-  delegate_to: postgres
-  tags: [never]
-
 # Adding postgresql signing key
 - name: Add an Apt signing key
   ansible.builtin.apt_key:
     url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc" # https://www.postgresql.org/media/keys/ACCC4CF8.asc
     state: present
-  delegate_to: postgres
+  when: inventory_hostname in groups['databases']
 
  # add postgres apt repository 
 - name: Add Postgres APT repository into sources list
@@ -25,7 +13,7 @@
     repo: "deb https://apt.postgresql.org/pub/repos/apt focal-pgdg main"
     update_cache: true
     state: present
-  delegate_to: postgres
+  when: inventory_hostname in groups['databases']
 
 # Install postgresql and python module for Postgres
 - name: "Install postgres Version {{ postgresql_version }}"
@@ -38,8 +26,8 @@
       - postgresql-client-{{ postgresql_version }}
       - postgresql-{{ postgresql_version }}-postgis-2.5
       - python3-psycopg2 # python module for postgres
-  delegate_to: postgres
-
+  when: inventory_hostname in groups['databases']
+  
 # Check postgresql Version
 - name: Check posgresql Version
   become: true
@@ -47,16 +35,13 @@
   become_user: postgres
   community.postgresql.postgresql_info:
     filter: ver*
-  delegate_to: postgres
   register: postgresql_version_info
+  when: inventory_hostname in groups['databases']
 
 - name: Allow posgress listening on network
-  delegate_to: postgres
   lineinfile:
     dest: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/postgresql.conf
     regex: "^#?listen_addresses"
     line: "listen_addresses '*'"
+  when: inventory_hostname in groups['databases']
   notify: Restart Postgres
-- meta: flush_handlers
-# harden postgre host network, allow its access from dhis2 instances only, use ufw. 
-

@@ -1,6 +1,6 @@
 # tasks file for ./roles/proxy
-# Create proxy container, if dhis2 is being setup locally.
 - name: Create proxy container
+  become: False
   vars:
     ansible_connection: local
   community.general.lxd_container:
@@ -23,7 +23,8 @@
         parent:   "{{ containers[0].network | default ('lxdbr0') }}"
         type:     "{{ containers[0].interface_type | default ('nic') }}"
         ipv4.address: "{{ containers[0].ip | ipaddr(lxd_network) | default(omit)}}" 
+  delegate_to: 127.0.0.1
+  run_once: True
   when: 
-    - dhis2_setup_environment == "lxd"
     - proxy_is_enabled
 

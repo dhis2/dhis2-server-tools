@@ -5,4 +5,4 @@
     name: acl
     state: present
     update_cache: yes
-  when: inventory_hostname in groups['databases']
+  delegate_to: postgres

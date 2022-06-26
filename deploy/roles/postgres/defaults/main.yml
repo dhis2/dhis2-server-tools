@@ -1,11 +1,4 @@
 ---
 # defaults file for ./roles/postgresql
 postgresql_version: 13
-# dhis2_setup_environment: local
-#ansible_connection: community.general.lxd if {{ dhis2_setup_environment }} == 'local' else ssh
-#ansible_connection: "community.general.lxd"
-
-#custom_connection: "{{ 'community.general.lxd' if dhis2_setup_environment =='local' else 'ssh'}}"
-
-#localremote_addr: ansible_host
-# ansible_connection: "{{ 'community.general.lxd' if dhis2_setup_environment == 'lxd' else 'ssh'}}"
+dhis2_setup_environment: lxd

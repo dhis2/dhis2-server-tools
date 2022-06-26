@@ -2,39 +2,41 @@
 # tasks file for ./roles/proxy
 # Installing Certbot, used for ssl/tls certificate generation. 
 - name: Install certbot
-  #connection: lxd
   apt:
     name: certbot
     update_cache: yes
     cache_valid_time: 3600
     state: latest
   delegate_to: proxy
+  run_once: True
   when: certbot_enabled
 # Check if ther cert exists 
+
 - name: Check if certificate already exists.
   stat:
     path: /etc/letsencrypt/live/{{ fqdn }}/cert.pem
   register: letsencrypt_cert
   delegate_to: proxy
+  run_once: True
 
 # Generating TLS/SSL certificate with certbot
 - name: Generate TLS/SSL Certificate with certbot
   shell: certbot certonly -d {{fqdn}} --standalone -m {{email}} --agree-tos -n --no-eff-email
   delegate_to: proxy
-  when: not letsencrypt_cert.stat.exists
+  when: inventory_hostname in groups['proxy'] and  not letsencrypt_cert.stat.exists
+
 
 - name: Install nginx
-  #connection: lxd 
   apt:
     name: nginx
     update_cache: yes
     cache_valid_time: 3600
     state: latest
   delegate_to: proxy
+  run_once: True
 
 # Disabling nginx version show for security reasons 
 - name: Disabling nginx version show
-  #connection: lxd
   lineinfile:
     dest: /etc/nginx/nginx.conf
     regex: '.*server_tokens off'
@@ -42,14 +44,17 @@
     insertafter: "types_hash_max_size"
   notify: Reload Nginx
   delegate_to: proxy
+  run_once: True
 
 - name: Remove default nginx site 
   file: name=/etc/nginx/sites-enabled/default state=absent
   delegate_to: proxy 
+  run_once: True
 
 # Coping nginx configuration to the proxy 
 - block:
-  - stat: path=/etc/nginx/sites-available/{{ fqdn }}
+  - name: Check if nginx block config exists
+    stat: path=/etc/nginx/sites-available/{{ fqdn }}
     register: site_config
   - name: Porting proxy nginx configuration
     template:
@@ -60,6 +65,7 @@
       mode: 644
     when: not site_config.stat.exists
   delegate_to: proxy
+  run_once: True
 
 # Enable nginx configuration by creating a symlink
 - name: Enable nginx configuration
@@ -72,3 +78,4 @@
     mode: 0644
   notify: Reload Nginx
   delegate_to: proxy
+  run_once: True

@@ -1,0 +1,27 @@
+# create postgresql container,
+- name: Create postgres container
+  become: False
+  vars:
+    ansible_connection: local
+  community.general.lxd_container:
+    name: "{{ inventory_hostname }}"
+    state: started
+    profiles: [ "default" ]
+    wait_for_ipv4_addresses: true
+    ignore_volatile_options: false
+    timeout: 600
+    source:
+      type: image
+      mode: pull
+      server: https://cloud-images.ubuntu.com/releases
+      protocol: simplestreams
+      fingerprint: e3e1bd82cdc7
+      #alias: ubuntu/{{ containers[1].guest_os }} 
+    devices:
+      eth0:
+        nictype:  "{{ containers[1].nictype | default ('bridged') }}"
+        parent:   "{{ containers[1].network | default ('lxdbr0') }}"
+        type:     "{{ containers[1].interface_type | default ('nic') }}"
+        ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ipaddr(lxd_network) | default(omit)}}" 
+  when: inventory_hostname in groups['databases']
+  delegate_to: 127.0.0.1

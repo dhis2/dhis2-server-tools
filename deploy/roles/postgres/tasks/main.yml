@@ -1,7 +1,7 @@
 ---
+# Include connection specific tasks
 - name: "Include tasks specific to setup over {{ ansible_connection }}"
   include_tasks: "{{ ansible_connection }}.yml"
+
 - name: Include postgresql setup tasks  
   include_tasks: common.yml
-  vars:
-    remote_addr: "ansible_host"

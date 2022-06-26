@@ -1,6 +1,6 @@
 # Global vars file
-fqdn: "xxx.x.x"
-email: "x@x.x"
+fqdn: "dhis.kipkurgat.org"
+email: "tito@kipkurgat.org"
 
 # Monitoring settings
 server_monitoring: "munin"
@@ -10,7 +10,7 @@ proxy_is_enabled: true
 proxy: "nginx"
 certbot_enabled: True
 
-dhis2_setup_environment: "lxd" 
+dhis2_setup_environment: lxd
 # lxd profile varibles
 time_zone: "Africa/Nairobi"
 lxd_network: "192.168.0.1/24"
