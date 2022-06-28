@@ -1,5 +1,4 @@
-- hosts: localhost
-  connection: community.general.lxd
+- hosts: all
   gather_facts: yes
     # prompt users to enter variables 
 #vars_prompt:
@@ -8,11 +7,5 @@
 #default: "dhis2"
 #    private: no
   
-  pre_tasks:
-    - name: Load varibales into the play
-      connection: local
-      include_vars:
-        file: containers.yml
-    
   roles:
     - role: dhis2

@@ -99,5 +99,5 @@ systemctl daemon-reload
 
 ufw allow proto tcp from {{ PROXY_IP }} to any port 8080  
 ufw allow proto tcp from  0.0.0.0/0 to any port 22
-ufw enable
+ufw --force enable
 

@@ -15,38 +15,32 @@
   register: dhis2_conf
   when: inventory_hostname in groups['instances']
 
-- debug: var=dhis2_conf.stat.exists
-  when: inventory_hostname in groups['instances']
-  
-# - debug: msg={{ item.stat.exists }}
-#   loop: "{{ dhis2_conf.results }}"
-#   when: inventory_hostname in groups['instances']
-  
-- name: Generate instance password
+- name: Generate database password
   set_fact:
-    # db_password: "{{ lookup('password', '/dev/null', seed=inventory_hostname) }}"
-    db_password: apokbaKt@9
-  # when: 
-  #   - not dhis2_conf.stat.exists 
-  #   - inventory_hostname in groups['instances']
-  # tags: [ never ]
+    db_password: "{{ lookup('password','/dev/null',seed=inventory_hostname) }}"
+  when:
+    - dhis2_conf.stat.exists is defined
+    - not dhis2_conf.stat.exists 
+    - inventory_hostname in groups['instances'] 
 
-
-- name: Create db role if it does not exist
+- name: Create instances database role
   vars:
     ansible_host: "{{hostvars[inventory_hostname]['database_host'] if ansible_connection == 'lxd' else  hostvars[hostvars[inventory_hostname]['database_host']]['ansible_host']}}"
   become: yes
   become_user: postgres
   community.general.postgresql_user:
-    name:  "{{ inventory_hostname }}" #"{{ item. }}"
+    name:  "{{ inventory_hostname }}"
     state: present
-    password: "{{ db_password }}" #"{{ db_password }}"
-  when:  hostvars[inventory_hostname]['database_host'] is defined
+    password: "{{ db_password }}"
+  when: 
+    - hostvars[inventory_hostname]['database_host'] is defined
+    - db_password is defined
   delegate_to: "{{ hostvars[inventory_hostname]['database_host'] }}"
   notify: Reload Postgres 
 
+
 # Creating instances databases
-- name: "Creating instances databases"
+- name: Creating instances databases
   vars:
     ansible_host: "{{hostvars[inventory_hostname]['database_host'] if ansible_connection == 'lxd' else  hostvars[hostvars[inventory_hostname]['database_host']]['ansible_host']}}"
   become: yes
@@ -55,7 +49,6 @@
     name: "{{ inventory_hostname }}"
     state: present
     owner: "{{ inventory_hostname }}"
-  # loop: "{{ instances }}"
   delegate_to: "{{ hostvars[inventory_hostname]['database_host'] }}"
   when:  hostvars[inventory_hostname]['database_host'] is defined
 
@@ -136,7 +129,7 @@
     owner: root
     group: tomcat 
   when: 
-    # - db_password is defined
+    - db_password is defined
     -  inventory_hostname in groups['instances']
   ignore_errors: yes
 

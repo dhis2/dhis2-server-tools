@@ -1,23 +1,9 @@
 ---
-# this playbook deploys database (postgresql), proxy (nginx/apache2) and dhis2 instaces. 
-- name: Deployin dhis2 
-  gather_facts: False
+# - name: Deployin dhis2 on {{ ansible_connection }} connection
+- gather_facts: False
   become: True
   hosts: all
-  vars:
-    ansible_connection: ssh 
-# tasks that run before everything else
-  pre_tasks:
-    - name: Load varibales into the play
-      connection: local
-      include_vars:
-        file: containers.yml
-      check_mode: no
-      delegate_to: 127.0.0.1
-      run_once: True
-  #   - 
   roles:
     - role: postgres
-    # - role: proxy
+    - role: proxy
     - role: dhis2
-   

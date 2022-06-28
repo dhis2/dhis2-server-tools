@@ -4,7 +4,7 @@
   vars:
     ansible_connection: local
   community.general.lxd_container:
-    name: proxy
+    name: "{{ inventory_hostname }}"
     state: started
     profiles: ["default"]
     ignore_volatile_options: false
@@ -19,12 +19,12 @@
       #alias: ubuntu/{{containers[0].guest_os | default(20.04)}}
     devices:
       eth0:
-        nictype:  "{{ containers[0].nictype | default ('bridged') }}"
+        nictype:  "bridged"
         parent:   "{{ containers[0].network | default ('lxdbr0') }}"
         type:     "{{ containers[0].interface_type | default ('nic') }}"
-        ipv4.address: "{{ containers[0].ip | ipaddr(lxd_network) | default(omit)}}" 
+        ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ipaddr(lxd_network) | default(omit)}}" 
   delegate_to: 127.0.0.1
-  run_once: True
-  when: 
+  when:
+    -  inventory_hostname in groups['proxy'] 
     - proxy_is_enabled
-
+  # run_once: True
