@@ -164,6 +164,44 @@
     group: root
   when: inventory_hostname in groups['instances']
 
+# Copy dhis2 default configuration to the instances
+- name: Copy dhis2 default configurations to the instances
+  template:
+    src: tomcat_default.j2
+    dest: /etc/default/tomcat9
+    mode: '0644'
+  when: inventory_hostname in groups['instances']
+
+# Enable tomcat glowroot monitoring 
+- name: Enable tomcat glowroot monotoring on /etc/default/tomcat9
+  lineinfile:
+    path: /etc/default/tomcat9
+    regexp: '^#? JAVA_OPTS="${JAVA_OPTS} -javaagent:/opt/glowroot/glowroot.jar"'
+    line: 'JAVA_OPTS="${JAVA_OPTS} -javaagent:/opt/glowroot/glowroot.jar"'
+  when: 
+    - inventory_hostname in groups['instances'] 
+    - app_monitoring == 'glowroot'
+# Download and extrace glowroot
+- name: Download and extract glowroot to /opt/glowroot diretory
+  ansible.builtin.unarchive:
+    src: https://github.com/glowroot/glowroot/releases/download/v0.13.6/glowroot-0.13.6-dist.zip
+    dest: /opt/
+    group: tomcat
+    owner: tomcat
+    remote_src: yes
+  when:
+    - inventory_hostname in groups['instances']
+    - app_monitoring == 'glowroot'
+- name: Copy glowroot configs to the instances
+  template:
+    src: glowroot_admin.json
+    dest: /opt/glowroot/admin.json
+    group: tomcat
+    owner: tomcat
+  when: 
+    - inventory_hostname in groups['instances']
+    - app_monitoring == 'glowroot'
+
 # Execute copied over tomcat_setup.sh script
 - name: Execute tomcat_setup.sh script withing the containers
   become: True
@@ -172,7 +210,7 @@
   when: inventory_hostname in groups['instances']
   
 # Download and Extract dhis2 into the instances 
-- name: Download and unurchive dhis2 file
+- name: Download and unarchive dhis2 file
   ansible.builtin.unarchive:
     src: https://releases.dhis2.org/2.37/dhis2-stable-2.37.3.war
     dest: /var/lib/tomcat9/webapps/{{inventory_hostname}}
