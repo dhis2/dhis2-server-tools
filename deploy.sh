@@ -15,9 +15,9 @@ sudo snap install lxd
 # ------------------------
 # install ansible with apt
 # ------------------------
-sudo apt update                                             # updates system packages 
-sudo apt install software-properties-common                 # adds sofware properties common 
-sudo apt-add-repository --yes --update ppa:ansible/ansible  # adds ansible repository
+# sudo apt update                                             # updates system packages 
+# sudo apt install software-properties-common                 # adds sofware properties common 
+# sudo apt-add-repository --yes --update ppa:ansible/ansible  # adds ansible repository
 sudo apt install ansible                                    # installs ansible
 
 # -----------------------------------------------

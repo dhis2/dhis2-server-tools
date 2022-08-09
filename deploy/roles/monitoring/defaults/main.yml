@@ -1,2 +1,30 @@
 ---
 # defaults file for roles/monitoring
+ansible_connection: lxd
+munin_conf_d_directory: /etc/munin/munin-conf.d
+
+munin_dbdir: /var/lib/munin
+# munin_htmldir: /var/www/html/munin
+munin_htmldir: /var/cache/munin/www
+munin_logdir: /var/log/munin
+munin_rundir: /var/run/munin
+
+# munin_includedir: /etc/munin/conf.d
+munin_includedir: /etc/munin/munin-conf.d
+
+munin_html_strategy: cron
+munin_graph_strategy: cron
+munin_cron_job: present
+
+munin_max_processes: 12
+
+munin_admin_user: munin
+munin_admin_password: munin
+
+
+munin_hosts:
+  - name: "localhost"
+    address: "127.0.0.1"
+    extra: ["use_node_name yes"]
+
+munin_alerts: []

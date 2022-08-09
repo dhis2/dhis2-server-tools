@@ -1,8 +1,9 @@
 ---
 - name: include {{ ansible_connection }} related tasks 
   include_tasks: "{{ ansible_connection }}.yml"
-# run proxy specifig tasks
+  when: inventory_hostname in groups['web'] and proxy_is_enabled | bool 
+
 - name: Proxy setup 
   include_tasks: "{{proxy}}.yml"
-  when: proxy_is_enabled
+  when: inventory_hostname in groups['web'] and  proxy_is_enabled  | bool 
 

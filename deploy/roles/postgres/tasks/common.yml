@@ -45,3 +45,6 @@
     line: "listen_addresses '*'"
   when: inventory_hostname in groups['databases']
   notify: Restart Postgres
+
+- name: Flush handlers
+  meta: flush_handlers

@@ -7,7 +7,6 @@
   roles:
     - ufw
     - lxd-init
-      #- create-container
   post_tasks:
     - debug:
       #msg: "Playbook executed. Point your browser to https://{{ fqdn }} to access dhis2"

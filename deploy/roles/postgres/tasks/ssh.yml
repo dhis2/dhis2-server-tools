@@ -1,4 +1,3 @@
----
 - name: Install acl package, needed when switching to postgres user
   become: true
   ansible.builtin.apt:

@@ -1,7 +1,7 @@
 ---
 # defaults file for ./roles/lxd-init
+ansible_connection: lxd 
 lxd_noreboot: true
-
 lxd_cluster: false
 lxd_cluster_secret: "your_secret_here"
 time_zone: "Africa/Nairobi"

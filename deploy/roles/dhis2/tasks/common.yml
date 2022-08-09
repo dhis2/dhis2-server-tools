@@ -8,6 +8,7 @@
   register: postgresql_version_info
   delegate_to: "{{ hostvars[inventory_hostname]['database_host'] }}"
   when:  database_host is defined
+  # put condition here   
 
 # Check if database already exists, run only if database is installed 
 - name: Check if dhis2.conf exists
@@ -35,9 +36,9 @@
   when: 
     - hostvars[inventory_hostname]['database_host'] is defined
     - db_password is defined
+    - create_db | bool 
   delegate_to: "{{ hostvars[inventory_hostname]['database_host'] }}"
   notify: Reload Postgres 
-
 
 # Creating instances databases
 - name: Creating instances databases
@@ -50,7 +51,10 @@
     state: present
     owner: "{{ inventory_hostname }}"
   delegate_to: "{{ hostvars[inventory_hostname]['database_host'] }}"
-  when:  hostvars[inventory_hostname]['database_host'] is defined
+  when: 
+    - hostvars[inventory_hostname]['database_host'] is defined 
+    - create_db | bool 
+
 
 # Creating postgis extension
 - name: Creating postgis extension
@@ -62,24 +66,25 @@
     name: postgis
     db: "{{ inventory_hostname }}"
   delegate_to: "{{ hostvars[inventory_hostname]['database_host'] }}"
-  when:  hostvars[inventory_hostname]['database_host'] is defined
+  when:  
+    - hostvars[inventory_hostname]['database_host'] is defined 
+    - create_db | bool 
 
 # Fixing pg_hba.conf permissions
 - name: Fixing pg_hba.conf permissions, allowing instances to connect
   become: True
   vars:
-    ansible_host: "{{ hostvars[inventory_hostname]['database_host'] if ansible_connection == 'lxd' else  hostvars[hostvars[inventory_hostname]['database_host']]['ansible_host']}}"
+     ansible_host: "{{ hostvars[inventory_hostname]['database_host'] if ansible_connection == 'lxd' else  hostvars[hostvars[inventory_hostname]['database_host']]['ansible_host']}}"
   lineinfile:
     path: /etc/postgresql/{{postgresql_version_info.version.major}}/main/pg_hba.conf
     insertafter: EOF
-    line: "host    {{inventory_hostname}}   {{inventory_hostname}}  {{hostvars[item]['ansible_host']}}/32   md5"
-  loop: "{{ groups['instances'] }}"
+    line: "host    {{inventory_hostname}}   {{inventory_hostname}}  {{hostvars[inventory_hostname]['ansible_host']}}/32   md5"
   delegate_to: "{{ hostvars[inventory_hostname]['database_host'] }}"
-  when: 
-    - database_host is defined 
-    - hostvars[inventory_hostname]['database_host'] == hostvars[item]['database_host']
+  when:
+    - database_host is defined
+    - inventory_hostname in groups['instances']
+    - create_db | bool
   notify: Reload Postgres
-
 
 # tomcat setup
 - name:  installing java and tomcat  and zip 
@@ -130,7 +135,7 @@
     group: tomcat 
   when: 
     - db_password is defined
-    -  inventory_hostname in groups['instances']
+    - inventory_hostname in groups['instances']
   ignore_errors: yes
 
 # Creating /opt/glowroot directory
@@ -142,7 +147,10 @@
     state: directory
     modification_time: preserve
     access_time: preserve
-  when: inventory_hostname in groups['instances']
+  when:
+    - inventory_hostname in groups['instances']
+    - app_monitoring is defined
+    - app_monitoring == "glowroot"
 
 # copy sever.xml config to the instances 
 - name: Copy server.xml to the instances
@@ -180,6 +188,7 @@
     line: 'JAVA_OPTS="${JAVA_OPTS} -javaagent:/opt/glowroot/glowroot.jar"'
   when: 
     - inventory_hostname in groups['instances'] 
+    - app_monitoring is defined
     - app_monitoring == 'glowroot'
 # Download and extrace glowroot
 - name: Download and extract glowroot to /opt/glowroot diretory
@@ -192,6 +201,8 @@
   when:
     - inventory_hostname in groups['instances']
     - app_monitoring == 'glowroot'
+    - app_monitoring is defined
+
 - name: Copy glowroot configs to the instances
   template:
     src: glowroot_admin.json
@@ -201,6 +212,7 @@
   when: 
     - inventory_hostname in groups['instances']
     - app_monitoring == 'glowroot'
+    - app_monitoring is defined
 
 # Execute copied over tomcat_setup.sh script
 - name: Execute tomcat_setup.sh script withing the containers
@@ -218,8 +230,4 @@
   notify: Start Tomcat
   when: inventory_hostname in groups['instances']
 
-# proxy configuration
-- name: Deploy proxy block configuration
-  include_tasks: "{{proxy}}.yml"
-  when: proxy_is_enabled
 

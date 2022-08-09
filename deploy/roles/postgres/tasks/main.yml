@@ -1,7 +1,9 @@
 ---
-# Include connection specific tasks
 - name: "Include tasks specific to setup over {{ ansible_connection }}"
   include_tasks: "{{ ansible_connection }}.yml"
+  when: inventory_hostname in groups['databases']
 
-- name: Include postgresql setup tasks  
+- name: Installing postgresql database
   include_tasks: common.yml
+  when: inventory_hostname in groups['databases']
+  

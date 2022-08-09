@@ -1,13 +1,39 @@
-[proxy]
+[web]
 proxy       ansible_host=192.168.0.2    ssh_port=22
-
 [databases]
 postgres    ansible_host=192.168.0.20
-postgres0   ansible_host=192.168.0.21   
-postgres1   ansible_host=192.168.0.22 
 [instances]
-dhis2       ansible_host=192.168.0.10  database_host=postgres   ssh_port=22 proxy_is_enabled=True
-training    ansible_host=192.168.0.12  database_host=postgres1  ssh_port=22 proxy_is_enabled=True
+dhis2       ansible_host=192.168.0.10  database_host=postgres   ssh_port=22 
+training    ansible_host=192.168.0.12  database_host=postgres   ssh_port=22 
+[monitoring]
+monitor     ansible_host=192.168.0.30 
 
 [all:vars]
-lxd_network='192.168.0.0/24'
+fqdn="xxx.xxx.xxx"
+email="xxx@xxx.xxx"
+
+# monitoring
+monitoring_enabled='yes'
+server_monitoring="munin"
+app_monitoring="glowroot"
+
+# Proxy
+proxy_is_enabled=no
+proxy="nginx"
+certbot_enabled=True
+
+# lxd profile
+time_zone="Africa/Nairobi"
+lxd_network="192.168.0.1/24"
+lxd_bridge_interface=lxdbr0
+
+# connection related 
+ansible_connection=lxd
+
+# instance related 
+[instances:vars]
+create_db=yes  
+JAVA_VERSION="11" # default 11
+dhis2_version="2.38" 
+
+

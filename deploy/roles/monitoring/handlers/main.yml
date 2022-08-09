@@ -1,2 +1,17 @@
 ---
-# handlers file for roles/monitoring
+#systemctl restart munin munin-node
+#systemctl restart apache2 
+- name: Restart Apache2
+  ansible.builtin.service:
+    name: apache2
+    state: restarted
+
+- name: Restart Munin
+  ansible.builtin.service:
+    name: munin 
+    state: restarted
+
+- name: Restart Munin-node
+  ansible.builtin.service:
+    name: munin-node
+    state: restarted

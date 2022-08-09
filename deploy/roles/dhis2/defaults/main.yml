@@ -1,26 +1,6 @@
 ---
-# defaults file for ./roles/dhis2ssh
+# defaults file for ./roles/dhis2
+create_db: True
+ansible_connection: lxd
 PROXY_IP: "{{ hostvars['proxy']['ansible_host']}}"
 JAVA_VERSION: "11"
-instances:
-  - name: dhis2
-    createdb: yes
-    # tomcat_setup: filler
-    # glowroot_setup: default
-    # apm: 
-    # PROXY: filler
-    # PROXY_IP: 
-    # guestos: "20.04"
-    #ip_address: "{{ '192.168.1.10' | ipaddr(lxd_network) |  default(omit) }}"
-
-  - name: training 
-    createdb: yes
-    # # tomcat_setup: filler
-    # # glowroot_setup: default
-    # # apm: 
-    # # proxy: 
-    # # proxy_ip: 
-    # # java_version: "11"
-    # # guestos: "20.04" 
-    # # dhis2_version: 
-ansible_host: "{{ inventory_hostname if dhis2_setup_environment == 'lxd' else hostvars[inventory_hostname]['ansible_host']}}"

@@ -11,3 +11,5 @@
   ansible.builtin.service:
     name: postgresql
     state: reloaded
+- name: restart munin-node
+  service: name=munin-node state=restarted

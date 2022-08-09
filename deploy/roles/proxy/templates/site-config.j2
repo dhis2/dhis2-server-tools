@@ -1,12 +1,19 @@
 ##
+{#
 server {
-  listen  80;
+  listen  80 default_server;
   server_name {{ fqdn }};
   if ($host != "{{ fqdn }}") {
     return 444;
   }
+  location /.well-known/acme-challenge {
+        root /var/www/letsencrypt;
+        try_files $uri $uri/ =404;
+    }
   return 301 https://$host$request_uri;
 }
+#}
+
 ## https Block
 server {
   listen 443 ssl;
@@ -18,6 +25,7 @@ server {
   ssl_protocols TLSv1.2 TLSv1.3;
   #ssl_session_cache shared:SSL:20m;
   ssl_session_timeout 10h;
+  ssl_dhparam /etc/nginx/dhparams.pem;
   ssl_prefer_server_ciphers on;
   underscores_in_headers on;
   {# add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always; #}
@@ -37,7 +45,10 @@ server {
   if ($host != "{{ fqdn }}") {
     return 444;
   }
-# Proxy pass to the backend 
-  
+  # Proxy pass to the backend 
+
+location / {
+  return 444; 
+}
 }
 

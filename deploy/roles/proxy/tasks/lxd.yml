@@ -25,6 +25,6 @@
         ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ipaddr(lxd_network) | default(omit)}}" 
   delegate_to: 127.0.0.1
   when:
-    -  inventory_hostname in groups['proxy'] 
-    - proxy_is_enabled
+    - inventory_hostname in groups['web'] 
+    - proxy_is_enabled | bool
   # run_once: True

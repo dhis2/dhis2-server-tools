@@ -1,0 +1,63 @@
+# apt install apache2 libcgi-fast-perl libapache2-mod-fcgid
+- name: Install munin server requirements 
+  apt:
+    update_cache: yes 
+    cache_valid_time: 3600
+    name:
+      - apache2
+      - libcgi-fast-perl 
+      - libapache2-mod-fcgid
+      - munin # this install munin munin node and munin plugins extra 
+      - python3-passlib
+
+# Copy munin configuration from the template
+- name: Copy munin configurations.
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - src: munin.conf.j2
+      dest: /etc/munin/munin.conf
+    - src: hosts.conf.j2
+      dest: "{{ munin_conf_d_directory }}/hosts.conf"
+# Creating munin loging details
+- name: Create munin user via htpasswd.
+  htpasswd:
+    create: true
+    name: "{{ munin_admin_user }}"
+    password: "{{ munin_admin_password }}"
+    path: /etc/munin/munin-htpasswd
+    state: present
+
+#  If you want to access the Munin Web interface outside your localhost, 
+- name: Edit apache2 config, munin access outside localhost
+  lineinfile: 
+    firstmatch: yes  
+    regex: '^(.*)Require local'
+    dest: /etc/munin/apache24.conf
+    line: '\1Require all granted'
+    backrefs: yes
+
+# Enable apache2 configurations for munin monitoring
+- name: Enable apache2 configuration for munin access from the web.
+  file:
+    src: /etc/munin/apache24.conf
+    dest: /etc/apache2/sites-enabled/munin.conf
+    state: link
+    owner: root
+    mode: '0644'
+  notify: Restart Apache2
+
+# Setup Node to monitor multiple systems 
+- name: Enable or disable the munin cron job.
+  lineinfile:
+    dest: /etc/cron.d/munin
+    state: "{{ munin_cron_job }}"
+    regexp: "^\\*/5 \\* \\* \\* \\*"
+    line: "*/5 * * * *     munin if [ -x /usr/bin/munin-cron ]; then /usr/bin/munin-cron; fi"
+    create: yes
+    mode: 0644
+  tags: [ never ]

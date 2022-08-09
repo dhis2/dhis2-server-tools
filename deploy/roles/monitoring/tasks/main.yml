@@ -1,14 +1,13 @@
 ---
 # tasks file for roles/monitoring
-# munin setup
+- name: Include tasks specific to setup over {{ ansible_connection }}
+  include_tasks: "{{ ansible_connection }}.yml"
+  when: inventory_hostname in groups['monitoring']
 
-# update and upgrade the server 
+- name: Include common monitoring setup tasks 
+  include_tasks: munin.yml
+  when: inventory_hostname in groups['monitoring']
 
-# install required packages 
-- name: install requiered packages
-  apt:
-    - apache2
-    - ibcgi-fast-perl
-    - libapache2-mod-fcgid 
-
-
+- name: "{{ proxy  }} location configuration for {{ server_monitoring  }}"
+  include_tasks: "{{ proxy }}.yml" 
+  when: server_monitoring is defined and server_monitoring == "munin"

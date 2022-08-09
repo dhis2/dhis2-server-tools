@@ -1,8 +1,16 @@
-## Creating dhis2 instance(s)
-  # Include connection specific tasks
+---
+# Include connection specific tasks
 - name: "Include tasks specific to setup over {{ ansible_connection }}"
   include_tasks: "{{ ansible_connection }}.yml"
+  when: inventory_hostname in groups['instances']
 
-- name: Include dhis2 instnce setup tasks  
+# this deploys dhis2 tomcat application. 
+- name: Include dhis2 setup tasks  
   include_tasks: common.yml
+  when: inventory_hostname in groups['instances']
+
+# this deploys block configuration to the proxy
+- name: Include dhis2 proxy configuration
+  include_tasks: "{{proxy}}.yml"
+  when: proxy_is_enabled | bool 
 

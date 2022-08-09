@@ -23,7 +23,6 @@
   notify: Reload Nginx
   delegate_to: proxy
   run_once: true
-  when: hostvars[inventory_hostname]['proxy_is_enabled'] 
 
 - name: Adding location configuration for glowroot backend 
   blockinfile:
@@ -49,5 +48,6 @@
   notify: Reload Nginx
   delegate_to: proxy
   run_once: true
-  when: hostvars[inventory_hostname]['proxy_is_enabled'] 
+  when: app_monitoring is defined and  app_monitoring == "glowroot" 
+
 - meta: flush_handlers

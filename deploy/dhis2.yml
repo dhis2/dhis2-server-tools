@@ -1,9 +1,10 @@
 ---
-# - name: Deployin dhis2 on {{ ansible_connection }} connection
 - gather_facts: False
+  force_handlers: True
   become: True
   hosts: all
   roles:
     - role: postgres
     - role: proxy
     - role: dhis2
+    - role: monitoring
