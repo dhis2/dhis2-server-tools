@@ -3,8 +3,8 @@ proxy       ansible_host=192.168.0.2    ssh_port=22
 [databases]
 postgres    ansible_host=192.168.0.20
 [instances]
-dhis2       ansible_host=192.168.0.10  database_host=postgres   ssh_port=22 
-training    ansible_host=192.168.0.12  database_host=postgres   ssh_port=22 
+# dhis2       ansible_host=192.168.0.10  database_host=postgres   ssh_port=22 
+# training    ansible_host=192.168.0.12  database_host=postgres   ssh_port=22 
 [monitoring]
 monitor     ansible_host=192.168.0.30 
 

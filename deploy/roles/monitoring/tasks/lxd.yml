@@ -1,5 +1,5 @@
 # create postgresql container,
-- name: Create monoring container
+- name: Create monitoring container
   become: False
   vars:
     ansible_connection: local
