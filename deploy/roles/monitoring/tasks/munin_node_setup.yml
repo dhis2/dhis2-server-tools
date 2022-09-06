@@ -13,3 +13,6 @@
 
 - name: Ensure munin-node is running.
   service: name=munin-node state=started enabled=yes
+
+- name: Flush Handlers
+  meta: flush_handlers

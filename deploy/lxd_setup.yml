@@ -1,9 +1,8 @@
 - hosts: localhost
   connection: local
+  gather_facts: True
   roles:
-    - ufw
-    - lxd-init
+    - firewall
+    - lxd_init
   post_tasks:
-    - debug:
-      #msg: "Playbook executed. Point your browser to https://{{ fqdn }} to access dhis2"
-        msg: "LXD server has been initialted, proceed to creating lxd containers"
+    - debug: msg="LXD server has been initialted, proceed to creating lxd containers"

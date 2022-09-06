@@ -1,9 +1,12 @@
 ---
+- name: Validating domain and email
+  include_tasks: validate_settings.yml
+
 - name: include {{ ansible_connection }} related tasks 
   include_tasks: "{{ ansible_connection }}.yml"
-  when: inventory_hostname in groups['web'] and proxy_is_enabled | bool 
+  when: inventory_hostname in groups['web'] and proxy is defined
 
 - name: Proxy setup 
   include_tasks: "{{proxy}}.yml"
-  when: inventory_hostname in groups['web'] and  proxy_is_enabled  | bool 
+  when: inventory_hostname in groups['web'] and proxy is defined
 

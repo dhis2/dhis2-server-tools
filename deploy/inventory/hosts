@@ -3,37 +3,37 @@ proxy       ansible_host=192.168.0.2    ssh_port=22
 [databases]
 postgres    ansible_host=192.168.0.20
 [instances]
-# dhis2       ansible_host=192.168.0.10  database_host=postgres   ssh_port=22 
-# training    ansible_host=192.168.0.12  database_host=postgres   ssh_port=22 
+dhis2       ansible_host=192.168.0.10  database_host=postgres   ssh_port=22 
+training    ansible_host=192.168.0.12  database_host=postgres   ssh_port=22 
 [monitoring]
 monitor     ansible_host=192.168.0.30 
 
 [all:vars]
-fqdn="xxx.xxx.xxx"
-email="xxx@xxx.xxx"
+fqdn=""
+email=""
 
 # monitoring
-monitoring_enabled='yes'
 server_monitoring="munin"
 app_monitoring="glowroot"
 
-# Proxy
-proxy_is_enabled=no
+# Options: lxd, ssh
+ansible_connection=lxd
+# Options: nginx, apache2
 proxy="nginx"
-certbot_enabled=True
+# Options: letsencrypt, customssl, upstream, selfsign
+SSL_TYPE=letsencrypt 
 
-# lxd profile
-time_zone="Africa/Nairobi"
+# list the timezones availlable with  timedatectl list-timezones 
+timezone="Africa/Nairobi"
 lxd_network="192.168.0.1/24"
 lxd_bridge_interface=lxdbr0
 
-# connection related 
-ansible_connection=lxd
+
 
 # instance related 
 [instances:vars]
 create_db=yes  
-JAVA_VERSION="11" # default 11
+JAVA_VERSION="11" 
 dhis2_version="2.38" 
 
 

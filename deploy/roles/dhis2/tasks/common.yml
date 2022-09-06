@@ -56,19 +56,20 @@
     - create_db | bool 
 
 
-# Creating postgis extension
-- name: Creating postgis extension
+# Creating extensions
+- name: Creating postgis,btree_gin and pg_trgm extensions
   vars:
     ansible_host: "{{hostvars[inventory_hostname]['database_host'] if ansible_connection == 'lxd' else  hostvars[hostvars[inventory_hostname]['database_host']]['ansible_host']}}"
   become: yes
   become_user: postgres
   community.postgresql.postgresql_ext:
-    name: postgis
+    name: "{{ item }}"
     db: "{{ inventory_hostname }}"
   delegate_to: "{{ hostvars[inventory_hostname]['database_host'] }}"
   when:  
     - hostvars[inventory_hostname]['database_host'] is defined 
     - create_db | bool 
+  loop: "{{ postgresql_extensions }}"
 
 # Fixing pg_hba.conf permissions
 - name: Fixing pg_hba.conf permissions, allowing instances to connect
@@ -82,9 +83,10 @@
   delegate_to: "{{ hostvars[inventory_hostname]['database_host'] }}"
   when:
     - database_host is defined
-    - inventory_hostname in groups['instances']
+    - inventory_hostname in groups['instances']j
     - create_db | bool
   notify: Reload Postgres
+  tags: [ never ]
 
 # tomcat setup
 - name:  installing java and tomcat  and zip 

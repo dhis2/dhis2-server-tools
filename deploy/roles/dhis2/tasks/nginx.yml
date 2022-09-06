@@ -21,8 +21,6 @@
           }
   loop: "{{ groups['instances'] }}"
   notify: Reload Nginx
-  delegate_to: proxy
-  run_once: true
 
 - name: Adding location configuration for glowroot backend 
   blockinfile:
@@ -46,8 +44,5 @@
           }
   loop: "{{ groups['instances'] }}"
   notify: Reload Nginx
-  delegate_to: proxy
-  run_once: true
   when: app_monitoring is defined and  app_monitoring == "glowroot" 
-
 - meta: flush_handlers

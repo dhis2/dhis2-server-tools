@@ -3,8 +3,12 @@
 postgresql_version: 13
 ansible_connection: lxd 
 
-# munin node defaults 
+postgresql_extensions:
+  - postgis
+  - btree_gin
+  - pg_trgm
 
+# munin node defaults 
 munin_node_bind_host: "*"
 munin_node_bind_port: "4949"
 munin_node_host_name: ''

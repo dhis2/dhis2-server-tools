@@ -37,6 +37,22 @@
     filter: ver*
   register: postgresql_version_info
   when: inventory_hostname in groups['databases']
+  
+# Fixing pg_hba.conf permissions
+- name: Fixing pg_hba.conf permissions, allowing instances to connect
+  become: True
+  # vars:
+     # ansible_host: "{{ hostvars[inventory_hostname]['database_host'] if ansible_connection == 'lxd' else  hostvars[hostvars[inventory_hostname]['database_host']]['ansible_host']}}"
+  lineinfile:
+    path: /etc/postgresql/{{postgresql_version_info.version.major}}/main/pg_hba.conf
+    insertafter: EOF
+    line: "host    {{item}}   {{item}}  {{hostvars[item]['ansible_host']}}/32   md5"
+  loop: "{{ groups['instances'] }}"
+  when:
+    # - database_host is defined
+    - inventory_hostname in groups['databases']
+    # - create_db | bool
+  notify: Restart Postgres
 
 - name: Allow posgress listening on network
   lineinfile:
@@ -46,5 +62,5 @@
   when: inventory_hostname in groups['databases']
   notify: Restart Postgres
 
-- name: Flush handlers
+- name: Flush Handlers
   meta: flush_handlers

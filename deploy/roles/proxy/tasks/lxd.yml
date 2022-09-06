@@ -18,21 +18,22 @@
       protocol: simplestreams
       #alias: ubuntu/{{containers[0].guest_os | default(20.04)}}
     devices:
-      "80":
-        listen: tcp:0.0.0.0:80
-        connect: tcp:127.0.0.1:80
-        type: proxy
-      "443":
-        listen: tcp:0.0.0.0:443
-        connect: tcp:127.0.0.1:443
-        type: proxy 
+      #"80":
+      #  listen: tcp:0.0.0.0:80
+      #  connect: tcp:127.0.0.1:80
+      #  # nat: 'true'
+      #  type: proxy
+      #"443":
+      #  listen: tcp:0.0.0.0:443
+      #  connect: tcp:127.0.0.1:443
+      #  #nat: 'true'
+      #  type: proxy 
       eth0:
         nictype:  "bridged"
         parent:   "{{ containers[0].network | default ('lxdbr0') }}"
         type:     "{{ containers[0].interface_type | default ('nic') }}"
-        ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ipaddr(lxd_network) | default(omit)}}" 
+        ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) | default(omit)}}" 
   delegate_to: 127.0.0.1
   when:
     - inventory_hostname in groups['web'] 
-    - proxy_is_enabled | bool
-  # run_once: True
+    - proxy is defined

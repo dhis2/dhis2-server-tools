@@ -3,7 +3,11 @@
 ## install nginx
 - name: Install nginx
   apt: name=nginx update_cache=yes cache_valid_time=3600 state=latest 
-  
+
+# Remove default nginx config
+- name: Remove default nginx site 
+  file: name=/etc/nginx/sites-enabled/default state=absent
+
 # install certbot 
 - name: Install certbot
   apt:
@@ -11,10 +15,11 @@
     update_cache: yes
     cache_valid_time: 3600
     state: latest
-  when: certbot_enabled | bool 
+  when: SSL_TYPE == 'letsencrypt' 
 
 - name: create letsencrypt directory
   file: name=/var/www/letsencrypt state=directory
+  when: SSL_TYPE == 'letsencrypt' 
 
 # Check if ther cert exists 
 - name: Check if certificate already exists.
@@ -23,36 +28,36 @@
   register: letsencrypt_cert
   tags: [ never ]
 
-# Remove default nginx config
-- name: Remove default nginx site 
-  file: name=/etc/nginx/sites-enabled/default state=absent
 
 #  Install nginx site for letsencrypt requests
 - name: Install nginx site for letsencrypt requests
   template:
     src: templates/nginx-http.j2
     dest: /etc/nginx/sites-enabled/http
-  when:
-    # - not letsencrypt_cert.stat.exists
-    - certbot_enabled | bool 
-  notify: Reload Nginx
+  # when:
+  #   # - not letsencrypt_cert.stat.exists
+  #   - certbot_enabled | bool 
+  notify: reload nginx
+  when: SSL_TYPE == 'letsencrypt'
 
+# Flush handlers 
 - name: Flush handlers
   meta: flush_handlers
 
 # Generating TLS/SSL certificate with certbot
 - name: Generate TLS/SSL Certificate with certbot
-  # shell: certbot certonly -d {{fqdn}} --standalone -m {{email}} --agree-tos -n --no-eff-email
   shell: letsencrypt certonly -n --webroot -w /var/www/letsencrypt -m {{ email }} --agree-tos -d {{ fqdn }}
   args:
     creates: /etc/letsencrypt/live/{{ fqdn }}
-  when: certbot_enabled | bool
+  when: SSL_TYPE == 'letsencrypt'
 
 # Generate dhparams 
 - name: Generate dhparams
   shell: openssl dhparam -out /etc/nginx/dhparams.pem 2048
   args:
     creates: /etc/nginx/dhparams.pem
+
+
 
 # Disabling nginx version show for security reasons 
 - name: Disabling nginx version show
@@ -61,7 +66,7 @@
     regex: '.*server_tokens off'
     line: "\tserver_tokens off;"
     insertafter: "types_hash_max_size"
-  notify: Reload Nginx
+  notify: reload nginx
 
 # Coping nginx configuration to the proxy 
 - block:
@@ -86,8 +91,9 @@
     owner: root
     group: root
     mode: 0644
-  notify: Reload Nginx
-  
+  notify: reload nginx
+
+# Cronjob for letsecrypt  
 - name: Add letsencrypt cronjob for cert renewal
   cron:
     name: letsencrypt_renewal

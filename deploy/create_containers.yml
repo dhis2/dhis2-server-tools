@@ -22,4 +22,4 @@
            nictype:  "bridged"
            parent:   "lxdbr0"
            type:     "nic"
-           ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ipaddr(lxd_network) | default(omit)}}" 
+           ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) | default(omit)}}" 

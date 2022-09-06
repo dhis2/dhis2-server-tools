@@ -12,5 +12,5 @@
 # this deploys block configuration to the proxy
 - name: Include dhis2 proxy configuration
   include_tasks: "{{proxy}}.yml"
-  when: proxy_is_enabled | bool 
+  when: proxy is defined and inventory_hostname in groups['web']
 

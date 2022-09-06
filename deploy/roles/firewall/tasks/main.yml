@@ -10,16 +10,17 @@
     msg:
       - "---- UFW in disabled ---- "
       - "    Please enable it to continue with the setup"
-      - "    sudo ufw allow 22   # allows ssh connections to the server"
+      - "    sudo ufw limit 22   # allows ssh connections to the server"
       - "    sudo ufw enable     # starts and enables ufw"
   when: "'inactive' in ufw_check.stdout"
 
 - meta: end_play 
   when: "'inactive' in ufw_check.stdout"
 
-
-# This bit should be run after the proxy has been initiated, do it on a prosxy role
 - name: Configure host to NAT to the proxy container
+  # gather_facts: True
+  vars:
+    ansible_connection: local
   become: true
   become_user: root
   ansible.builtin.blockinfile:
@@ -30,20 +31,14 @@
       *nat
       -F
       :PREROUTING ACCEPT [0:0]
-      {% for container in containers %}
-      {% if container.name == "proxy" %}
-      -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport 80 -j  DNAT --to-destination {{container.ip}}:80
-      -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport 443 -j  DNAT --to-destination {{container.ip}}:443
+      {% for host in groups['all'] %}
+      {% if host == "proxy" %}
+      -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport 80 -j  DNAT --to-destination {{ hostvars[host]['ansible_host'] }}:80
+      -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport 443 -j  DNAT --to-destination {{hostvars[host]['ansible_host']}}:443
       {% endif %}
       {% endfor %}
       # setup routing
       -A POSTROUTING -s {{lxd_network}} ! -d {{lxd_network}} -j MASQUERADE
       COMMIT
-  when: item.name | regex_search('(proxy)')
-  with_items:
-    - "{{ containers }}"
-  notify: 
-    - Reload ufw
-  tags: [never]
-
-
+  notify:  Reload ufw
+  when: proxy is defined

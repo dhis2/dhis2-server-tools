@@ -4,14 +4,6 @@
 # install letsecrypt client 
 - name: Validate settings
   include_tasks: check_settings.yml
-
-- name: Install Lets En client
-  connection: community.general.lxd
-  apt:
-    name:
-      - certbot
-      - python3-certbot-nginx
-  delegate_to: proxy
 - 
 
 # Obtain ssl certificate

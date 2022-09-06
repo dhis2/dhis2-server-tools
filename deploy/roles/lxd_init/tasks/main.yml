@@ -1,8 +1,10 @@
 --- 
+# install lxd with snap
 - name: Install lxd
   community.general.snap:
     name: lxd
 
+# get and register lxd info
 - name: LXD init
   block:
   - name: lxc info
@@ -47,3 +49,4 @@
         mode: u+rw,g-wx,o-rwx
         modification_time: preserve
         access_time: preserve
+      

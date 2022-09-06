@@ -4,7 +4,7 @@ ansible_connection: lxd
 lxd_noreboot: true
 lxd_cluster: false
 lxd_cluster_secret: "your_secret_here"
-time_zone: "Africa/Nairobi"
+timezone: "Africa/Nairobi"
 lxd_with_zfs_backend: true
 lxd_zfs_size: 16GB
 lxd_storage_name: myzfspool

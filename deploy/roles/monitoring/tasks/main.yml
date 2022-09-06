@@ -10,4 +10,4 @@
 
 - name: "{{ proxy  }} location configuration for {{ server_monitoring  }}"
   include_tasks: "{{ proxy }}.yml" 
-  when: server_monitoring is defined and server_monitoring == "munin"
+  when: server_monitoring is defined and server_monitoring == "munin" and  proxy is defined

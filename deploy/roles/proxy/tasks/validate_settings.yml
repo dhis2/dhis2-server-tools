@@ -1,0 +1,11 @@
+- name: Ensure fqdm is defined
+  fail:
+    msg: "Your dhis2 domain name  is not defined. Please define existing and working domain name to deploy dhis2 in 'fqdm' variable. It  should be resolved to one of public IP addresses of your server."
+  when: (fqdn is not defined) or (fqdn == None) or (not fqdn)
+
+# ensure admin email is defined
+- name: Ensure admin email is defined
+  fail:
+    msg: "Your dhis2 administrator email is not defined. Please define existing email address to deploy dhis2 in 'email' variable"
+  when: (email is not defined) or (email == None) or (not email) 
+

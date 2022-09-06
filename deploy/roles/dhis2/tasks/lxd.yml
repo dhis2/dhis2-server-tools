@@ -22,7 +22,7 @@
         nictype:  "{{ containers[1].nictype | default ('bridged') }}"
         parent:   "{{ containers[1].network | default ('lxdbr0') }}"
         type:     "{{ containers[1].interface_type | default ('nic') }}"
-        ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ipaddr(lxd_network) | default(omit)}}" 
+        ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) | default(omit)}}" 
   when: inventory_hostname in groups['instances']
   delegate_to: 127.0.0.1
   notify: Reload Nginx

@@ -19,5 +19,8 @@
           proxy_hide_header Server;
           }
   notify: Reload Nginx
-  delegate_to: proxy
-  run_once: true
+  when:
+    - server_monitoring is defined and server_monitoring == "munin"
+    - inventory_hostname | regex_search('(proxy|rps)')
+  # delegate_to: proxy
+  # run_once: true

@@ -1,4 +1,5 @@
 # Munin hosts.
+{#
 {% for host in munin_hosts %}
 [{{ host.name }}]
     address {{ host.address }}
@@ -7,5 +8,10 @@
     {{ extra }}
 {% endfor %}
 {% endif %}
-
+{% endfor %}
+#}
+{% for host in groups['all'] %}
+[{{ host }}]
+    address {{hostvars[host]['ansible_host']}}
+    use_node_name yes
 {% endfor %}

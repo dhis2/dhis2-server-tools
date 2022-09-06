@@ -2,12 +2,12 @@
 - name: Ensure admin email is defined
   fail:
     msg: "Your dhis2 administrator email is not defined. Please define existing email address to deploy dhis2 in 'email' variable"
-  when: (email is not defined) or (email == None) or (not email)
+  when: (email is not defined) or (email == None) or (not email) or (email == "xxx@xxx.xxx")
 
 - name: Ensure fqdm is defined
   fail:
-    msg: "Your dhis2 hostname is not defined. Please define existing and working hostname to deploy dhis2 in 'fqdm' variable. fqdm should be resolved to one of public IP addresses of your server."
-  when: (fqdm is not defined) or (fqdm == None) or (not fqdm)
+    msg: "Your dhis2 domain name  is not defined. Please define existing and working domain name to deploy dhis2 in 'fqdm' variable. It  should be resolved to one of public IP addresses of your server."
+  when: (fqdm is not defined) or (fqdm == None) or (not fqdm) or (fqdm == 'xxx.xxx.xxx')
 
 - name: Try to resolve fqdm "{{ fqdm }}"
   set_fact:

@@ -1,0 +1,37 @@
+ufw allow proto tcp from {{ PROXY_IP }} to any port 8080  
+ufw allow proto tcp from {{ PROXY_IP }} to any port 4000
+ufw allow proto tcp from  0.0.0.0/0 to any port 22
+ufw --force enable
+# Allow ssh port 22. 
+- name: Allow ssh on port 22
+  community.general.ufw:
+    rule: limit
+    port: "{{ ssh_port | default('22') }}"
+    src: 0.0.0.0/0
+    proto: tcp
+    comment: Allow ssh access to the instance
+  when: ansible_connection == "ssh"
+
+# Allow access from proxy  to tomcat port 8080
+- name: Allow access to port 8080 from proxy
+  community.general.ufw:
+    rule: allow
+    port: "{{ tomcat_port | default('8080')}}"
+    src: "{{ hostvars[item]['ansible_host'] }}"
+    proto: tcp
+    state: enabled 
+    comment: "tomcat access from the proxy"
+  loop: "{{ groups['web'] }}"
+
+# Allow port 4949 for munin communication
+- name: Allow access to  port 4000 from proxy
+  community.general.ufw:
+    rule: allow
+    port: "{{ munin_node_port | default('4000') }}"
+    src: "{{ hostvars[item]['ansible_host'] }}"
+    proto: tcp
+    comment: Glowroot monitor access from proxy
+    state: enabled 
+  loop: "{{ groups['web'] }}"
+  when: app_monitoring is defined and app_monitoroing=="glowroot"
+
