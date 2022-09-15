@@ -4,7 +4,8 @@
   become: True
   hosts: all
   roles:
-    # - role: proxy
-    # - role: postgres
-    # - role: dhis2
+    - role: postgres
+    - role: dhis2
     - role: monitoring
+    - role: proxy
+

@@ -53,6 +53,16 @@
     mode: '0644'
   notify: Restart Apache2
 
+- name: Allow https access from proxy
+  community.general.ufw:
+    rule: allow
+    port: "{{ munin_http_port | default('80')}}"
+    src: "{{ hostvars[item]['ansible_host'] }}"
+    proto: tcp
+    comment: "Allow access from {{ item }} instance "
+    state: enabled
+  loop: "{{ groups['web'] }}"
+
 # Setup Node to monitor multiple systems 
 - name: Enable or disable the munin cron job.
   lineinfile:

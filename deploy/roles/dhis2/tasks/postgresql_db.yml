@@ -1,0 +1,90 @@
+# Check if dhis2.conf exists
+- name: Check if dhis2.conf exists
+  stat: path=/opt/dhis2/dhis.conf
+  register: dhis2_conf
+  when: inventory_hostname in groups['instances']
+
+- name: Generate database password
+  set_fact:
+    db_password: "{{ lookup('password','/dev/null',seed=inventory_hostname) }}"
+  when:
+    - dhis2_conf.stat.exists is defined
+    - not dhis2_conf.stat.exists 
+    - inventory_hostname in groups['instances']
+
+- name: Create instances database role
+  vars:
+    ansible_host: "{{hostvars[inventory_hostname]['database_host'] if ansible_connection == 'lxd' else  hostvars[hostvars[inventory_hostname]['database_host']]['ansible_host']}}"
+  become: yes
+  become_user: postgres
+  community.general.postgresql_user:
+    name:  "{{ inventory_hostname }}"
+    state: present
+    password: "{{ db_password }}"
+  when: 
+    - hostvars[inventory_hostname]['database_host'] is defined
+    - db_password is defined
+    - create_db | bool 
+  delegate_to: "{{ hostvars[inventory_hostname]['database_host'] }}"
+  notify: Reload Postgres 
+  tags: [ never ]
+
+- name: Create instances database role
+  become: yes
+  become_user: postgres
+  community.general.postgresql_user:
+    name:  "{{ item }}"
+    state: present
+    password: "{{ hostvars[item]['db_password'] }}"
+  loop: "{{ groups['instances'] }}"
+  when: 
+    - hostvars[item]['db_password'] is defined
+    - create_db | bool 
+    - inventory_hostname == hostvars[item]['database_host']
+    - inventory_hostname in groups['databases']
+  notify: Reload Postgres 
+
+# Creating instances databases
+- name: Creating instances databases
+  vars:
+    ansible_host: "{{hostvars[inventory_hostname]['database_host'] if ansible_connection == 'lxd' else  hostvars[hostvars[inventory_hostname]['database_host']]['ansible_host']}}"
+  become: yes
+  become_user: postgres
+  community.postgresql.postgresql_db:
+    name: "{{ inventory_hostname }}"
+    state: present
+    owner: "{{ inventory_hostname }}"
+  delegate_to: "{{ hostvars[inventory_hostname]['database_host'] }}"
+  when: 
+    - hostvars[inventory_hostname]['database_host'] is defined 
+    - create_db | bool 
+  tags: [never]
+
+# Creating instances databases
+- name: Creating instances databases
+  become: yes
+  become_user: postgres
+  community.postgresql.postgresql_db:
+    name: "{{ item }}"
+    state: present
+    owner: "{{ item }}"
+  loop: "{{ groups['instances'] }}"
+  when:
+    - hostvars[item]['db_password'] is defined
+    - create_db | bool
+    - inventory_hostname == hostvars[item]['database_host']
+    - inventory_hostname in groups['databases']
+
+- name: Creating postgis,btree_gin and pg_trgm extensions
+  become: True
+  become_user: postgres
+  community.general.postgresql_ext:
+    db: "{{ item.0 }}" 
+    name: "{{ item.1 }}"
+  with_nested:
+    - "{{ groups['instances'] }}" 
+    - "{{ postgresql_extensions }}"
+  when: 
+    - inventory_hostname in groups['databases']
+    - inventory_hostname == hostvars[item.0]['database_host'] 
+

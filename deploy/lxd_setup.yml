@@ -1,6 +1,8 @@
 - hosts: localhost
   connection: local
   gather_facts: True
+  gather_subset:
+    - default_ipv4
   roles:
     - firewall
     - lxd_init

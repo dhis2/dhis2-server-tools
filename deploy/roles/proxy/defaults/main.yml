@@ -1,3 +1,6 @@
 ---
 # defaults file for ./roles/proxy
 ansible_connection: lxd
+fqdn: "{{ undef(hint='fqdn is undefined, You must specify your FULLY QUALIFIED DOMAIN NAME on  fqdn variable')}}"
+
+ 

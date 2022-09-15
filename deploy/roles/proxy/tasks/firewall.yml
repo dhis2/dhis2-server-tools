@@ -1,30 +1,18 @@
-- name: Allow ssh on port 22
-  community.general.ufw:
-    rule: limit
-    port: "{{ ssh_port | default('22') }}"
-    src: 0.0.0.0/0
-    proto: tcp
-    comment: Allow ssh access to the instance
-  when: ansible_connection == "ssh"
-
+---
 # Allow access from dhis2 instances to postgresql port 5432
 - name: Allow http port 80 
   community.general.ufw:
     rule: allow
     port: "{{ http_port | default('80')}}"
-    # src: "{{ hostvars[item]['ansible_host'] }}"
     proto: tcp
     comment: open http port
     state: enabled
-  loop: "{{ groups['instances'] }}"
 
-# Allow port 4949 for munin communication
+# Allow https port from the internet 
 - name: Allow https port.
   community.general.ufw:
     rule: allow
     port: "{{ https_port | default('443') }}"
-    # src: "{{ hostvars[item]['ansible_host'] }}"
     proto: tcp
     comment: open https port 
-  loop: "{{ groups['monitoring'] }}"
 

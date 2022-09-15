@@ -11,7 +11,7 @@
     name: munin 
     state: restarted
 
-- name: Restart Munin-node
+- name: restart munin_node
   ansible.builtin.service:
     name: munin-node
     state: restarted

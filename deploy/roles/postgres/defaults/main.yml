@@ -2,45 +2,8 @@
 # defaults file for ./roles/postgresql
 postgresql_version: 13
 ansible_connection: lxd 
-
 postgresql_extensions:
   - postgis
   - btree_gin
   - pg_trgm
 
-# munin node defaults 
-munin_node_bind_host: "*"
-munin_node_bind_port: "4949"
-munin_node_host_name: ''
-
-# Munin requires IPs be added as regular expressions.
-munin_node_allowed_ips:
-  - '^127\.0\.0\.1$'
-  - '^::1$'
-
-munin_node_allowed_cidrs: []
-munin_node_denied_cidrs: []
-
-# Source and destination of munin plugins.
-munin_plugin_src_path: /usr/share/munin/plugins/
-munin_plugin_dest_path: /etc/munin/plugins/
-# List of munin plugins to enable.
-munin_node_plugins: []
-# - name: uptime
-# - name: if_eth0
-#   plugin: if_
-# - name: ps_test
-#   plugin: ps_
-# List of munin plugins to install.
-munin_node_install_plugins: []
-  # - src: files/munin/redis_
-  # - remote_src: https://raw.githubusercontent.com/ohitz/phpfpm-multi-munin-plugin/master/phpfpm-multi
-
-# Plugin configuration options (the key is the plugin heading, items within will
-# be options for the plugin).
-munin_node_config: {
-# "ps_test": {
-#   "env.regex": "bash",
-#   "env.name": "bash"
-# }
-}

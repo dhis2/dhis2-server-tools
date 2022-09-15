@@ -1,11 +1,10 @@
 ---
-# tasks below  are run on the containers/vms
+# tasks below are executed on a postgresql host
 # Adding postgresql signing key
 - name: Add an Apt signing key
   ansible.builtin.apt_key:
-    url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc" # https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
     state: present
-  when: inventory_hostname in groups['databases']
 
  # add postgres apt repository 
 - name: Add Postgres APT repository into sources list
@@ -13,11 +12,10 @@
     repo: "deb https://apt.postgresql.org/pub/repos/apt focal-pgdg main"
     update_cache: true
     state: present
-  when: inventory_hostname in groups['databases']
 
 # Install postgresql and python module for Postgres
 - name: "Install postgres Version {{ postgresql_version }}"
-  ansible.builtin.apt:
+  ansible.builtin.apt: 
     update_cache: yes
     cache_valid_time: 3600
     name: 
@@ -26,7 +24,7 @@
       - postgresql-client-{{ postgresql_version }}
       - postgresql-{{ postgresql_version }}-postgis-2.5
       - python3-psycopg2 # python module for postgres
-  when: inventory_hostname in groups['databases']
+      - libdbd-pg-perl
   
 # Check postgresql Version
 - name: Check posgresql Version
@@ -36,22 +34,17 @@
   community.postgresql.postgresql_info:
     filter: ver*
   register: postgresql_version_info
-  when: inventory_hostname in groups['databases']
-  
+
 # Fixing pg_hba.conf permissions
 - name: Fixing pg_hba.conf permissions, allowing instances to connect
   become: True
-  # vars:
-     # ansible_host: "{{ hostvars[inventory_hostname]['database_host'] if ansible_connection == 'lxd' else  hostvars[hostvars[inventory_hostname]['database_host']]['ansible_host']}}"
   lineinfile:
     path: /etc/postgresql/{{postgresql_version_info.version.major}}/main/pg_hba.conf
     insertafter: EOF
     line: "host    {{item}}   {{item}}  {{hostvars[item]['ansible_host']}}/32   md5"
   loop: "{{ groups['instances'] }}"
   when:
-    # - database_host is defined
-    - inventory_hostname in groups['databases']
-    # - create_db | bool
+    - inventory_hostname == hostvars[item]['database_host'] 
   notify: Restart Postgres
 
 - name: Allow posgress listening on network
@@ -59,8 +52,19 @@
     dest: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/postgresql.conf
     regex: "^#?listen_addresses"
     line: "listen_addresses '*'"
-  when: inventory_hostname in groups['databases']
   notify: Restart Postgres
+
+# Allow access from dhis2 instances to postgresql port 5432
+- name: Firewall | allow access from the instance(s)
+  community.general.ufw:
+    rule: allow
+    port: "{{ postgresql_port | default('5432')}}"
+    src: "{{ hostvars[item]['ansible_host'] }}"
+    proto: tcp
+    comment: "Allow access from {{ item }} instance "
+    state: enabled
+  loop: "{{ groups['instances'] }}"
+  when: inventory_hostname == hostvars[item]['database_host']
 
 - name: Flush Handlers
   meta: flush_handlers

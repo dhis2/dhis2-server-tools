@@ -1,0 +1,42 @@
+{# 
+# location configuration for dhis2 instances
+- name: dhis2 location configuration
+  blockinfile:
+    path: "/etc/nginx/sites-available/{{ fqdn }}"
+    marker: "# {mark} {{ item }} block configuration."
+    insertafter: "# Proxy pass to the backend"
+    block: |2
+        location /{{item}} {
+          proxy_pass http://{{hostvars[item]['ansible_host']+':8080' }}/{{item}};
+          proxy_redirect off;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto https;
+          proxy_hide_header X-Powered-By;
+          proxy_set_header X-Frame-Options "SAMEORIGIN";  # To mitigate the risk of clickjacking attacks
+          proxy_set_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload";
+          proxy_set_header X-Content-Type-Options "nosniff"; # drive-by download attacks
+          proxy_set_header X-Xss-Protection "1; mode=block"; #To leverage browser-based protections against cross-site scripting
+          proxy_hide_header Server;
+          }
+  loop: "{{ groups['instances'] }}"
+  #}
+
+  {% for host in groups['instances'] %}
+       location /{{host}} {
+          proxy_pass http://{{hostvars[host]['ansible_host']+':8080' }}/{{host}};
+          proxy_redirect off;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto https;
+          proxy_hide_header X-Powered-By;
+          proxy_set_header X-Frame-Options "SAMEORIGIN";  # To mitigate the risk of clickjacking attacks
+          proxy_set_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload";
+          proxy_set_header X-Content-Type-Options "nosniff"; # drive-by download attacks
+          proxy_set_header X-Xss-Protection "1; mode=block"; #To leverage browser-based protections against cross-site scripting
+          proxy_hide_header Server;
+          }
+  {% endfor %}
+

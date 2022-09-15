@@ -1,16 +1,16 @@
 ---
 # Include connection specific tasks
-- name: "Include tasks specific to setup over {{ ansible_connection }}"
-  include_tasks: "{{ ansible_connection }}.yml"
+- include_tasks: "{{ ansible_connection }}.yml"
   when: inventory_hostname in groups['instances']
+
+- include_tasks: postgresql_db.yml
+  when: > 
+    inventory_hostname in groups['instances'] or 
+    inventory_hostname in groups['databases']
 
 # this deploys dhis2 tomcat application. 
-- name: Include dhis2 setup tasks  
-  include_tasks: common.yml
+- include_tasks: dhis2_setup.yml
   when: inventory_hostname in groups['instances']
 
-# this deploys block configuration to the proxy
-- name: Include dhis2 proxy configuration
-  include_tasks: "{{proxy}}.yml"
-  when: proxy is defined and inventory_hostname in groups['web']
-
+- include_tasks: "{{app_monitoring}}.yml"
+  when: inventory_hostname in groups['instances']

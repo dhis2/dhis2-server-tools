@@ -8,56 +8,70 @@
 - name: Remove default nginx site 
   file: name=/etc/nginx/sites-enabled/default state=absent
 
-# install certbot 
+# ===== letsencrypt === 
 - name: Install certbot
-  apt:
-    name: certbot
-    update_cache: yes
-    cache_valid_time: 3600
-    state: latest
-  when: SSL_TYPE == 'letsencrypt' 
-
-- name: create letsencrypt directory
-  file: name=/var/www/letsencrypt state=directory
-  when: SSL_TYPE == 'letsencrypt' 
-
-# Check if ther cert exists 
-- name: Check if certificate already exists.
-  stat:
-    path: /etc/letsencrypt/live/{{ fqdn }}/cert.pem
-  register: letsencrypt_cert
-  tags: [ never ]
-
+  apt: name=certbot update_cache=yes cache_valid_time=3600 state=latest
+  when: SSL_TYPE == 'letsencrypt'
 
 #  Install nginx site for letsencrypt requests
 - name: Install nginx site for letsencrypt requests
-  template:
-    src: templates/nginx-http.j2
-    dest: /etc/nginx/sites-enabled/http
-  # when:
-  #   # - not letsencrypt_cert.stat.exists
-  #   - certbot_enabled | bool 
-  notify: reload nginx
+  template: src=templates/nginx-http.j2 dest=/etc/nginx/conf.d/http.conf
   when: SSL_TYPE == 'letsencrypt'
+  notify: Reload Nginx
 
-# Flush handlers 
 - name: Flush handlers
   meta: flush_handlers
 
-# Generating TLS/SSL certificate with certbot
-- name: Generate TLS/SSL Certificate with certbot
-  shell: letsencrypt certonly -n --webroot -w /var/www/letsencrypt -m {{ email }} --agree-tos -d {{ fqdn }}
-  args:
-    creates: /etc/letsencrypt/live/{{ fqdn }}
+# Creating letsencrypt directory 
+- name: create letsencrypt directory
+  file: name=/var/www/letsencrypt state=directory
   when: SSL_TYPE == 'letsencrypt'
+
+- name: Generate TLS/SSL Certificate with certbot
+  shell: letsencrypt certonly -n --webroot -w /var/www/letsencrypt -m {{ email }} --agree-tos -d {{  fqdn  }}
+  args:
+    creates: /etc/letsencrypt/live/{{ fqdn  }}
+  when: SSL_TYPE == 'letsencrypt'
+- name: Add letsencrypt cronjob for cert renewal
+  cron:
+    name: letsencrypt_renewal
+    special_time: weekly
+    job: letsencrypt --renew certonly -n --webroot -w /var/www/letsencrypt -m {{ email }} --agree-tos -d {{  fqdn  }} && service nginx reload
+  when: SSL_TYPE == 'letsencrypt'
+
+# === CUSTOM_SSL ===
+# Copy certificate and key to the server 
+- name: creating ssl/tls directory
+  file:
+    path: /etc/ssl/{{fqdn}}
+    state: directory
+    modification_time: preserve
+    access_time: preserve
+  when: SSL_TYPE == 'customssl'
+
+- name: Porting TLS certificate
+  copy:
+    src: fullchain.pem
+    dest: "/etc/ssl/{{fqdn}}/"
+    owner: root
+    group: root
+    mode: 0644
+  when: SSL_TYPE == 'customssl'
+
+- name: Copy ssl key to the proxy host
+  copy:
+    src: privkey.pem
+    dest: /etc/ssl/{{fqdn}}/
+    owner: root
+    group: root
+    mode: 0644
+  when: SSL_TYPE == 'customssl'
 
 # Generate dhparams 
 - name: Generate dhparams
   shell: openssl dhparam -out /etc/nginx/dhparams.pem 2048
   args:
     creates: /etc/nginx/dhparams.pem
-
-
 
 # Disabling nginx version show for security reasons 
 - name: Disabling nginx version show
@@ -66,37 +80,33 @@
     regex: '.*server_tokens off'
     line: "\tserver_tokens off;"
     insertafter: "types_hash_max_size"
-  notify: reload nginx
+  notify: Reload Nginx
 
 # Coping nginx configuration to the proxy 
-- block:
-  - name: Check if nginx block config exists
-    stat: path=/etc/nginx/sites-available/{{ fqdn }}
-    register: site_config
-  - name: Porting proxy nginx configuration
-    template:
-      src: site-config.j2
-      dest: /etc/nginx/sites-available/{{fqdn}}
-      owner: root
-      group: root
-      mode: 644
-    when: not site_config.stat.exists
-
-# Enable nginx configuration by creating a symlink
-- name: Enable nginx configuration
-  ansible.builtin.file:
-    src: "/etc/nginx/sites-available/{{ fqdn }}"
-    dest: "/etc/nginx/sites-enabled/{{ fqdn }}"
-    state: link
+- name: Porting proxy nginx configuration
+  template:
+    src: site-config.j2
+    dest: /etc/nginx/conf.d/{{fqdn}}.conf
     owner: root
     group: root
-    mode: 0644
-  notify: reload nginx
+    mode: 644
+  notify: Reload Nginx
+  # when: not site_config.stat.exists
 
-# Cronjob for letsecrypt  
-- name: Add letsencrypt cronjob for cert renewal
-  cron:
-    name: letsencrypt_renewal
-    special_time: weekly
-    job: letsencrypt --renew certonly -n --webroot -w /var/www/letsencrypt -m {{ email }} --agree-tos -d {{ fqdn }} && service nginx reload
+- name: Copy dhis2 location configuration proxy 
+  template:
+    src: instance_nginx_location_conf.j2
+    dest: /etc/nginx/conf.d/dhis2-location
 
+- name: Copy glowroot location configuration to proxy 
+  template:
+    src: glowroot_nginx_location_conf.j2
+    dest: /etc/nginx/conf.d/glowroot-location
+  when: >
+    app_monitoring is defined and app_monitoring == 'glowroot'
+
+- name: Coping munin location configuration to the proxy
+  template:
+    src: munin_nginx_location_conf.j2
+    dest: /etc/nginx/conf.d/munin-location
+  when: server_monitoring == "munin"

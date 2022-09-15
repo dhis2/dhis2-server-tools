@@ -1,0 +1,45 @@
+# Enable glowroot monitoring for dhis2 application
+- name: Enable tomcat glowroot monitoring on /etc/default/tomcat9
+  lineinfile:
+    path: /etc/default/tomcat9
+    regexp: '^#? JAVA_OPTS="${JAVA_OPTS} -javaagent:/opt/glowroot/glowroot.jar"'
+    line: 'JAVA_OPTS="${JAVA_OPTS} -javaagent:/opt/glowroot/glowroot.jar"'
+  when:
+    - app_monitoring is defined
+    - app_monitoring == 'glowroot'
+
+# Creating /opt/Glowroot directory
+- name: Creating  /opt/glowroot directory
+  file:
+    path:  /opt/glowroot
+    owner: tomcat
+    group: tomcat
+    state: directory
+    modification_time: preserve
+    access_time: preserve
+  when:
+    - app_monitoring is defined
+    - app_monitoring == "glowroot"
+
+# Download and extract glowroot
+- name: Download and extract glowroot to /opt/glowroot directory
+  ansible.builtin.unarchive:
+    src: https://github.com/glowroot/glowroot/releases/download/v0.13.6/glowroot-0.13.6-dist.zip
+    dest: /opt/
+    group: tomcat
+    owner: tomcat
+    remote_src: yes
+  when:
+    - app_monitoring == 'glowroot'
+    - app_monitoring is defined
+
+- name: Copy glowroot configs to the instances
+  template:
+    src: glowroot_admin.json
+    dest: /opt/glowroot/admin.json
+    group: tomcat
+    owner: tomcat
+  when:
+    - app_monitoring == 'glowroot'
+    - app_monitoring is defined
+

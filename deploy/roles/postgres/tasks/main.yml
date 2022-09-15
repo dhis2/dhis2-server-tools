@@ -1,14 +1,9 @@
 ---
 # Can either be ssh or lxd related tasks
-- name: "Include  {{ ansible_connection }} specific tasks"
-  include_tasks: "{{ ansible_connection }}.yml"
-  when: inventory_hostname in groups['databases']
-# installing posgresql databases, heppens whether the setup is with lxd or ssh
-# - name: Installing postgresql database
-- include_tasks: common.yml
+- include_tasks: "{{ ansible_connection }}.yml"
   when: inventory_hostname in groups['databases']
 
-# Configure host firewall opening access to the database only. 
-- include_tasks: firewall.yml
+# installing posgresql database
+- include_tasks: postgresql_install.yml
   when: inventory_hostname in groups['databases']
   

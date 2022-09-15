@@ -1,13 +1,10 @@
 ---
 # tasks file for roles/monitoring
-- name: Include tasks specific to setup over {{ ansible_connection }}
-  include_tasks: "{{ ansible_connection }}.yml"
+- include_tasks: "{{ ansible_connection }}.yml"
   when: inventory_hostname in groups['monitoring']
 
-- name: Include common monitoring setup tasks 
-  include_tasks: munin.yml
+- include_tasks: munin.yml
   when: inventory_hostname in groups['monitoring']
 
-- name: "{{ proxy  }} location configuration for {{ server_monitoring  }}"
-  include_tasks: "{{ proxy }}.yml" 
-  when: server_monitoring is defined and server_monitoring == "munin" and  proxy is defined
+- include_tasks: munin_node.yml
+

@@ -7,11 +7,10 @@
   community.general.ufw:
     state: reloaded
 
-- name: reload nginx
+- name: Reload Nginx
   connection: lxd
   service:
     name: nginx
     state: reloaded
-  # delegate_to: proxy
   when: inventory_hostname in groups['web']
 

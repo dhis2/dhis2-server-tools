@@ -2,6 +2,7 @@
 proxy       ansible_host=192.168.0.2    ssh_port=22
 [databases]
 postgres    ansible_host=192.168.0.20
+postgres1    ansible_host=192.168.0.21  postgresql_version=12
 [instances]
 dhis2       ansible_host=192.168.0.10  database_host=postgres   ssh_port=22 
 training    ansible_host=192.168.0.12  database_host=postgres   ssh_port=22 
@@ -9,31 +10,29 @@ training    ansible_host=192.168.0.12  database_host=postgres   ssh_port=22
 monitor     ansible_host=192.168.0.30 
 
 [all:vars]
-fqdn=""
-email=""
+fqdn="dhis2-test.kipkurgat.org"
+email="tito@kipkurgat.org"
 
 # monitoring
 server_monitoring="munin"
 app_monitoring="glowroot"
 
 # Options: lxd, ssh
-ansible_connection=lxd
+ansible_connection=ssh
 # Options: nginx, apache2
 proxy="nginx"
 # Options: letsencrypt, customssl, upstream, selfsign
-SSL_TYPE=letsencrypt 
+SSL_TYPE=customssl 
 
 # list the timezones availlable with  timedatectl list-timezones 
 timezone="Africa/Nairobi"
 lxd_network="192.168.0.1/24"
 lxd_bridge_interface=lxdbr0
 
-
-
 # instance related 
 [instances:vars]
+database_host=postgres
 create_db=yes  
 JAVA_VERSION="11" 
-dhis2_version="2.38" 
-
+dhis2_war_url="https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war"
 

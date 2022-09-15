@@ -1,34 +1,36 @@
-##
-{#
+# site configuration
+{% if SSL_TYPE == 'customssl'  %} 
 server {
-  listen  80 default_server;
-  server_name {{ fqdn }};
-  if ($host != "{{ fqdn }}") {
+    listen 80 default_server;
+    server_name {{ fqdn }};
+    if ($host != "{{ fqdn }}") {
     return 444;
-  }
-  location /.well-known/acme-challenge {
-        root /var/www/letsencrypt;
-        try_files $uri $uri/ =404;
+      }
+    # return 301 https://$host$request_uri;
+    location / {
+        rewrite ^ https://{{ fqdn }}$request_uri? permanent;
     }
-  return 301 https://$host$request_uri;
-}
-#}
-
-## https Block
+  }
+{% endif %} 
 server {
   listen 443 ssl;
   ssl_stapling on;
   ssl_stapling_verify  on;
   server_name {{ fqdn }};
+  {% if SSL_TYPE == 'letsencrypt' %} 
   ssl_certificate /etc/letsencrypt/live/{{fqdn}}/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/{{fqdn}}/privkey.pem;
+  {% elif SSL_TYPE == 'customssl' %}
+  ssl_certificate /etc/ssl/{{ fqdn }}/fullchain.pem;
+  ssl_certificate_key /etc/ssl/{{ fqdn }}/privkey.pem;
+  {% endif %}
   ssl_protocols TLSv1.2 TLSv1.3;
   #ssl_session_cache shared:SSL:20m;
   ssl_session_timeout 10h;
   ssl_dhparam /etc/nginx/dhparams.pem;
   ssl_prefer_server_ciphers on;
   underscores_in_headers on;
-  {# add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always; #}
+  {#- add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;#}
   add_header Referrer-Policy "no-referrer";
   add_header X-XSS-Protection "1; mode=block" always;
   keepalive_timeout 10;
@@ -44,11 +46,18 @@ server {
   {# ssl_ciphers "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4"; #}
   if ($host != "{{ fqdn }}") {
     return 444;
-  }
+    }
   # Proxy pass to the backend 
-
+  # Location configuration 
+      include  conf.d/dhis2-location;
+  {% if server_monitoring == "munin" %}
+    include conf.d/munin-location;
+  {% endif %}
+  {% if app_monitoring == "glowroot" %}
+  include conf.d/glowroot-location;
+  {% endif %}
 location / {
   return 444; 
-}
+  }
 }
 

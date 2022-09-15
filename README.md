@@ -1,16 +1,22 @@
 # dhis2-server-tools
-Tools to support installation and management of DHIS2 with ansible.
+Tools to support installation and management of DHIS2 and its components,i.e
+postgres database, proxy and monitoring with ansible.
 
 ## Introduction
 DHIS2 is an open-source Health Information System application.This
-document is gives step by step guide on its installation with ansible. The scripts sets up the app on two scenarios. 
+document is gives step by step guide on its installation with ansible. The
+scripts sets up the app on two scenarios. 
 1. setup on a single ubuntu server<br> 
    This setup uses lxd containers, ansible_connection used is lxd.
 2. Setup on multiple servers.<br> 
-   Here, dhis2 application stack, i.e database, apps and proxy, is setup on different server and the communication between them happens over the network.
+   Here, dhis2 application stack, i.e database, apps and proxy, is setup on
+   different server and the communication between them happens over the
+   network.
 
 ## Pre-requisites 
-* A fully qualified domain name (fqdn) resolving to proxy's public ip address in case of a disturbed setup, or dhis2 servers public address on single server setup.
+* A fully qualified domain name (fqdn) resolving to proxy's public ip address
+  in case of a disturbed setup, or dhis2 servers public address on single
+  server setup.
 * SSL/TLS certificate - The install defaults to obtaining ssl/TLS certificate
   from letsencrypt, however, you could also use custom  SSL/TLS certificate. 
 * ubuntu server running 20.04.  
@@ -19,20 +25,24 @@ document is gives step by step guide on its installation with ansible. The scrip
 * internet access on the servers.
 
 ## Installation
-You will pull the scripts from git, make a few required configuration changes and run them for the installation. 
-Ansible will be used to run the scripts, it needs to be installed on the server where you'll be doing deployment. 
-The scripts works in both deployment scenarios, i.e on a single server or on a distributed/multiple servers/vms. 
-For dhis2 deployment on multiple servers, you'll need a small deployments server, with ssh access to all the other servers since ssh will be used for connection. 
+You will pull the scripts from git, make a few required configuration changes
+and run them for the installation. 
+Ansible will be used to run the scripts, it needs to be installed on the server
+where you'll be doing deployment. 
+The scripts works in both deployment scenarios, i.e on a single server or on a
+distributed/multiple servers/vms. 
+For dhis2 deployment on multiple servers, you'll need a small deployment
+server, with ssh access to all the other servers, underlying connection used is ssh.
 
 ### Step1 :- Install ansible and other dependencies
-#### Platform setup
-_**NOTE:** In case of distributed/multiple server setup, this will be the deployment server_ <br> 
+#### ansible setup, 
+_**NOTE:** In case of distributed/multiple server setup, this will be the deployment server._ <br> 
 update the system <br>
 `sudo apt update`
-<br>Install git in case it's not installed <br>
+<br>ensure git is installed <br>
 `sudo apt install -y git`
 
-Do install ansible version 2.11 or above, required for compatibility with  community.general modules.
+Install ansible version **_2.11_** or above, to work with community.general modules.
 
 ```
 sudo apt install software-properties-common
@@ -58,7 +68,9 @@ of hosts, which can be the containers or physical/virtual servers depending on
 your setup and the configuration parameters. 
 Change ip address for these hosts to suite your environment,
 
-_**NOTE**: When setup is on a single host, ensure your host gateway or any other address is not on lxd network subnet. You could change lxd network address space to something else_ <br> 
+_**NOTE**: When setup is on a single host, ensure your host gateway or any
+other address is not on lxd network subnet. You could change lxd network
+address space to something else_ <br> 
 Use an editor of your choice, here we are using vim, you could use `nano` as well. <br> 
 `vim dhis2-server-tools/deploy/inventory/hosts`
 
@@ -73,11 +85,13 @@ tracker ansible_host=192.168.0.11  database_host=postgres   proxy_is_enabled=Tru
 [monitoring]
 ```
 ####  Configuration parameters 
-dhis2-server-tools configurations are located on the inventory file on  `dhis2-server-tools/deploy/inventory/hosts` file.
+dhis2-server-tools configurations are located on the inventory file on
+`dhis2-server-tools/deploy/inventory/hosts` file.
 Below is a list of available configuration parameters
 ##### mandatory parameters 
-* `fqdm` this is the domain used to access dhis2 application 
-* `email` This is an email used to generate letsecrypt certificate and Let's Encrypt expiration emails
+* `fqdn` this is the domain used to access dhis2 application 
+* `email` This is an email used to generate letsecrypt certificate and Let's
+  Encrypt expiration emails
 * `ansible_connection=lxd` Depending on the setup environment, ansible_connection
   can be `lxd` or `ssh`, ssh if its on multiple server and lxd if on a single
   server 
@@ -89,16 +103,21 @@ installation, the install checks the existence of the domain name entered
 (sub)domain so it is resolved to an external IP address of your server._
 
 ##### optional parameters 
-* `proxy=nginx`  here you specify proxy software of your choice, can be nginx or apache2 default is nginx, only nginx supported for now. 
-* `SSL_TYPE=letsencrypt` this parameter enables to specify whether you'd want to use `letsencrypt` or your own `customssl` certificate, defaults is letsencrypt 
+* `proxy=nginx`  here you specify proxy software of your choice, can be nginx
+  or apache2 default is nginx, only nginx supported for now. 
+* `SSL_TYPE=letsencrypt` this parameter enables to specify whether you'd want
+  to use `letsencrypt` or your own `customssl` certificate, defaults is
+  letsencrypt 
 * `timezone=Africa/Nairobi` You set this variable to your home/city's time zone. 
 
-* `lxd_network="192.168.0.1/24"`, here you define a network which your containers will be created into.
+* `lxd_network="192.168.0.1/24"`, here you define a network which your
+  containers will be created into.
 * `lxd_bridge_interface=lxdbr0`, the name of the created lxd bridge
 * `create_db=yes` , whether dhis2 install should create new db or not, 
 * `JAVA_VERSION="11"` version of java to be install, defaults to java11
 * `dhis2_version="2.38"` dhis2 software version to deploy, defaults is 2.38 
-* `database_host=postgres` this is the database server that the instance should use, defaults to postgres. Must be also defined on you inventory file. 
+* `database_host=postgres` this is the database server that the instance should
+  use, defaults to postgres. Must be also defined on you inventory file. 
 
 #### hosts grouping
 The host are grouped into categories below, 
@@ -127,11 +146,14 @@ access from the deployment server to all the server components where you'll be
 having dhis2 application stack components. 
 Ensure ansible_connection parameter is set to ssh, i.e` ansible_connection=ssh` then run the playbook below. 
 
-`ansible-playbook deploy/dhis2.yaml -i ./deploy/inventory/hosts `
+`ansible-playbook deploy/dhis2.yaml -i ./deploy/inventory/hosts -u <ssh_user> -Kk`
 
+NOTE: Since connection used is ssh, you'll need to pass connection parameters
+on the command line, i.e ssh_username with `-u`, ssh_password with `-k` and
+become_password  with `-k`
 
 ## Using a Custom SSL Certificate 
-### Still in development, only letsencrypt supported now. 
+##### ENSURE YOU HAVE SSL/TLS Certificate and key beforehand
 For HTTPS connection, the install used Letsencrypt to obtain an SSL/TLS certificate. This
 should work fine most OS and browsers, however, these scripts provides a way of
 using your own SSL/TLS certificates. To use your own custom SSL/TLS certs, follow below steps, 
@@ -139,7 +161,7 @@ using your own SSL/TLS certificates. To use your own custom SSL/TLS certs, follo
 1. Get/generate `fullchain.pem` file which will be concatenating your certificate
    and any other intermediate and root certificates.
 2. Get/generate `privkey.pem` file, this contains private key used for certificate signing.
-3. Copy these two files into `dhis2-server-tools/deploy/roles/proxy/files` directory.
+3. Copy these two files into `dhis2-server-tools/deploy/roles/proxy/files/` directory.
 4. edit `dhis2-server-tools/deploy/inventory/hosts` and change `SSL_TYPE`  to `customssl` 
 
 To start using a custom certificate instead of the default Letsencrypt
@@ -147,16 +169,25 @@ certificate, you need to switch off the certbot service in the `/deploy/inventor
 configuration and ensure you have both `fullchain.pem` and `private.pem` files
 
 ## Customizing postgresql
-Installed postgresql database comes with default settings which should be fine and working at this stage. However, these settings can be changed a bit for performance optimization and maximum utilization of the available system resources. Before optimizing anything, you will need to know resources you have first, i.e, total RAM  available, use `free -h` for that.
-### limiting  RAM exposed to postgresql container, only applies for lxd setup
-Deciding how much RAM to dedicate to postgresql depends a little on how many DHIS2 instances you are likely to run, but assuming you will have a production instance and perhaps a small test instance,if you gave a total of say 32GB,  giving 16GB exclusively to postgresql is a reasonable start.
+Installed postgresql database comes with default settings which should be fine
+and working at this stage. However, these settings can be changed a bit for
+performance optimization and maximum utilization of the available system
+resources. Before optimizing anything, you will need to know resources you have
+first, i.e, total RAM  available, use `free -h` for that.
+
+#### limiting  RAM exposed to postgresql container, only applies for lxd setup
+Deciding how much RAM to dedicate to postgresql depends a little on how many
+DHIS2 instances you are likely to run, but assuming you will have a production
+instance and perhaps a small test instance,if you gave a total of say 32GB,
+giving 16GB exclusively to postgresql is a reasonable start.
 
 `sudo lxc config set postgresql limits.memory 16GB`
 
+running `free -gh` inside the postgresql container you will see that it no
+longer can see the full amount of RAM, but has been confined to 16GB. (try sudo
+lxc exec postgres -- free -gh).
 
-running `free -gh` inside the postgresql container you will see that it no longer can see the full amount of RAM, but has been confined to 16GB. (try sudo lxc exec postgres -- free -gh).
-
-### Editing postgresql configuration, applies for both both lxd and ssh setup.
+#### Editing postgresql configuration, applies for both both lxd and ssh setup.
 
 Depending on your setup, postgresql can be on either the containers or on its own server,
 To access the container  `sudo lxc exec postgres bash`
@@ -218,8 +249,10 @@ sudo lxc start covid19
 ```
 
 #### application management on the distributed architecture. 
-for dhis2 setup in a distributed architecture, you'll have to logging to the individual server and restart respective application. 
-to restart postgres database, login to the server via ssh and run the command below, 
+for dhis2 setup in a distributed architecture, you'll have to logging to the
+individual server and restart respective application. 
+to restart postgres database, login to the server via ssh and run the command
+below, 
 
    ```
    systemctl  stop  postgresql
@@ -242,7 +275,8 @@ parameters. This brief installation guide only touches on the most important
 tunables.
 
 ## lxd container operation
-lxd environment offers `lxc` command line tool which can be used to manage and administer containers 
+lxd environment offers `lxc` command line tool which can be used to manage and
+administer containers 
 
 listing containers <br>
 `lxc list`
@@ -269,7 +303,10 @@ restart container <br>
 
 deletes a container<br>
 `lxc delete <container_name>`
-
+## MONITORING
+By default the script implements monitoring with munin and glowroot. Munin is
+for server monitoring whereas glowroot is for tomcat application monitoring.  
 
 ## NOTE: Work in progress. <br/>
-Please refer to https://github.com/bobjolliffe/dhis2-tools-ng for production ready dhis2 installation guide. 
+Please refer to https://github.com/bobjolliffe/dhis2-tools-ng for production
+ready dhis2 installation guide. 

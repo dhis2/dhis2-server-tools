@@ -1,0 +1,67 @@
+---
+# tomcat setup
+- name:  installing java and tomcat  and zip 
+  apt: > 
+    name=openjdk-{{JAVA_VERSION}}-jre-headless,unzip,tomcat9,tomcat9-admin,ufw 
+    update_cache=yes
+    cache_valid_time=3600
+  
+# Cleaning up webapps directory
+- block: 
+  - name: Clean /var/lib/tomcat9/webapps directory
+    file: path=/var/lib/tomcat9/webapps/ state=absent
+
+# Creating application directories
+- name: Creates webapps/instaced directories
+  file: >
+    path=/var/lib/tomcat9/webapps/{{inventory_hostname}} 
+    state=directory
+  notify: Stop Tomcat
+
+ # Creating dhis2 configuration directory 
+- name: Creating dhi2.conf directory 
+  file: >
+    path=/opt/dhis2 state=directory owner=tomcat
+    modification_time=preserve access_time=preserve
+ 
+# Copy dhis2.conf to the instances 
+- name: Copy dhis2.conf to the instances
+  template: >
+    src=dhis.conf.j2 dest=/opt/dhis2/dhis.conf
+    mode='0640' owner=root group=tomcat 
+  when: db_password is defined
+  ignore_errors: yes
+
+# copy sever.xml config to the instances 
+- name: Copy server.xml to the instances
+  ansible.builtin.copy: >
+    src=server.xml dest=/etc/tomcat9/server.xml
+    mode='0640' owner=root group=tomcat
+
+# setting up dhis2
+- name: Copy setup template to intances. 
+  template: >
+    src=tomcat_setup.j2 dest=/tmp/tomcat_setup.sh
+    mode='0700' owner=root group=root
+
+# Copy dhis2 default configuration to the instances
+- name: Copy dhis2 default configs
+  template:
+    src: tomcat_default.j2
+    dest: /etc/default/tomcat9
+    mode: '0644'
+
+# Execute copied over tomcat_setup.sh script
+- name: Execute tomcat_setup.sh script withing the containers
+  become: True
+  become_user: root
+  shell:  /tmp/tomcat_setup.sh
+  
+# Download and Extract dhis2 into the instances 
+- name: Download and unarchive dhis2 file
+  ansible.builtin.unarchive:
+    src: "{{ dhis2_war_url }}"
+    dest: /var/lib/tomcat9/webapps/{{inventory_hostname}}
+    remote_src: yes
+  notify: Start Tomcat
+

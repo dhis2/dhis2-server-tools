@@ -33,7 +33,6 @@
         parent:   "{{ containers[0].network | default ('lxdbr0') }}"
         type:     "{{ containers[0].interface_type | default ('nic') }}"
         ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) | default(omit)}}" 
-  delegate_to: 127.0.0.1
   when:
     - inventory_hostname in groups['web'] 
     - proxy is defined
