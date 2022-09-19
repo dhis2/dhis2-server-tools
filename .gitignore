@@ -1,0 +1,11 @@
+.DS_Store
+fullchain.pem
+privkey.pem
+.stignore
+.stversions/
+notes.sh
+create_containers.yml
+notes
+test*
+*.vim
+*.war

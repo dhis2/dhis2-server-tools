@@ -36,3 +36,4 @@
   when:
     - inventory_hostname in groups['web'] 
     - proxy is defined
+

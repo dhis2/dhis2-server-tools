@@ -18,7 +18,7 @@ server_monitoring="munin"
 app_monitoring="glowroot"
 
 # Options: lxd, ssh
-ansible_connection=ssh
+ansible_connection=lxd 
 # Options: nginx, apache2
 proxy="nginx"
 # Options: letsencrypt, customssl, upstream, selfsign
@@ -34,5 +34,10 @@ lxd_bridge_interface=lxdbr0
 database_host=postgres
 create_db=yes  
 JAVA_VERSION="11" 
-dhis2_war_url="https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war"
+
+# This can be an url obtained from https://releases.dhis2.org or a file. A file
+# can be placed in roles/dhis2/files and just its name be used. If dhis2 war
+# file is placed an another directory, you need to specify its full path e.g
+# /home/example/dhis2.war 
+dhis2_war_file="https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war"
 

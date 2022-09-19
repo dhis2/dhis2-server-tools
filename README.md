@@ -115,7 +115,11 @@ installation, the install checks the existence of the domain name entered
 * `lxd_bridge_interface=lxdbr0`, the name of the created lxd bridge
 * `create_db=yes` , whether dhis2 install should create new db or not, 
 * `JAVA_VERSION="11"` version of java to be install, defaults to java11
-* `dhis2_version="2.38"` dhis2 software version to deploy, defaults is 2.38 
+* `dhis2_war_file` This is were you specify dhis2 war file, its can be a
+  url or a file,the file full path must be specified, alternatively, you can
+  place the file in
+  dhis2-server-tools/deploy/dhis2/files directory and you'll not be required to
+  specify its path but just the name. 
 * `database_host=postgres` this is the database server that the instance should
   use, defaults to postgres. Must be also defined on you inventory file. 
 

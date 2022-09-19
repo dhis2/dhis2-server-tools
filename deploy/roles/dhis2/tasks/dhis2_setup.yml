@@ -58,10 +58,18 @@
   shell:  /tmp/tomcat_setup.sh
   
 # Download and Extract dhis2 into the instances 
-- name: Download and unarchive dhis2 file
+- name: Download and unarchive dhis2 file , remote_src 
   ansible.builtin.unarchive:
-    src: "{{ dhis2_war_url }}"
+    src: "{{ dhis2_war_file }}"
     dest: /var/lib/tomcat9/webapps/{{inventory_hostname}}
     remote_src: yes
+  notify: Start Tomcat
+  when: dhis2_war_file | regex_search('(https:\/\/)')
+
+- name: Deploy war dhis2 war file from a directory, local_src 
+  ansible.builtin.unarchive:
+    src: "{{ dhis2_war_file }}"
+    dest: /var/lib/tomcat9/webapps/{{inventory_hostname}}
+  when: dhis2_war_file | regex_search('^(?!.*?https:\/\/).*$')
   notify: Start Tomcat
 
