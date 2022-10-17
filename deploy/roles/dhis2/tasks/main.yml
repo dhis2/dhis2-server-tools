@@ -13,4 +13,7 @@
   when: inventory_hostname in groups['instances']
 
 - include_tasks: "{{app_monitoring}}.yml"
-  when: inventory_hostname in groups['instances']
+  when:
+    - inventory_hostname in groups['instances'] 
+    - app_monitoring is defined 
+

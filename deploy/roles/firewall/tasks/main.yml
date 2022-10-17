@@ -27,9 +27,16 @@
     line: DEFAULT_FORWARD_POLICY="ACCEPT"
   notify: Reload UFW
 
+# sudo ufw allow in on lxdbr0
+- name: Add rules for lxd bridge
+  community.general.ufw:
+    rule: allow
+    direction: in
+    interface: "{{ lxd_bridge_interface | default('lxdbr0') }}"
+    
+
 # NAT configuration to the proxy container
 - name: Configure host to NAT to the proxy container
-  # gather_facts: True
   vars:
     ansible_connection: local
   become: true

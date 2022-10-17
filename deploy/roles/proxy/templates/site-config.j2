@@ -43,18 +43,17 @@ server {
   proxy_set_header X-Frame-Options "SAMEORIGIN";
 # This is quite strict.  If you have much older windoze browsers
   ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
-  {# ssl_ciphers "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4"; #}
   if ($host != "{{ fqdn }}") {
     return 444;
     }
   # Proxy pass to the backend 
   # Location configuration 
       include  conf.d/dhis2-location;
-  {% if server_monitoring == "munin" %}
-    include conf.d/munin-location;
+  {% if server_monitoring is defined %}
+      include conf.d/{{server_monitoring}}-location;
   {% endif %}
-  {% if app_monitoring == "glowroot" %}
-  include conf.d/glowroot-location;
+  {% if app_monitoring is defined %}
+      include conf.d/{{app_monitoring}}-location;
   {% endif %}
 location / {
   return 444; 

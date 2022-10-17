@@ -1,10 +1,18 @@
 ---
 # tasks file for roles/monitoring
 - include_tasks: "{{ ansible_connection }}.yml"
-  when: inventory_hostname in groups['monitoring']
+  when:
+    - inventory_hostname in groups['monitoring']
+    - server_monitoring is defined
+    - server_monitoring == 'munin' 
 
 - include_tasks: munin.yml
-  when: inventory_hostname in groups['monitoring']
-
+  when: 
+    - inventory_hostname in groups['monitoring']
+    - server_monitoring is defined
+    - server_monitoring == 'munin'
+        
 - include_tasks: munin_node.yml
-
+  when: 
+    - server_monitoring is defined 
+    - server_monitoring == 'munin'

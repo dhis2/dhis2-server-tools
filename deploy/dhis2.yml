@@ -6,6 +6,6 @@
   roles:
     - role: postgres
     - role: dhis2
-    - role: monitoring
     - role: proxy
+    - role: monitoring
 

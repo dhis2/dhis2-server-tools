@@ -25,20 +25,23 @@ scripts sets up the app on two scenarios.
 * internet access on the servers.
 
 ## Installation
-You will pull the scripts from git, make a few required configuration changes
-and run them for the installation. 
-Ansible will be used to run the scripts, it needs to be installed on the server
-where you'll be doing deployment. 
-The scripts works in both deployment scenarios, i.e on a single server or on a
-distributed/multiple servers/vms. 
-For dhis2 deployment on multiple servers, you'll need a small deployment
-server, with ssh access to all the other servers, underlying connection used is ssh.
+Pull deployment the code from git, make a few required configuration changes
+and run them for the installation. Ansible automation tool is used to run the
+scripts,it has to be installed on the deployment server. The scripts work two
+deployment scenarios which can either be on a single server or on a
+distributed/multiple servers/vms.  For dhis2 deployment on multiple servers,
+you'll need a small deployment server, with ssh access to all the other
+servers, underlying connection used is ssh.
 
 ### Step1 :- Install ansible and other dependencies
 #### ansible setup, 
 _**NOTE:** In case of distributed/multiple server setup, this will be the deployment server._ <br> 
-update the system <br>
-`sudo apt update`
+update and upgrade system packages <br>
+```
+sudo apt -y update
+sudo apt -y upgrade
+```
+
 <br>ensure git is installed <br>
 `sudo apt install -y git`
 
@@ -47,7 +50,7 @@ Install ansible version **_2.11_** or above, to work with community.general modu
 ```
 sudo apt install software-properties-common
 sudo apt-add-repository --yes --update ppa:ansible/ansible
-sudo apt install ansible
+sudo apt install -y ansible
 sudo apt-get install -y python3-netaddr
 ```
 Install community.general ansible modules, required for lxd_container, ufw and other modules <br>
@@ -60,17 +63,17 @@ Install community.general ansible modules, required for lxd_container, ufw and o
 ### Step3:- Customization before installation
 Change the directory to the project directory
 ```
-cd dhis2-server-toos
+cd dhis2-server-tools
 ```
 
-Edit the file  `./deploy/inventory/hosts`. The file has a list
-of hosts, which can be the containers or physical/virtual servers depending on
-your setup and the configuration parameters. 
-Change ip address for these hosts to suite your environment,
+edit the file  `dhis2-server-toos/deploy/inventory/hosts`. The file has a list
+of hosts, which can be physical/virtual servers depending on
+your setup. Change ip address for these hosts to suite your environment,
 
-_**NOTE**: When setup is on a single host, ensure your host gateway or any
+_**NOTE**: `When setup is on a single host, ensure your host gateway or any
 other address is not on lxd network subnet. You could change lxd network
-address space to something else_ <br> 
+address space to something else`_ <br> 
+
 Use an editor of your choice, here we are using vim, you could use `nano` as well. <br> 
 `vim dhis2-server-tools/deploy/inventory/hosts`
 

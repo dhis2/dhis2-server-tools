@@ -12,14 +12,14 @@
     file: path=/var/lib/tomcat9/webapps/ state=absent
 
 # Creating application directories
-- name: Creates webapps/instaced directories
+- name: Creating webapps directories
   file: >
     path=/var/lib/tomcat9/webapps/{{inventory_hostname}} 
     state=directory
   notify: Stop Tomcat
 
  # Creating dhis2 configuration directory 
-- name: Creating dhi2.conf directory 
+- name: Creating /opt/dhis2  directory 
   file: >
     path=/opt/dhis2 state=directory owner=tomcat
     modification_time=preserve access_time=preserve
@@ -38,25 +38,40 @@
     src=server.xml dest=/etc/tomcat9/server.xml
     mode='0640' owner=root group=tomcat
 
-# setting up dhis2
-- name: Copy setup template to intances. 
-  template: >
-    src=tomcat_setup.j2 dest=/tmp/tomcat_setup.sh
-    mode='0700' owner=root group=root
+- name: Creating tomcat9.service.d  directory
+  file: >
+    owner=root group=root mode=0755
+    path=/etc/systemd/system/tomcat9.service.d
+    state=directory
+
+- name: Create overrides file for tomcat9
+  template:
+    src: tomcat_overrides.j2
+    dest: /etc/systemd/system/tomcat9.service.d/override.conf
+    mode: '0644'
+    owner: root
+    group: root
+  notify: Restart Tomcat
+
+- name: Restrict tomcat user from running cron
+  ansible.builtin.lineinfile: >
+    path=/etc/cron.deny state=present create=yes
+    line=tomcat owner=root group=root
+
+- name: Restrict tomcat user from scheduling and running commands at later time
+  ansible.builtin.lineinfile: >
+    path=/etc/at.deny owner=root group=root
+    state=present line=tomcat create=yes
 
 # Copy dhis2 default configuration to the instances
 - name: Copy dhis2 default configs
-  template:
+  ansible.builtin.template:
     src: tomcat_default.j2
     dest: /etc/default/tomcat9
     mode: '0644'
+    owner: root 
+    group: root
 
-# Execute copied over tomcat_setup.sh script
-- name: Execute tomcat_setup.sh script withing the containers
-  become: True
-  become_user: root
-  shell:  /tmp/tomcat_setup.sh
-  
 # Download and Extract dhis2 into the instances 
 - name: Download and unarchive dhis2 file , remote_src 
   ansible.builtin.unarchive:
@@ -72,4 +87,44 @@
     dest: /var/lib/tomcat9/webapps/{{inventory_hostname}}
   when: dhis2_war_file | regex_search('^(?!.*?https:\/\/).*$')
   notify: Start Tomcat
+
+# Firewall configuration
+# Allow access from proxy  to tomcat port 8080
+- name: Allow access to port 8080 from proxy
+  community.general.ufw:
+    rule: allow
+    port: "{{ tomcat_port | default('8080')}}"
+    src: "{{ hostvars[item]['ansible_host'] }}"
+    proto: tcp
+    state: enabled 
+    comment: "tomcat access from the proxy"
+  loop: "{{ groups['web'] }}"
+
+# Allow port 4000 glowroot monitoring 
+- name: Allow access to  port 4000 from proxy
+  community.general.ufw:
+    rule: allow
+    port: "{{ glow_root_port | default('4000') }}"
+    src: "{{ hostvars[item]['ansible_host'] }}"
+    proto: tcp
+    comment: Glowroot monitor access from proxy
+    state: enabled 
+  loop: "{{ groups['web'] }}"
+  when: > 
+    app_monitoring is defined and
+    app_monitoring == "glowroot"
+
+# allow port 4949 from munin server monitor
+- name: Allow port 4949 from munin server monitor
+  community.general.ufw:
+    rule: allow
+    port: "{{ munin_node_port | default('4949')}}"
+    src: "{{ hostvars[item]['ansible_host'] }}"
+    proto: tcp
+    state: enabled
+    comment: munin-node access from munin server
+  loop: "{{ groups['monitoring'] }}"
+  when: >
+    server_monitoring is defined and 
+    server_monitoring == "munin"
 

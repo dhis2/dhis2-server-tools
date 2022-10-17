@@ -83,7 +83,7 @@
   notify: Reload Nginx
 
 # Coping nginx configuration to the proxy 
-- name: Porting proxy nginx configuration
+- name: Porting nginx configuration
   template:
     src: site-config.j2
     dest: /etc/nginx/conf.d/{{fqdn}}.conf
@@ -91,22 +91,28 @@
     group: root
     mode: 644
   notify: Reload Nginx
-  # when: not site_config.stat.exists
 
 - name: Copy dhis2 location configuration proxy 
   template:
     src: instance_nginx_location_conf.j2
     dest: /etc/nginx/conf.d/dhis2-location
+  notify: Reload Nginx
 
 - name: Copy glowroot location configuration to proxy 
   template:
     src: glowroot_nginx_location_conf.j2
     dest: /etc/nginx/conf.d/glowroot-location
   when: >
-    app_monitoring is defined and app_monitoring == 'glowroot'
+    app_monitoring is defined and 
+    app_monitoring == 'glowroot'
+  notify: Reload Nginx
 
 - name: Coping munin location configuration to the proxy
   template:
     src: munin_nginx_location_conf.j2
     dest: /etc/nginx/conf.d/munin-location
-  when: server_monitoring == "munin"
+  notify: Reload Nginx
+  when: >
+    server_monitoring is defined and
+    server_monitoring == "munin" 
+

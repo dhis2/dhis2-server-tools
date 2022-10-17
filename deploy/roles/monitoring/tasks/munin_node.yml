@@ -1,4 +1,4 @@
-
+# Ensure munin-node is installed
 - name: Ensure munin-node is installed
   apt: >
     name=munin-node,munin-plugins-core,munin-plugins-extra 

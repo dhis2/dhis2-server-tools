@@ -11,6 +11,8 @@ echo "tomcat" >> /at.deny
 {# mkdir /opt/glowroot #}
 {# chown -R tomcat.tomcat /opt/glowroot #}
 
+{#
+
 mkdir /etc/systemd/system/tomcat9.service.d
 
 ########################################################################
@@ -20,18 +22,22 @@ mkdir /etc/systemd/system/tomcat9.service.d
 cat << EOF > /etc/systemd/system/tomcat9.service.d/override.conf
 [Service]
 ReadWritePaths=/opt/dhis2
+{% if app_monitoring is defined and app_monitoring == "glowroot"  %}
 ReadWritePaths=/opt/glowroot
+{% endif  %}
 ReadWritePaths=/var/log/tomcat9
 EOF
 
 #Reload the systemd manager
 systemctl daemon-reload
+#}
 
-{# ###################################################################################### #}
-{# # 3.  server.xml #}
 
+{#
 ufw allow proto tcp from {{ PROXY_IP }} to any port 8080  
 ufw allow proto tcp from {{ PROXY_IP }} to any port 4000
 ufw allow proto tcp from  0.0.0.0/0 to any port 22
 ufw --force enable
+#}
+
 
