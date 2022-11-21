@@ -7,7 +7,7 @@ networks:
     ipv4.dhcp.ranges: "{{ '.'.join(lxd_network.split('.')[:3]) + '.10-' + '.'.join(lxd_network.split('.')[:3])+'.19'}}" 
   description: ""
   managed: false
-  name: "{{lxd_bridge_interface}}"
+  name: "{{ lxd_bridge_interface }}"
   type: ""
 storage_pools:
 - config: {}
@@ -24,7 +24,7 @@ profiles:
     eth0:
       name: eth0
       nictype: bridged
-      parent: lxdbr0
+      parent: "{{ lxd_bridge_interface }}"
       type: nic
     root:
       path: /

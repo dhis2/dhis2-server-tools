@@ -1,0 +1,14 @@
+[Unit]
+Description= camel port 8090
+After=syslog.target
+
+[Service]
+User=username
+ExecStart=/usr/lib/jvm/java-11-openjdk-amd64/bin/java -jar /usr/local/bin/dhis2-t2a.jar --spring.config.location=/usr/local/etc/t2a.properties --server.port=8080
+SuccessExitStatus=143
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=5
+
+[Install] 
+WantedBy=multi-user.target

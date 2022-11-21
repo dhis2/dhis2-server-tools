@@ -1,6 +1,6 @@
 # create postgresql container,
 - name: Create monitoring container
-  become: False
+  become: True
   vars:
     ansible_connection: local
   community.general.lxd_container:
@@ -15,12 +15,11 @@
       mode: pull
       server: https://cloud-images.ubuntu.com/releases
       protocol: simplestreams
-      fingerprint: e3e1bd82cdc7
-      #alias: ubuntu/{{ containers[1].guest_os }} 
+      alias: "{{ guest_os }}/{{guest_os_arch | default('amd64')}}"
     devices:
       eth0:
-        nictype:  "{{ containers[1].nictype | default ('bridged') }}"
-        parent:   "{{ containers[1].network | default ('lxdbr0') }}"
-        type:     "{{ containers[1].interface_type | default ('nic') }}"
+        nictype:  "bridged"
+        parent:   "{{ lxd_bridge_interface | default ('lxdbr0') }}"
+        type:     "nic"
         ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) | default(omit)}}" 
   delegate_to: 127.0.0.1

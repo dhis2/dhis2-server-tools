@@ -44,6 +44,7 @@
     path=/etc/systemd/system/tomcat9.service.d
     state=directory
 
+# Tomcat9 override file 
 - name: Create overrides file for tomcat9
   template:
     src: tomcat_overrides.j2

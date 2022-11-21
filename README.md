@@ -1,54 +1,53 @@
 # dhis2-server-tools
-Tools to support installation and management of DHIS2 and its components,i.e
-postgres database, proxy and monitoring with ansible.
 
-## Introduction
-DHIS2 is an open-source Health Information System application.This
-document is gives step by step guide on its installation with ansible. The
-scripts sets up the app on two scenarios. 
+This tools install DHIS2 application stack with ansible. The stack is comprised
+of dhis2 tomcat instance(s), database(postgresql), proxy (nginx/apache2) and
+monitoring (munin).
+Ths installation can be single server or on multiple servers. Single server setup is using lxd. 
+
 1. setup on a single ubuntu server<br> 
-   This setup uses lxd containers, ansible_connection used is lxd.
+    Uses lxd containers, set `ansible_connection` to `lxd`.
 2. Setup on multiple servers.<br> 
-   Here, dhis2 application stack, i.e database, apps and proxy, is setup on
-   different server and the communication between them happens over the
-   network.
+    dhis2 application stack, i.e database, apps,monitor and proxy are setup on
+    on separate virtual machines or servers. 
 
-## Pre-requisites 
-* A fully qualified domain name (fqdn) resolving to proxy's public ip address
-  in case of a disturbed setup, or dhis2 servers public address on single
-  server setup.
-* SSL/TLS certificate - The install defaults to obtaining ssl/TLS certificate
-  from letsencrypt, however, you could also use custom  SSL/TLS certificate. 
-* ubuntu server running 20.04.  
-* non-root user with sudo privileges 
-* access to the server, can ssh or console access. 
-* internet access on the servers.
-
+## Pre-requisites
+Before you start installation, you will need -:,
+* fqdn (fully qualified domain name). <br>
+  It should be mapped to server or proxy public ip address depending on your setup. <br> 
+* ubuntu server running 20.04 or 22.04. 
+* SSL/TLS certificate - The installation defaults to obtaining SSL/TLS
+  certificate from letsencrypt, you can also bring your own.  
+* good internet on the severs.
 ## Installation
-Pull deployment the code from git, make a few required configuration changes
-and run them for the installation. Ansible automation tool is used to run the
-scripts,it has to be installed on the deployment server. The scripts work two
-deployment scenarios which can either be on a single server or on a
-distributed/multiple servers/vms.  For dhis2 deployment on multiple servers,
-you'll need a small deployment server, with ssh access to all the other
-servers, underlying connection used is ssh.
+The process of installation involves pulling deployment code from git and
+setting a few variables/parameters to suit your environment. Of the importance
+is `fqdn`,`email` and `ansible_connection,` other config parameters can be left in their defaults.  
+1. single server
+    * ansible_connection should be set to *lxd* 
+    * dhis2 and its components will be installed on *lxd* containers. 
+    * deployment happens from within the server, you do not need separate deployment server. 
 
-### Step1 :- Install ansible and other dependencies
-#### ansible setup, 
-_**NOTE:** In case of distributed/multiple server setup, this will be the deployment server._ <br> 
+2. multiple servers environment setup. 
+    * `ansible_connection` should be set to `ssh`
+    *  A separate deployment server is a requirement, it should be able to
+       access all the other servers via ssh 
+
+### Step1 :- Install ansible and other dependencies.
+#### environment setup. 
+_**NOTE:** In case of multiple server setup, this happens on the deployment server._ <br> 
 update and upgrade system packages <br>
 ```
 sudo apt -y update
 sudo apt -y upgrade
 ```
-
-<br>ensure git is installed <br>
+Ensure git is installed. <br>
 `sudo apt install -y git`
 
 Install ansible version **_2.11_** or above, to work with community.general modules.
 
 ```
-sudo apt install software-properties-common
+sudo apt install -y  software-properties-common
 sudo apt-add-repository --yes --update ppa:ansible/ansible
 sudo apt install -y ansible
 sudo apt-get install -y python3-netaddr
@@ -59,45 +58,43 @@ Install community.general ansible modules, required for lxd_container, ufw and o
 ### Step2 :- Pull ansible deployment code from git
 `git clone https://github.com/dhis2/dhis2-server-tools`
 
-
 ### Step3:- Customization before installation
 Change the directory to the project directory
 ```
-cd dhis2-server-tools
+cd dhis2-server-tools/deploy
 ```
-
-edit the file  `dhis2-server-toos/deploy/inventory/hosts`. The file has a list
-of hosts, which can be physical/virtual servers depending on
-your setup. Change ip address for these hosts to suite your environment,
-
-_**NOTE**: `When setup is on a single host, ensure your host gateway or any
-other address is not on lxd network subnet. You could change lxd network
-address space to something else`_ <br> 
+edit the file  `./inventory/hosts`. The file has a list
+of hosts, which can be physical, virtual servers or lxd containers depending on
+your setup architecture and configuration parameters. 
+#### hosts configuration 
+Change ip address for these hosts to suite network environment. <br>
+_**NOTE**: `When the install is on a single host with lxd, ensure your
+lxd_network is unique and  not overlaping with any of your already existing
+host network.`_ <br> 
 
 Use an editor of your choice, here we are using vim, you could use `nano` as well. <br> 
-`vim dhis2-server-tools/deploy/inventory/hosts`
+`vim ./inventory/hosts`
 
+##### Sample host configuration 
 ```
 [proxy]
-proxy       ansible_host=192.168.0.2    ssh_port=22
+proxy       ansible_host=192.168.0.2 
 [databases]
-postgres    ansible_host=192.168.0.20  ssh_port=22
+postgres    ansible_host=192.168.0.20
 [instances]
-dhis2   ansible_host=192.168.0.10  database_host=postgres   proxy_is_enabled=True
-tracker ansible_host=192.168.0.11  database_host=postgres   proxy_is_enabled=True
+hmis  ansible_host=192.168.0.10  database_host=postgres  
 [monitoring]
 ```
 ####  Configuration parameters 
-dhis2-server-tools configurations are located on the inventory file on
-`dhis2-server-tools/deploy/inventory/hosts` file.
-Below is a list of available configuration parameters
-##### mandatory parameters 
+dhis2-server-tools configurations are located on the same inventory file , i.e 
+`dhis2-server-tools/deploy/inventory/hosts`.
+
+Below is a list of available configuration parameters, of importance is fqdn and email, ( mail required for letsencrypt cert expiry notification )
+##### important configuration parameters 
+Your proxy setup will need these two variables be set for it to work. 
 * `fqdn` this is the domain used to access dhis2 application 
-* `email` This is an email used to generate letsecrypt certificate and Let's
-  Encrypt expiration emails
-* `ansible_connection=lxd` Depending on the setup environment, ansible_connection
-  can be `lxd` or `ssh`, ssh if its on multiple server and lxd if on a single
-  server 
+* `email` This is an email used to generate letsencrypt certificate and letsencrypt expiration emails
+* `ansible_connection` parameter is also a requirement, it defaults to `lxd`, however is you are setting up dhis2 over ssh, on multiple servers you'll need to change it to `ssh`
 
 _Important: dhis2 is designed to work on the dedicated domain. You can use
 either a domain like yourdomain.com or a subdomain of any level. During the
@@ -138,26 +135,35 @@ The host are grouped into categories below,
 * `[monitoring]`  - Servers intended for monitoring.
 
 
-### Step4: Running the scripts, the installation
+### Step4: The installation
 #### DHIS2 setup on a single host with lxd 
-To install dhis2 on a single server (lxd), ensure your ansible_connection parameter is set to lxd<br>
+To install dhis2 on a single server (lxd), ensure your ansible_connection
+parameter is set to `lxd` <br>
 `ansible_connection=lxd` <br>
-Run below two playbooks on the host where you'll be setting up dhis2
+Navigate to the deploy directory, `cd dhis2-server-tools/deploy/` <br>
+Run below two playbooks on the host where you'll be setting up dhis2, remember,
+ensure you are on `deploy` directory for the scripts to work.
 
-`ansible-playbook deploy/lxd-init.yml` # needed to setup lxd environment. <br>
-`ansible-playbook deploy/dhis2.yaml -i ./deploy/inventory/hosts `
+`sudo ansible-playbook lxd_setup.yml`    # this sets up lxd environment., -K is
+for privilege escalation <br>
+`sudo ansible-playbook dhis2.yml` # this deploys the app on lxd containers <br>
 
 #### DHIS2 install on multiple servers
-You'll need a deployment server for this architecture. There should be ssh
-access from the deployment server to all the server components where you'll be
-having dhis2 application stack components. 
-Ensure ansible_connection parameter is set to ssh, i.e` ansible_connection=ssh` then run the playbook below. 
+You'll need a deployment server for this architecture, it is from the
+deployment server that you'll be running your ansible scripts. It needs to have
+ssh connection to the other hosts.  Ensure ansible_connection parameter is set
+to ssh, i.e` ansible_connection=ssh` then run the playbook below, and ip
+addresses of the hosts are correctly configured on the inventory file.  You'll
+run your script, again from within deploy directory, navigate into it with `cd`
+command. <br> and run below ansible command to begin your installation. 
 
-`ansible-playbook deploy/dhis2.yaml -i ./deploy/inventory/hosts -u <ssh_user> -Kk`
+`ansible-playbook dhis2.yml -u <ssh_user> -Kk`
 
 NOTE: Since connection used is ssh, you'll need to pass connection parameters
-on the command line, i.e ssh_username with `-u`, ssh_password with `-k` and
-become_password  with `-k`
+on the command line, i.e ssh_user with `-u`, ssh_password with `-k` and
+become_password  with `-K`. For this to work, ssh connection from the
+deployment server should be working, perhaps you'll need to test the connection
+before the installation. 
 
 ## Using a Custom SSL Certificate 
 ##### ENSURE YOU HAVE SSL/TLS Certificate and key beforehand
@@ -314,6 +320,3 @@ deletes a container<br>
 By default the script implements monitoring with munin and glowroot. Munin is
 for server monitoring whereas glowroot is for tomcat application monitoring.  
 
-## NOTE: Work in progress. <br/>
-Please refer to https://github.com/bobjolliffe/dhis2-tools-ng for production
-ready dhis2 installation guide. 

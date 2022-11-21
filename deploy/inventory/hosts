@@ -1,12 +1,12 @@
 [web]
-proxy       ansible_host=192.168.0.2    ssh_port=22
+proxy       ansible_host=172.19.2.2    ssh_port=22
 [databases]
-postgres    ansible_host=192.168.0.20
+postgres    ansible_host=172.19.2.20
 [instances]
-dhis2       ansible_host=192.168.0.10  database_host=postgres   ssh_port=22 
-training    ansible_host=192.168.0.12  database_host=postgres   ssh_port=22 
+dhis2       ansible_host=172.19.2.10  database_host=postgres   ssh_port=22 # url, here
+training    ansible_host=172.19.2.11  database_host=postgres   ssh_port=22 # url, here 
 [monitoring]
-monitor     ansible_host=192.168.0.30 
+monitor     ansible_host=172.19.2.30 
 
 [all:vars]
 fqdn=""
@@ -17,19 +17,21 @@ server_monitoring="munin"
 app_monitoring="glowroot"
 
 # Options: lxd, ssh
-ansible_connection=lxd 
+ansible_connection=lxd
 
 # Options: nginx, apache2
 proxy="nginx"
 
 # Options: letsencrypt, customssl, upstream, selfsign
-SSL_TYPE=letsencrypt 
+SSL_TYPE=letsencrypt
 
 # list the timezones availlable with  timedatectl list-timezones 
 timezone="Africa/Nairobi"
-lxd_network="192.168.0.1/24"
-lxd_bridge_interface=lxdbr0
-guest_os=22.04
+lxd_network="172.19.2.1/24"
+lxd_bridge_interface='lxdbr0'
+guest_os="20.04"
+# Options: amd64,arm64,armhf, defaults to amd64
+guest_os_arch='amd64'
 
 # instance related 
 [instances:vars]
@@ -41,5 +43,6 @@ JAVA_VERSION="11"
 # can be placed in roles/dhis2/files and just its name be used. If dhis2 war
 # file is placed an another directory, you need to specify its full path e.g
 # /home/example/dhis2.war 
+# https://releases.dhis2.org/ 
 dhis2_war_file="https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war"
 

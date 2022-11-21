@@ -66,9 +66,9 @@
     group: root
     mode: 0644
   when: SSL_TYPE == 'customssl'
-
+# For high-quality SSL configuration, we also generate Diffie-Helman parameters. This can take a few minutes:
 # Generate dhparams 
-- name: Generate dhparams
+- name: Generating dhparams, this is going to take a while. 
   shell: openssl dhparam -out /etc/nginx/dhparams.pem 2048
   args:
     creates: /etc/nginx/dhparams.pem

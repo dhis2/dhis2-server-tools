@@ -1,6 +1,6 @@
 # tasks file for ./roles/proxy
 - name: Create proxy container
-  become: False
+  become: True
   vars:
     ansible_connection: local
   community.general.lxd_container:
@@ -14,9 +14,8 @@
       mode: pull
       #server: https://images.linuxcontainers.org
       server: https://cloud-images.ubuntu.com/releases
-      fingerprint: e3e1bd82cdc7
       protocol: simplestreams
-      #alias: ubuntu/{{containers[0].guest_os | default(20.04)}}
+      alias: "{{ guest_os }}/{{guest_os_arch | default('amd64')}}"
     devices:
       #"80":
       #  listen: tcp:0.0.0.0:80
@@ -29,9 +28,9 @@
       #  #nat: 'true'
       #  type: proxy 
       eth0:
-        nictype:  "bridged"
-        parent:   "{{ containers[0].network | default ('lxdbr0') }}"
-        type:     "{{ containers[0].interface_type | default ('nic') }}"
+        nictype: "bridged"
+        parent: "{{ lxd_bridge_interface | default ('lxdbr0') }}"
+        type: "nic"
         ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) | default(omit)}}" 
   when:
     - inventory_hostname in groups['web'] 

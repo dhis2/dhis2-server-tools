@@ -13,23 +13,6 @@
     - inventory_hostname in groups['instances']
 
 - name: Create instances database role
-  vars:
-    ansible_host: "{{hostvars[inventory_hostname]['database_host'] if ansible_connection == 'lxd' else  hostvars[hostvars[inventory_hostname]['database_host']]['ansible_host']}}"
-  become: yes
-  become_user: postgres
-  community.general.postgresql_user:
-    name:  "{{ inventory_hostname }}"
-    state: present
-    password: "{{ db_password }}"
-  when: 
-    - hostvars[inventory_hostname]['database_host'] is defined
-    - db_password is defined
-    - create_db | bool 
-  delegate_to: "{{ hostvars[inventory_hostname]['database_host'] }}"
-  notify: Reload Postgres 
-  tags: [ never ]
-
-- name: Create instances database role
   become: yes
   become_user: postgres
   community.general.postgresql_user:
@@ -43,22 +26,6 @@
     - inventory_hostname == hostvars[item]['database_host']
     - inventory_hostname in groups['databases']
   notify: Reload Postgres 
-
-# Creating instances databases
-- name: Creating instances databases
-  vars:
-    ansible_host: "{{hostvars[inventory_hostname]['database_host'] if ansible_connection == 'lxd' else  hostvars[hostvars[inventory_hostname]['database_host']]['ansible_host']}}"
-  become: yes
-  become_user: postgres
-  community.postgresql.postgresql_db:
-    name: "{{ inventory_hostname }}"
-    state: present
-    owner: "{{ inventory_hostname }}"
-  delegate_to: "{{ hostvars[inventory_hostname]['database_host'] }}"
-  when: 
-    - hostvars[inventory_hostname]['database_host'] is defined 
-    - create_db | bool 
-  tags: [never]
 
 # Creating instances databases
 - name: Creating instances databases

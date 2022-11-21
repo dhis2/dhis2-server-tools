@@ -1,7 +1,9 @@
 ---
+# Install postgresql and python module for Postgres
 # tasks below are executed on a postgresql host
 # Adding postgresql signing key
 - name: Add an Apt signing key
+  become: True
   ansible.builtin.apt_key:
     url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
     state: present
@@ -9,9 +11,12 @@
  # add postgres apt repository 
 - name: Add Postgres APT repository into sources list
   ansible.builtin.apt_repository:
-    repo: "deb https://apt.postgresql.org/pub/repos/apt focal-pgdg main"
-    update_cache: true
+    # use dynamic code name here 
+    # http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" j
+    repo: "deb https://apt.postgresql.org/pub/repos/apt {{ 'focal' if guest_os == '20.04' else 'jammy' }}-pgdg main"
+    update_cache: True
     state: present
+    # codename: jammy 
 
 # Install postgresql and python module for Postgres
 - name: "Install postgres Version {{ postgresql_version }}"
@@ -22,9 +27,18 @@
       - ca-certificates
       - postgresql-{{ postgresql_version }}
       - postgresql-client-{{ postgresql_version }}
-      - postgresql-{{ postgresql_version }}-postgis-2.5
-      - python3-psycopg2 # python module for postgres
+      - postgresql-{{ postgresql_version }}-postgis-{{'2.5' if guest_os == '20.04' else '3'}}
+      # - postgresql-{{ postgresql_version }}-postgis-2.5
+      - python3-psycopg2 
       - libdbd-pg-perl
+
+# sometimes postgres is installed but not started
+- name: Ensure postgresql is running
+  become: True
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: yes
   
 # Check postgresql Version
 - name: Check posgresql Version

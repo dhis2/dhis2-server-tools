@@ -8,7 +8,7 @@
   register: ufw_check
 - debug:
     msg:
-      - UFW in disabled !!
+      - UFW is disabled !!
       - Please enable it to continue with the setup
       - sudo ufw limit 22   # allows ssh connections to the server
       - sudo ufw enable     # starts and enables ufw

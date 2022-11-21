@@ -19,13 +19,13 @@ lxd_fanconf_fan: "lxdfan0"
 lxd_fanconf_underlay_subnet: "auto"
 
 lxd_bridgeconf_use_bridge: "true"
-lxd_bridgeconf_bridge: "lxdbr0"
-lxd_bridgeconf_ipv4_addr: "192.168.0.1"
+lxd_bridge_interface: "lxdbr0"
+lxd_bridgeconf_ipv4_addr: "172.19.2.1"
 lxd_bridgeconf_ipv4_netmask: "255.255.255.0"
-lxd_bridgeconf_ipv4_network: "192.168.0.1/24"
-lxd_bridgeconf_ipv4_dhcp_range: "192.168.0.100-192.168.0.200"
+lxd_bridgeconf_ipv4_network: "172.19.2.1/24"
+lxd_bridgeconf_ipv4_dhcp_range: "172.19.2.100-172.19.2.200"
 lxd_bridgeconf_ipv4_dhcp_max: 199
-lxd_bridgeconf_ipv4_nat: true
+lxd_bridgeconf_ipv4_nat: True
 lxd_bridgeconf_ipv6_addr: "auto"
 lxd_bridgeconf_ipv6_dhcp: "true"
 lxd_bridgeconf_ipv6_dhcp_range: ""
