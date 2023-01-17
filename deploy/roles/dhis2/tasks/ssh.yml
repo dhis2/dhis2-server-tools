@@ -1,3 +1,10 @@
+---
+- name: Get host facts
+  ansible.builtin.setup:
+    gather_subset:
+      - network
+      - '!min'
+
 # Allow ssh port 22. 
 - name: Allow ssh on port 22
   community.general.ufw:

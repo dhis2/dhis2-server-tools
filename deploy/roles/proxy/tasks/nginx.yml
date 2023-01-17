@@ -15,23 +15,30 @@
 
 #  Install nginx site for letsencrypt requests
 - name: Install nginx site for letsencrypt requests
-  template: src=templates/nginx-http.j2 dest=/etc/nginx/conf.d/http.conf
+  template: src=nginx/http.j2 dest=/etc/nginx/conf.d/http.conf
   when: SSL_TYPE == 'letsencrypt'
   notify: Reload Nginx
+  register: nginx_letsencrypt_site
 
-- name: Flush handlers
-  meta: flush_handlers
+# reloading nginx
+- name: Reload Nginx 
+  ansible.builtin.service: 
+    name: nginx
+    state: reloaded
+  when: nginx_letsencrypt_site is changed
 
 # Creating letsencrypt directory 
 - name: create letsencrypt directory
   file: name=/var/www/letsencrypt state=directory
   when: SSL_TYPE == 'letsencrypt'
 
+# certbot certonly -d $FQDN --standalone -m $EMAIL --agree-tos -n --no-eff-email
 - name: Generate TLS/SSL Certificate with certbot
   shell: letsencrypt certonly -n --webroot -w /var/www/letsencrypt -m {{ email }} --agree-tos -d {{  fqdn  }}
   args:
     creates: /etc/letsencrypt/live/{{ fqdn  }}
   when: SSL_TYPE == 'letsencrypt'
+
 - name: Add letsencrypt cronjob for cert renewal
   cron:
     name: letsencrypt_renewal
@@ -66,9 +73,9 @@
     group: root
     mode: 0644
   when: SSL_TYPE == 'customssl'
-# For high-quality SSL configuration, we also generate Diffie-Helman parameters. This can take a few minutes:
+
 # Generate dhparams 
-- name: Generating dhparams, this is going to take a while. 
+- name: Generating  Diffie–Hellman key exchange parameters, takes a while, grab some coffee if you may. 
   shell: openssl dhparam -out /etc/nginx/dhparams.pem 2048
   args:
     creates: /etc/nginx/dhparams.pem
@@ -83,9 +90,9 @@
   notify: Reload Nginx
 
 # Coping nginx configuration to the proxy 
-- name: Porting nginx configuration
+- name: Copy  nginx site configuration
   template:
-    src: site-config.j2
+    src: nginx/site.j2
     dest: /etc/nginx/conf.d/{{fqdn}}.conf
     owner: root
     group: root
@@ -94,22 +101,22 @@
 
 - name: Copy dhis2 location configuration proxy 
   template:
-    src: instance_nginx_location_conf.j2
+    src: nginx/instance.j2
     dest: /etc/nginx/conf.d/dhis2-location
   notify: Reload Nginx
 
 - name: Copy glowroot location configuration to proxy 
   template:
-    src: glowroot_nginx_location_conf.j2
+    src: nginx/glowroot.j2 
     dest: /etc/nginx/conf.d/glowroot-location
   when: >
     app_monitoring is defined and 
     app_monitoring == 'glowroot'
   notify: Reload Nginx
 
-- name: Coping munin location configuration to the proxy
+- name: Copy munin location configuration to the proxy
   template:
-    src: munin_nginx_location_conf.j2
+    src: nginx/munin.j2
     dest: /etc/nginx/conf.d/munin-location
   notify: Reload Nginx
   when: >

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+#       ____  __  ______________
+#      / __ \/ / / /  _/ ___/__ \
+#     / / / / /_/ // / \__ \__/ /
+#    / /_/ / __  // / ___/ / __/
+#   /_____/_/ /_/___//____/____/
+#
+#   Show non-idle database connections
+
+PROG=`basename $0`
+
+###############################################################
+usage() {
+  echo "Usage: $PROG [<postgres_container>]"
+  echo "  postgres_container: name of the postgres container"
+  echo "Options:"
+  echo "  -h, --help       Display this help message"
+}
+
+while getopts h opt
+do
+  case $opt in
+    h) usage; exit 1;;
+    *) echo "Error: Unknown parameter '$OPTARG'."
+        exit 1;;
+  esac
+done
+shift $(($OPTIND - 1))
+
+DBCONTAINER=${1:-postgres}
+
+Q="SELECT now()-xact_start,now()-query_start,datname,state,query from pg_stat_activity WHERE state != 'idle' AND datname != 'postgres' ORDER BY now()-xact_start DESC;"
+
+echo $Q | lxc exec $DBCONTAINER -- psql -t postgres

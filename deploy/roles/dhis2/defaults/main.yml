@@ -1,11 +1,13 @@
 ---
 # defaults file for ./roles/dhis2
-create_db: True
+create_db: true
 ansible_connection: lxd
-PROXY_IP: "{{ hostvars['proxy']['ansible_host']}}"
 JAVA_VERSION: "11"
 dhis2_war_file: "https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war"
 postgresql_extensions:
   - postgis
   - btree_gin
   - pg_trgm
+app_monitoring: glowroot
+# default database host if none in defined
+database_host: postgres

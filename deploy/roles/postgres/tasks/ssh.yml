@@ -1,3 +1,10 @@
+---
+- name: Get host facts
+  ansible.builtin.setup:
+    gather_subset:
+      - network
+      - '!min'
+
 # Allow ssh port 22. 
 - name: Allow ssh on port 22
   community.general.ufw:
@@ -6,7 +13,8 @@
     src: 0.0.0.0/0
     proto: tcp
     comment: Allow ssh access to the instance
-- name: Install acl package, needed when switching to postgres user
+
+- name: Install acl package
   become: true
   ansible.builtin.apt:
     name: acl

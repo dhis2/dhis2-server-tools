@@ -6,4 +6,6 @@
 # installing posgresql database
 - include_tasks: postgresql_install.yml
   when: inventory_hostname in groups['databases']
+
+- meta: flush_handlers
   

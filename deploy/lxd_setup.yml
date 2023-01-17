@@ -9,5 +9,5 @@
     - firewall
     - lxd_init
   post_tasks:
-    - debug: msg="LXD server has been initialted, proceed to creating lxd containers"
+    - debug: msg="LXD server has been initialted"
 

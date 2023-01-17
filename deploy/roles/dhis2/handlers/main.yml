@@ -1,9 +1,6 @@
 ---
 # handlers file for ./roles/dhis2
 - name: Reload Postgres
-  vars:
-    ansible_host: "{{ hostvars[inventory_hostname]['database_host'] if ansible_connection == 'lxd' else  hostvars[hostvars[inventory_hostname]['database_host']]['ansible_host']}}"
-  delegate_to: "{{ hostvars[inventory_hostname]['database_host'] }}"
   ansible.builtin.service:
     name: postgresql
     state: reloaded

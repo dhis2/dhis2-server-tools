@@ -16,3 +16,4 @@
   when: 
     - server_monitoring is defined 
     - server_monitoring == 'munin'
+- meta: flush_handlers

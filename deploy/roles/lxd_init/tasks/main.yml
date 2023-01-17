@@ -1,6 +1,6 @@
 --- 
 # install lxd with snap
-- name: Install lxd
+- name: Install lxd with snap
   community.general.snap:
     name: lxd
 
@@ -13,18 +13,18 @@
     run_once: true
     changed_when: false
 
-  - name: create lxd-preceed.yml
+  - name: create lxd-preseed.yml
     set_fact:
-      master: "{{ lookup('template', 'lxd-preceed.yml.j2') }}"
+      master: "{{ lookup('template', 'lxd-preseed.yml.j2') }}"
   
-  - name: Backup lxd-preceed configuration to /tmp directory 
+  - name: Backup lxd-preseed configuration to /tmp directory 
     copy:
-      dest: /tmp/lxd-preceed.yml
+      dest: /tmp/lxd-preseed.yml
       content: "{{ master }}"
       mode: '0644'
     changed_when: false
 
-  - name: Initiating lxd with lxd-preceed.yml
+  - name: Initiating lxd with lxd-preseed.yml
     command: lxd init --preseed <
     args:
       stdin: "{{ master }}"

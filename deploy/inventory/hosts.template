@@ -3,10 +3,11 @@ proxy       ansible_host=172.19.2.2    ssh_port=22
 [databases]
 postgres    ansible_host=172.19.2.20
 [instances]
-dhis2       ansible_host=172.19.2.10  database_host=postgres   ssh_port=22 # url, here
-training    ansible_host=172.19.2.11  database_host=postgres   ssh_port=22 # url, here 
+# dhis  ansible_host=172.19.2.10  database_host=postgres  ssh_port=22 dhis2_war_file='https://releases.dhis2.org/2.39/dhis2-stable-2.39.0.war'
+hmis  ansible_host=172.19.2.11  database_host=postgres  ssh_port=22
 [monitoring]
 monitor     ansible_host=172.19.2.30 
+[integration]
 
 [all:vars]
 fqdn=""
@@ -27,9 +28,9 @@ SSL_TYPE=letsencrypt
 
 # list the timezones availlable with  timedatectl list-timezones 
 timezone="Africa/Nairobi"
-lxd_network="172.19.2.1/24"
-lxd_bridge_interface='lxdbr0'
-guest_os="20.04"
+lxd_network="172.19.2.1/24" 
+lxd_bridge_interface='lxdbr1'
+guest_os=22.04
 # Options: amd64,arm64,armhf, defaults to amd64
 guest_os_arch='amd64'
 
@@ -45,4 +46,4 @@ JAVA_VERSION="11"
 # /home/example/dhis2.war 
 # https://releases.dhis2.org/ 
 dhis2_war_file="https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war"
-
+dhis2_version=2.38

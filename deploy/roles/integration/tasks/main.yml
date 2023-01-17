@@ -1,13 +1,58 @@
 ---
 # tasks file for roles/integration
 # Creating integration container 
+- name: Create postgres container
+  become: True
+  vars:
+    ansible_connection: local
+  community.general.lxd_container:
+    name: "{{ container_name }}"
+    state: stopped 
+    profiles: [ "default" ]
+    ignore_volatile_options: False
+    config:
+      "security.nesting": "True"
+    timeout: 600
+    source:
+      type: image
+      mode: pull
+      server: https://cloud-images.ubuntu.com/releases
+      protocol: simplestreams
+      alias: "{{ guest_os }}/{{guest_os_arch | default('amd64')}}"
+    devices:
+      eth0:
+        type: 'nic'
+        parent: "{{ lxd_bridge_interface | default ('lxdbr0') }}"
+        nictype: bridged
+        ipv4.address: "{{ ip_address | ansible.utils.ipaddr(lxd_network) }}" 
 
+- name: Starting integration container 
+  become: True
+  vars:
+    ansible_connection: local
+  community.general.lxd_container:
+    name: "{{ container_name }}"
+    state: started
+    wait_for_ipv4_addresses: True
 # update and upgrade
-
+    
 # installing jre
+- name: install java-11 
+  ansible.builtin.apt:
+    name: openjdk-11-jre-headless
+    update_cache: yes
+    cache_valid_time: 3600
+  delegate_to: "{{ container_name }}" 
 
-# pulling jar file 
+- name: Creating application diretory
+  file:
+    dest: /opt/<application_name>
+    type: diretory
 
 # Creating systemd service 
-
+- name: Copy systemd file to the server 
+  template: 
+    src:
+    dest:
+  notify: Reload Systemd 
 

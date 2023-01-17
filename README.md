@@ -18,20 +18,6 @@ Before you start installation, you will need -:,
 * ubuntu server running 20.04 or 22.04. 
 * SSL/TLS certificate - The installation defaults to obtaining SSL/TLS
   certificate from letsencrypt, you can also bring your own.  
-* good internet on the severs.
-## Installation
-The process of installation involves pulling deployment code from git and
-setting a few variables/parameters to suit your environment. Of the importance
-is `fqdn`,`email` and `ansible_connection,` other config parameters can be left in their defaults.  
-1. single server
-    * ansible_connection should be set to *lxd* 
-    * dhis2 and its components will be installed on *lxd* containers. 
-    * deployment happens from within the server, you do not need separate deployment server. 
-
-2. multiple servers environment setup. 
-    * `ansible_connection` should be set to `ssh`
-    *  A separate deployment server is a requirement, it should be able to
-       access all the other servers via ssh 
 
 ### Step1 :- Install ansible and other dependencies.
 #### environment setup. 
@@ -44,7 +30,8 @@ sudo apt -y upgrade
 Ensure git is installed. <br>
 `sudo apt install -y git`
 
-Install ansible version **_2.11_** or above, to work with community.general modules.
+ansible version **_2.11_** or above is a requirement for community.general modules. 
+If you are doing installation on ubuntu 18.04, use pip3 instead. 
 
 ```
 sudo apt install -y  software-properties-common
@@ -59,13 +46,16 @@ Install community.general ansible modules, required for lxd_container, ufw and o
 `git clone https://github.com/dhis2/dhis2-server-tools`
 
 ### Step3:- Customization before installation
-Change the directory to the project directory
+Navigate into project diretory, 
 ```
 cd dhis2-server-tools/deploy
 ```
+Create `./inventory/hosts` by copying `./inventory/hosts.template`, 
+i.e `cp ./inventory/hosts.template ./inventory/hosts`
 edit the file  `./inventory/hosts`. The file has a list
-of hosts, which can be physical, virtual servers or lxd containers depending on
-your setup architecture and configuration parameters. 
+of hosts, can either be physical servers or  virtual servers or lxd containers depending on
+your setup architecture.
+
 #### hosts configuration 
 Change ip address for these hosts to suite network environment. <br>
 _**NOTE**: `When the install is on a single host with lxd, ensure your
@@ -151,11 +141,12 @@ for privilege escalation <br>
 #### DHIS2 install on multiple servers
 You'll need a deployment server for this architecture, it is from the
 deployment server that you'll be running your ansible scripts. It needs to have
-ssh connection to the other hosts.  Ensure ansible_connection parameter is set
-to ssh, i.e` ansible_connection=ssh` then run the playbook below, and ip
-addresses of the hosts are correctly configured on the inventory file.  You'll
-run your script, again from within deploy directory, navigate into it with `cd`
-command. <br> and run below ansible command to begin your installation. 
+ssh connection to the other hosts.  Test your ssh connectin with `ansible all -m ping -u <username> -k`
+Ensure ansible_connection parameter is set to ssh, i.e` ansible_connection=ssh`
+then run the playbook below, and ip addresses of the hosts are correctly
+configured on the inventory file.  You'll run your script, again from within
+deploy directory, navigate into it with `cd` command. <br> and run below
+ansible command to begin your installation. 
 
 `ansible-playbook dhis2.yml -u <ssh_user> -Kk`
 

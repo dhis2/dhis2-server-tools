@@ -1,5 +1,5 @@
-# create postgresql container,
-- name: Create monitoring container
+# create monitoring container,
+- name: Creating monitoring container
   become: True
   vars:
     ansible_connection: local
@@ -7,9 +7,9 @@
     name: "{{ inventory_hostname }}"
     state: started
     profiles: [ "default" ]
-    wait_for_ipv4_addresses: true
     ignore_volatile_options: false
-    timeout: 600
+    wait_for_ipv4_addresses: true
+    timeout: 60
     source:
       type: image
       mode: pull
@@ -21,5 +21,22 @@
         nictype:  "bridged"
         parent:   "{{ lxd_bridge_interface | default ('lxdbr0') }}"
         type:     "nic"
-        ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) | default(omit)}}" 
-  delegate_to: 127.0.0.1
+        ipv4.address:  "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) | default(omit)}}" 
+
+- name: Get facts
+  ansible.builtin.setup:
+    gather_subset:
+      - network
+      - '!min'
+
+- name: Ensuring container has configured static ip address
+  become: True
+  vars:
+    ansible_connection: local
+  community.general.lxd_container:
+    name: "{{ inventory_hostname }}"
+    state: restarted
+    wait_for_ipv4_addresses: True
+  when:
+    - hostvars[inventory_hostname]['ansible_host'] != hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['address']
+

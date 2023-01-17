@@ -1,5 +1,5 @@
-# create lxd containers for the instances,
-- name: Create lxd containers for the instances
+# create instance(s) container(s)
+- name: Creating dhis2 containers
   become: True
   vars:
     ansible_connection: local
@@ -7,8 +7,8 @@
     name: "{{ inventory_hostname }}"
     state: started
     profiles: [ "default" ]
+    ignore_volatile_options: False
     wait_for_ipv4_addresses: true
-    ignore_volatile_options: false
     timeout: 600
     source:
       type: image
@@ -18,8 +18,30 @@
       alias: "{{ guest_os }}/{{guest_os_arch | default('amd64')}}"
     devices:
       eth0:
-        nictype:  "bridged"
-        parent:   "{{ lxd_bridge_interface | default ('lxdbr0') }}"
-        type:     "{{ containers[1].interface_type | default ('nic') }}"
+        nictype:  bridged
+        parent: "{{ lxd_bridge_interface | default ('lxdbr0') }}"
+        type: nic
         ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) }}" 
-  notify: Reload Nginx
+
+# Gather containers facts, which will include its default ip address and codename, e.g jammy
+# Gathered facts are important, e.g when static ip address does not apply to the created container
+# or when you want to install a package based on the codename
+- name: Get facts
+  ansible.builtin.setup:
+    gather_subset:
+      - network
+      - '!min'
+
+# in case created container's static ip address is not the same as one
+# defined, it is restarted, this behavior rarely happens
+- name: Ensuring container has configured static ip address
+  become: True
+  vars:
+    ansible_connection: local
+  community.general.lxd_container:
+    name: "{{ inventory_hostname }}"
+    state: restarted
+    wait_for_ipv4_addresses: True
+  when:
+    - hostvars[inventory_hostname]['ansible_host'] != hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['address']
+

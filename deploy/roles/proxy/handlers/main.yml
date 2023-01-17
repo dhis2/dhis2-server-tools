@@ -8,9 +8,13 @@
     state: reloaded
 
 - name: Reload Nginx
-  connection: lxd
   service:
     name: nginx
     state: reloaded
-  when: inventory_hostname in groups['web']
+
+- name: Reload Apache2
+  service:
+    name: apache2
+    state: reloaded
+
 

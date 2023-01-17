@@ -1,4 +1,4 @@
-# tasks file for ./roles/proxy
+# creating proxy container 
 - name: Create proxy container
   become: True
   vars:
@@ -8,7 +8,8 @@
     state: started
     profiles: ["default"]
     ignore_volatile_options: false
-    timeout: 600
+    wait_for_ipv4_addresses: true
+    timeout: 60
     source:
       type: image
       mode: pull
@@ -32,7 +33,21 @@
         parent: "{{ lxd_bridge_interface | default ('lxdbr0') }}"
         type: "nic"
         ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) | default(omit)}}" 
+
+- name: Get facts
+  ansible.builtin.setup:
+    gather_subset:
+      - network
+      - '!min'
+
+- name: Applying container static ip address
+  become: True
+  vars:
+    ansible_connection: local
+  community.general.lxd_container:
+    name: "{{ inventory_hostname }}"
+    state: restarted
+    wait_for_ipv4_addresses: True
   when:
-    - inventory_hostname in groups['web'] 
-    - proxy is defined
+    - hostvars[inventory_hostname]['ansible_host'] != hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['address']
 

@@ -1,2 +1,5 @@
 ---
 # handlers file for roles/integration
+- name: Reload Systemctl
+  ansible.builtin.systemd:
+    daemon_reload: yes

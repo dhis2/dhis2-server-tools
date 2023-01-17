@@ -4,11 +4,10 @@ networks:
     ipv4.address: "{{ lxd_network }}"
     ipv4.nat: "true"
     ipv6.address: none
-    ipv4.dhcp.ranges: "{{ '.'.join(lxd_network.split('.')[:3]) + '.10-' + '.'.join(lxd_network.split('.')[:3])+'.19'}}" 
-  description: ""
-  managed: false
+    ipv4.dhcp.ranges: "{{ '.'.join(lxd_network.split('.')[:3]) + '.40-' + '.'.join(lxd_network.split('.')[:3])+'.50'}}" 
+  description: "DHIS2 Network"
   name: "{{ lxd_bridge_interface }}"
-  type: ""
+  type: "bridge"
 storage_pools:
 - config: {}
   description: ""
@@ -17,8 +16,6 @@ storage_pools:
 profiles:
 - config:
     environment.TZ: "{{ timezone }}"
-    #user.user-data: |
-      #package_upgrade: trudde
   description: "Default LXD profile"
   devices:
     eth0:

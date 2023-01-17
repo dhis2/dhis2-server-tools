@@ -1,7 +1,11 @@
 ---
-# Install postgresql and python module for Postgres
-# tasks below are executed on a postgresql host
 # Adding postgresql signing key
+- name: Update and upgrade
+  ansible.builtin.apt:
+    upgrade: yes
+    update_cache: yes
+    cache_valid_time: 86400
+
 - name: Add an Apt signing key
   become: True
   ansible.builtin.apt_key:
@@ -11,18 +15,13 @@
  # add postgres apt repository 
 - name: Add Postgres APT repository into sources list
   ansible.builtin.apt_repository:
-    # use dynamic code name here 
-    # http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" j
-    repo: "deb https://apt.postgresql.org/pub/repos/apt {{ 'focal' if guest_os == '20.04' else 'jammy' }}-pgdg main"
+    repo: "deb https://apt.postgresql.org/pub/repos/apt {{ hostvars[inventory_hostname]['ansible_facts']['distribution_release'] }}-pgdg main"
     update_cache: True
     state: present
-    # codename: jammy 
 
 # Install postgresql and python module for Postgres
 - name: "Install postgres Version {{ postgresql_version }}"
   ansible.builtin.apt: 
-    update_cache: yes
-    cache_valid_time: 3600
     name: 
       - ca-certificates
       - postgresql-{{ postgresql_version }}
@@ -69,7 +68,7 @@
   notify: Restart Postgres
 
 # Allow access from dhis2 instances to postgresql port 5432
-- name: Firewall | allow access from the instance(s)
+- name: Firewall | Open port 5432 from dhis2 instances
   community.general.ufw:
     rule: allow
     port: "{{ postgresql_port | default('5432')}}"
@@ -79,6 +78,3 @@
     state: enabled
   loop: "{{ groups['instances'] }}"
   when: inventory_hostname == hostvars[item]['database_host']
-
-- name: Flush Handlers
-  meta: flush_handlers

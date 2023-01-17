@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+#       ____  __  ______________
+#      / __ \/ / / /  _/ ___/__ \
+#     / / / / /_/ // / \__ \__/ /
+#    / /_/ / __  // / ___/ / __/
+#   /_____/_/ /_/___//____/____/
+#
+#   Script to completely remove a dhis2 instance
+
+PROG=`basename $0`
+
+APM=$(cat /usr/local/etc/dhis/containers.json| jq -r .apm)
+PROXY=$(cat /usr/local/etc/dhis/containers.json| jq -r .proxy)
+
+###############################################################
+usage() {
+  echo "Usage: $PROG <name> [<postgres_container>]"
+  echo "  name: name of the dhis2 container"
+  echo "  postgres_container: name of the postgres container"
+  echo "Options:"
+  echo "  -h, --help       Display this help message"
+}
+
+while getopts h opt
+do
+  case $opt in
+    h) usage; exit 1;;
+    *) echo "Error: Unknown parameter '$OPTARG'."
+        exit 1;;
+  esac
+done
+shift $(($OPTIND - 1))
+
+if [ "$#" -lt 2 ]; then
+  usage
+  exit 1
+fi
+
+NAME=$1
+DBCONTAINER=${2:-postgres}
+
+if [[ $PROXY == "nginx" ]];
+then
+  lxc exec proxy -- rm /etc/nginx/upstream/${NAME}.conf
+  if [[ $APM == "glowroot" ]]; 
+  then
+    lxc exec proxy -- rm /etc/nginx/upstream/${NAME}-glowroot.conf
+  fi
+  lxc exec proxy -- service nginx restart
+elif [[ $PROXY == "apache2" ]];
+then
+  lxc exec proxy -- rm /etc/apache2/upstream/${NAME}
+  if [[ $APM == "glowroot" ]]; 
+  then
+    lxc exec proxy -- rm /etc/apache2/upstream/${NAME}-glowroot
+  fi
+  lxc exec proxy -- service apache2 restart
+else
+  echo "Error: Proxy type not supported"
+  exit 1
+fi
+
+lxc stop $NAME
+lxc delete $NAME
+
+lxc exec ${DBCONTAINER} -- dropdb $NAME
+lxc exec ${DBCONTAINER} -- dropuser $NAME
+
+sudo sed -i "/.* $N$/d" /etc/hosts
+

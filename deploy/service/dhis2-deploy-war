@@ -1,0 +1,74 @@
+#!/bin/sh
+#       ____  __  ______________
+#      / __ \/ / / /  _/ ___/__ \
+#     / / / / /_/ // / \__ \__/ /
+#    / /_/ / __  // / ___/ / __/
+#   /_____/_/ /_/___//____/____/
+#
+#   DHIS2 war deployment
+
+set -e
+
+PROG=`basename $0`
+TEMPWAR=/tmp/dhis.war
+
+usage() {
+  echo "Usage: $PROG [options] <instance>"
+  echo "  instance: name of the instance to deploy to"
+  echo "Options:"
+  echo "  -l        http/https URL of war file to deploy"
+  echo "  -f        file path to war file to deploy"
+  echo "  -h, --help       Display this help message"
+}
+
+while getopts :l:f:h opt;
+do
+  case $opt in
+    f)
+      cp $OPTARG $TEMPWAR;
+      break;
+      ;;
+    l)
+      SOURCE=$OPTARG
+      ;;
+    \?)
+       echo "Invalid option -$opt" >&2
+       usage; exit 1;;
+    :)
+       echo "Option -$opt requires an argument." >&2
+       usage; exit 1;;
+    h) usage; exit 1;;
+
+  esac
+done
+
+shift $(( $OPTIND-1 ))
+
+if [ "$#" -ne 1 ]; then
+  usage
+  exit 1
+fi
+
+INSTANCE=$1
+
+# download war file if we don't have it
+test -f $TEMPWAR || wget -O $TEMPWAR $SOURCE  || exit 1
+unzip -t -q $TEMPWAR || { echo "Corrupt war file: $TEMPWAR"; exit 1; }
+
+lxc exec $1 -- service tomcat9 stop
+# give it a chance to shutdown
+sleep 3
+
+echo "Deploying new war file"
+# clean out existing webapp
+echo 'rm -rf /var/lib/tomcat9/webapps/*' | lxc exec $INSTANCE -- bash
+lxc file push $TEMPWAR $INSTANCE/.
+lxc exec $INSTANCE -- mkdir /var/lib/tomcat9/webapps/$INSTANCE
+lxc exec $INSTANCE -- unzip -q -d /var/lib/tomcat9/webapps/$INSTANCE /dhis.war
+lxc exec $INSTANCE -- rm /dhis.war
+lxc exec $INSTANCE -- service tomcat9 start
+echo "$INSTANCE container starting"
+
+rm $TEMPWAR || echo "Warning $TEMPWAR not deleted.  Please delete manually."
+
+

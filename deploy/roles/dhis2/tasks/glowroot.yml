@@ -9,7 +9,7 @@
     access_time: preserve
 
 # Download and extrace glowroot
-- name: Download and extract glowroot to /opt/glowroot diretory
+- name: Download and extract glowroot 
   ansible.builtin.unarchive:
     src: https://github.com/glowroot/glowroot/releases/download/v0.13.6/glowroot-0.13.6-dist.zip
     dest: /opt/

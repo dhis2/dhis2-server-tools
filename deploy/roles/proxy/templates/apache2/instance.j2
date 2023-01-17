@@ -1,0 +1,8 @@
+ {% for host in groups['instances'] %}
+   <Location /{{host}}>
+    Require all granted
+    ProxyPass "http://{{hostvars[host]['ansible_host']+':8080' }}/{{host}}"
+    ProxyPassReverse "http://{{hostvars[host]['ansible_host']+':8080'}}/{{host}}"
+   </Location>
+ {% endfor %}
+ 

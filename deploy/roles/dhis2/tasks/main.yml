@@ -17,3 +17,5 @@
     - inventory_hostname in groups['instances'] 
     - app_monitoring is defined 
 
+- name: Flush Handlers 
+  meta: flush_handlers

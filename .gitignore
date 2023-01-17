@@ -6,6 +6,8 @@ privkey.pem
 notes.sh
 create_containers.yml
 notes
-test*
+*test*
 *.vim
 *.war
+deploy.log
+hosts

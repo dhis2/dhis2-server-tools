@@ -1,2 +1,125 @@
 ---
-# tasks file for ./roles/proxy
+# apache2 tasks
+- name: update and upgrade
+  ansible.builtin.apt:
+    upgrade: yes
+    update_cache: yes
+    cache_valid_time: 86400  # one day
+
+- name: Installing apache2 libwww-perl 
+  ansible.builtin.apt:
+    name: 
+      - apache2
+      - libwww-perl 
+    state: latest
+      # a2enmod ssl cache rewrite proxy_http headers 
+- name: Enabling apache2 modules
+  community.general.apache2_module:
+    name: "{{item}}"
+    state: present
+  loop: "{{  [ 'ssl','cache','rewrite','proxy_http','headers' ] }}"
+  notify: Reload Apache2
+
+- name: disabling default apache2 site 
+  ansible.builtin.file:
+    path: /etc/apache2/sites-enabled/000-default.conf
+    state: absent
+# letsecrypt
+- name: Install certbot
+  apt: name=certbot update_cache=yes cache_valid_time=3600 state=latest
+  when: SSL_TYPE == 'letsencrypt'
+    
+
+# certbot certonly -d $FQDN --standalone -m $EMAIL --agree-tos -n --no-eff-email
+- name: Generate TLS/SSL Certificate with certbot
+  shell: |
+    systemctl stop apache2
+    certbot certonly -n -m {{email}} --agree-tos -d {{fqdn}} --standalone --no-eff-email # --webroot -w /var/www/letsencrypt 
+    systemctl start apache2
+  args:
+    creates: /etc/letsencrypt/live/{{ fqdn  }}
+  when: SSL_TYPE == 'letsencrypt'
+
+- name: Add letsencrypt cronjob for cert renewal
+  cron:
+    name: letsencrypt_renewal
+    special_time: weekly
+    job: letsencrypt --renew certonly -n --webroot -w /var/www/letsencrypt -m {{email}} --agree-tos -d {{fqdn}} && service apache2 reload
+  when: SSL_TYPE == 'letsencrypt'
+
+# === CUSTOM_SSL ===
+# Copy certificate and key to the server 
+- name: creating ssl/tls directory
+  file:
+    path: /etc/ssl/{{fqdn}}
+    state: directory
+    modification_time: preserve
+    access_time: preserve
+  when: SSL_TYPE == 'customssl'
+
+- name: Porting TLS certificate
+  copy:
+    src: fullchain.pem
+    dest: "/etc/ssl/{{fqdn}}/"
+    owner: root
+    group: root
+    mode: 0644
+  when: SSL_TYPE == 'customssl'
+
+- name: Copy ssl key to the proxy host
+  copy:
+    src: privkey.pem
+    dest: /etc/ssl/{{fqdn}}/
+    owner: root
+    group: root
+    mode: 0644
+  when: SSL_TYPE == 'customssl'
+
+- name: Copy apache2 site configuration to proxy
+  ansible.builtin.template:
+    src: apache2/site.j2
+    dest: /etc/apache2/sites-available/{{fqdn}}.conf
+    owner: root
+    group: root
+    mode: 640
+
+- name: Enable apache2 configuration 
+  ansible.builtin.command: a2ensite {{fqdn}}.conf
+  args:
+    creates: /etc/apache2/sites-enabled/{{fqdn}}.conf
+  notify: Reload Apache2
+
+- name: Create apache2 upstream directory 
+  ansible.builtin.file:
+    path:  /etc/apache2/upstream
+    state: directory
+
+# Enable apache location configs
+- name: Copy dhis2 location configuration
+  template:
+    src: apache2/instance.j2
+    dest: /etc/apache2/upstream/instance.conf
+  notify: Reload Apache2
+
+- name: Copy glowroot location configuration to proxy 
+  template:
+    src: apache2/glowroot.j2 
+    dest: /etc/apache2/upstream/glowroot.conf 
+  when: >
+    app_monitoring is defined and 
+    app_monitoring == 'glowroot'
+  notify: Reload Apache2
+
+- name: Copy munin location configuration to the proxy
+  template:
+    src: apache2/munin.j2
+    dest: /etc/apache2/upstream/munin.conf 
+  when: >
+    server_monitoring is defined and
+    server_monitoring == "munin" 
+  notify: Reload Apache2
+
+
+
+
+

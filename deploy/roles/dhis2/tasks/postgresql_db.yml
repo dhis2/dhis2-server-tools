@@ -21,10 +21,9 @@
     password: "{{ hostvars[item]['db_password'] }}"
   loop: "{{ groups['instances'] }}"
   when: 
-    - hostvars[item]['db_password'] is defined
     - create_db | bool 
-    - inventory_hostname == hostvars[item]['database_host']
-    - inventory_hostname in groups['databases']
+    - hostvars[item]['db_password'] is defined
+    - inventory_hostname == hostvars[item]['database_host'] # postgres 
   notify: Reload Postgres 
 
 # Creating instances databases

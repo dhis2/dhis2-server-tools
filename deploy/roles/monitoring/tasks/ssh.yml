@@ -1,3 +1,10 @@
+---
+- name: Get host facts
+  ansible.builtin.setup:
+    gather_subset:
+      - network
+      - '!min'
+
 - ansible.builtin.apt:
     name: acl
     state: present
