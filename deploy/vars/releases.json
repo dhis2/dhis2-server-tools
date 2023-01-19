@@ -1,0 +1,860 @@
+{
+  "versions": [
+    {
+      "name": "2.39",
+      "version": 39,
+      "releaseDate": "2022-10-27",
+      "supported": true,
+      "latestPatchVersion": 0,
+      "latestHotfixVersion": 1,
+      "latestStableUrl": "https://releases.dhis2.org/2.39/dhis2-stable-2.39.0.1.war",
+      "sha256": "4036074528a08d01dbedd30317aa15d13632ec237d9e6c829e7f2900ee3525d1",
+      "patchVersions": [
+        {
+          "name": "2.39.0",
+          "version": 0,
+          "releaseDate": "2022-10-27",
+          "url": "https://releases.dhis2.org/2.39/dhis2-stable-2.39.0.0.war",
+          "sha256": "d26f81722e416ff4a82e515aba2d78d8e07c2f66f4606944bee0b57e9f00c83b",
+          "hotfix": false
+        },
+        {
+          "name": "2.39.0.1",
+          "version": 0,
+          "hotfixVersion": 1,
+          "releaseDate": "2022-12-05",
+          "url": "https://releases.dhis2.org/2.39/dhis2-stable-2.39.0.1.war",
+          "sha256": "4036074528a08d01dbedd30317aa15d13632ec237d9e6c829e7f2900ee3525d1",
+          "hotfix": true
+        }
+      ]
+    },
+    {
+      "name": "2.38",
+      "version": 38,
+      "releaseDate": "2022-05-05",
+      "supported": true,
+      "latestPatchVersion": 2,
+      "latestHotfixVersion": 1,
+      "latestStableUrl": "https://releases.dhis2.org/2.38/dhis2-stable-2.38.2.1.war",
+      "sha256": "f46a92f60092a78770ebf4c9840de81c3e421d50a4759465ddc7ea6543f9a322",
+      "patchVersions": [
+        {
+          "name": "2.38.0",
+          "version": 0,
+          "releaseDate": "2022-05-05",
+          "url": "https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war",
+          "sha256": "2b097c37ec32abb1741870216659cab154cf3939a9169d42d10f6c846273561d",
+          "hotfix": false
+        },
+        {
+          "name": "2.38.1",
+          "version": 1,
+          "releaseDate": "2022-07-04",
+          "url": "https://releases.dhis2.org/2.38/dhis2-stable-2.38.1.0.war",
+          "sha256": "45290144b9ac23b28b6497371c666dd9de3bb2090a5db4eff82938460deb191a",
+          "hotfix": false
+        },
+        {
+          "name": "2.38.1.1",
+          "version": 1,
+          "hotfixVersion": 1,
+          "releaseDate": "2022-08-08",
+          "url": "https://releases.dhis2.org/2.38/dhis2-stable-2.38.1.1.war",
+          "sha256": "87fcf88880a13e689e41a6d3b567c76fd7e629fd56a80236de681d651025415c",
+          "hotfix": true
+        },
+        {
+          "name": "2.38.2",
+          "version": 2,
+          "releaseDate": "2022-11-25",
+          "url": "https://releases.dhis2.org/2.38/dhis2-stable-2.38.2.0.war",
+          "sha256": "e1ed35d0d53f06d28c46afbae1565c79b702f923a3802ba790bfd705311cbb37",
+          "hotfix": false
+        },
+        {
+          "name": "2.38.2.1",
+          "version": 2,
+          "hotfixVersion": 1,
+          "releaseDate": "2022-12-05",
+          "url": "https://releases.dhis2.org/2.38/dhis2-stable-2.38.2.1.war",
+          "sha256": "f46a92f60092a78770ebf4c9840de81c3e421d50a4759465ddc7ea6543f9a322",
+          "hotfix": true
+        }
+      ]
+    },
+    {
+      "name": "2.37",
+      "version": 37,
+      "releaseDate": "2021-11-11",
+      "supported": true,
+      "latestPatchVersion": 9,
+      "latestHotfixVersion": 0,
+      "latestStableUrl": "https://releases.dhis2.org/2.37/dhis2-stable-2.37.9.war",
+      "sha256": "c96b3aa18ae2533bb36eaeb5d40a3805ff594c0a4652d88ab0448f17ec792126",
+      "patchVersions": [
+        {
+          "name": "2.37.0",
+          "version": 0,
+          "releaseDate": "2021-11-11",
+          "url": "https://releases.dhis2.org/2.37/dhis2-stable-2.37.0.war",
+          "sha256": "32d60a7190b34763b9a880d2419672c9282ba59316957d09bf39dad765cfa237"
+        },
+        {
+          "name": "2.37.1",
+          "version": 1,
+          "releaseDate": "2021-12-10",
+          "url": "https://releases.dhis2.org/2.37/dhis2-stable-2.37.1.war",
+          "sha256": "98c097a89415700242cf521eafc830f6580b04cfbf1c3f6735363f8b730c55af",
+          "hotfix": true
+        },
+        {
+          "name": "2.37.2",
+          "version": 2,
+          "releaseDate": "2021-12-17",
+          "url": "https://releases.dhis2.org/2.37/dhis2-stable-2.37.2.war",
+          "sha256": "89d9b4f1fbe0c70b46593d69cad44ecd370696fe32600e8f79ddb5441fb9d28f",
+          "hotfix": true
+        },
+        {
+          "name": "2.37.3",
+          "version": 3,
+          "releaseDate": "2022-02-18",
+          "url": "https://releases.dhis2.org/2.37/dhis2-stable-2.37.3.war",
+          "sha256": "caf73f6d8c9ec65cb29364d019a236a3fa71eda546a243b485cc6f5769a4d5df"
+        },
+        {
+          "name": "2.37.4",
+          "version": 4,
+          "releaseDate": "2022-03-11",
+          "url": "https://releases.dhis2.org/2.37/dhis2-stable-2.37.4.war",
+          "sha256": "516b741160f94e4d53226afa4851a4517db09b167145506a19109ed90bbe034c",
+          "hotfix": true
+        },
+        {
+          "name": "2.37.5",
+          "version": 5,
+          "releaseDate": "2022-04-06",
+          "url": "https://releases.dhis2.org/2.37/dhis2-stable-2.37.5.war",
+          "sha256": "17c7ff862f97abe927f81a400bd0241ccbbc96b8f192969ea7d0d9578a62ed21",
+          "hotfix": true
+        },
+        {
+          "name": "2.37.6",
+          "version": 6,
+          "releaseDate": "2022-04-14",
+          "url": "https://releases.dhis2.org/2.37/dhis2-stable-2.37.6.0.war",
+          "sha256": "01f6454b211c59b4c0101358fb8f118277f0d10f03d953d5f95be9984fd90a73",
+          "hotfix": true
+        },
+        {
+          "name": "2.37.6.1",
+          "version": 6,
+          "hotfixVersion": 1,
+          "releaseDate": "2022-06-01",
+          "url": "https://releases.dhis2.org/2.37/dhis2-stable-2.37.6.1.war",
+          "sha256": "a7c4ca3b88ef3438c8317aa2f265bf16bffd37da7853372c14d402cf6a51a9e5",
+          "hotfix": true
+        },
+        {
+          "name": "2.37.7",
+          "version": 7,
+          "hotfixVersion": 0,
+          "releaseDate": "2022-06-10",
+          "url": "https://releases.dhis2.org/2.37/dhis2-stable-2.37.7.0.war",
+          "sha256": "1e00114c2605d8ba55984a3d85aeac4c883bc9e736e363c0640a1ff678edbb5c",
+          "hotfix": false
+        },
+        {
+          "name": "2.37.7.1",
+          "version": 7,
+          "hotfixVersion": 1,
+          "releaseDate": "2022-06-30",
+          "url": "https://releases.dhis2.org/2.37/dhis2-stable-2.37.7.1.war",
+          "sha256": "357b2cad9002ef6037c4f26af1a02c2729e430d49e58f4e7aeec63edeefc3709",
+          "hotfix": true
+        },
+        {
+          "name": "2.37.8",
+          "version": 8,
+          "hotfixVersion": 0,
+          "releaseDate": "2022-09-26",
+          "url": "https://releases.dhis2.org/2.37/dhis2-stable-2.37.8.0.war",
+          "sha256": "7957fb2c9ca977cd15835d8f2bde8b7a9e14581ffc4a0c2e34f60d3ae978da4b",
+          "hotfix": false
+        },
+        {
+          "name": "2.37.8.1",
+          "version": 8,
+          "hotfixVersion": 1,
+          "releaseDate": "2022-12-05",
+          "url": "https://releases.dhis2.org/2.37/dhis2-stable-2.37.8.1.war",
+          "sha256": "043069c53d62f0f1dc7f727f3c2bd3cf160c647d765ac31703758b5a7009076a",
+          "hotfix": true
+        },
+        {
+          "name": "2.37.9",
+          "version": 9,
+          "hotfixVersion": 0,
+          "releaseDate": "2022-12-22",
+          "url": "https://releases.dhis2.org/2.37/dhis2-stable-2.37.9.war",
+          "sha256": "c96b3aa18ae2533bb36eaeb5d40a3805ff594c0a4652d88ab0448f17ec792126",
+          "hotfix": false
+        }
+      ]
+    },
+    {
+      "name": "2.36",
+      "version": 36,
+      "releaseDate": "2021-04-27",
+      "supported": true,
+      "latestPatchVersion": 13,
+      "latestHotfixVersion": 2,
+      "latestStableUrl": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.13.2.war",
+      "sha256": "d1da8f915ba172486a5348d3945217212784573835ce918ea802fc86382b5b80",
+      "patchVersions": [
+        {
+          "name": "2.36.0",
+          "version": 0,
+          "releaseDate": "2021-04-27",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.0.war"
+        },
+        {
+          "name": "2.36.1",
+          "version": 1,
+          "releaseDate": "2021-06-17",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.1.war",
+          "sha256": "6a7a3f010e9c1cd46e2eb259cc769a37a1ba6a8cd95d0144cd25a12ba0ed8fc6"
+        },
+        {
+          "name": "2.36.2",
+          "version": 2,
+          "releaseDate": "2021-06-30",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.2.war",
+          "sha256": "360780c83a78cbda8ab6c17dcb511398c2817537526d08b0cbad88c78e33e0a3"
+        },
+        {
+          "name": "2.36.3",
+          "version": 3,
+          "releaseDate": "2021-07-08",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.3.war",
+          "sha256": "8d1e4a68dd4c7a95e71c68b22457608edb099c13ce848e405850381428a58485"
+        },
+        {
+          "name": "2.36.4",
+          "version": 4,
+          "releaseDate": "2021-10-11",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.4.war",
+          "sha256": "d5f1339bca673303fe1454ca5281ee0fb157bdb5e8bf04e3aac03e2c906d34b1"
+        },
+        {
+          "name": "2.36.5",
+          "version": 5,
+          "releaseDate": "2021-12-10",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.5.war",
+          "sha256": "273c5fbf37bdb9b2aff5bade89b05981eeb3fb811a1badf2c3f3e6dc866c7cd4",
+          "hotfix": true
+        },
+        {
+          "name": "2.36.6",
+          "version": 6,
+          "releaseDate": "2021-12-16",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.6.war",
+          "sha256": "042d9d05d806f43518e39f683c1abc1afd67a0b94765168de358a25781c63e90",
+          "hotfix": true
+        },
+        {
+          "name": "2.36.7",
+          "version": 7,
+          "releaseDate": "2022-01-18",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.7.war",
+          "sha256": "05d1f4e0f358270755376241ffdd061cd0e072b4092d3fb0f925494ffa205439"
+        },
+        {
+          "name": "2.36.8",
+          "version": 8,
+          "releaseDate": "2022-02-02",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.8.war",
+          "sha256": "4e24cbe09572fa08d977306543fe5d71ef3384ae3096571ccb29dc250f95d813"
+        },
+        {
+          "name": "2.36.9",
+          "version": 9,
+          "releaseDate": "2022-03-11",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.9.war",
+          "sha256": "205468284545c49a4d4da927902789d12d5911cd8001af60f7a9d275ed0b153d",
+          "hotfix": true
+        },
+        {
+          "name": "2.36.10",
+          "version": 10,
+          "releaseDate": "2022-04-05",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.10.0.war",
+          "sha256": "1e2f6488b3ab1bf395dedbf38503056e2833039e509223941444da774063b598",
+          "hotfix": true
+        },
+        {
+          "name": "2.36.10.1",
+          "version": 10,
+          "hotfixVersion": 1,
+          "releaseDate": "2022-06-01",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.10.1.war",
+          "sha256": "ca13a19950d23fa9f43600e8c93b40e186f5e6a87050ee03a4d67261981eb801",
+          "hotfix": true
+        },
+        {
+          "name": "2.36.11",
+          "version": 11,
+          "hotfixVersion": 0,
+          "releaseDate": "2022-06-01",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.11.0.war",
+          "hotfix": false
+        },
+        {
+          "name": "2.36.11.1",
+          "version": 11,
+          "hotfixVersion": 1,
+          "releaseDate": "2022-06-03",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.11.1.war",
+          "sha256": "58a83c543e0f2be712857855215418d71388d2fd618d1d925ad1e01abcf03231",
+          "hotfix": true
+        },
+        {
+          "name": "2.36.12",
+          "version": 12,
+          "hotfixVersion": 0,
+          "releaseDate": "2022-08-30",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.12.0.war",
+          "sha256": "cd3216db5c058fd9163b7c577abeea3dfd8aeb3195081a7c31113f335603dadb",
+          "hotfix": false
+        },
+        {
+          "name": "2.36.12.1",
+          "version": 12,
+          "hotfixVersion": 1,
+          "releaseDate": "2022-12-05",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.12.1.war",
+          "sha256": "666f0ba35f870f0996ccc26443d08f7bc93929613e4dfe256f2fa0c376846175",
+          "hotfix": true
+        },
+        {
+          "name": "2.36.13",
+          "version": 13,
+          "hotfixVersion": 0,
+          "releaseDate": "2022-12-15",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.13.0.war",
+          "sha256": "a77c1de8729d074136fe2d05902fafe0fd2ed028d3c0989fbb68993f737a0526",
+          "hotfix": false
+        },
+        {
+          "name": "2.36.13.1",
+          "version": 13,
+          "hotfixVersion": 1,
+          "releaseDate": "2022-12-16",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.13.1.war",
+          "sha256": "f8d8b929cac8e365bec82a2f297797f71a910ce42a36d427171d60d0c92c5578",
+          "hotfix": true
+        },
+        {
+          "name": "2.36.13.2",
+          "version": 13,
+          "hotfixVersion": 2,
+          "releaseDate": "2022-12-21",
+          "url": "https://releases.dhis2.org/2.36/dhis2-stable-2.36.13.2.war",
+          "sha256": "d1da8f915ba172486a5348d3945217212784573835ce918ea802fc86382b5b80",
+          "hotfix": true
+        }
+      ]
+    },
+    {
+      "name": "2.35",
+      "version": 35,
+      "releaseDate": "2020-10-19",
+      "supported": false,
+      "latestPatchVersion": 14,
+      "latestStableUrl": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.14.war",
+      "sha256": "39d3dcc55de6920c6fe90af00233db4d2ced14f5ac560026d18de0fe6862d39e",
+      "patchVersions": [
+        {
+          "name": "2.35.0",
+          "version": 0,
+          "releaseDate": "2020-10-19",
+          "url": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.0.war",
+          "sha256": "ae25f09908d7b6b14a032fbd331ca6c4117045286ade3b54d5833b462f42ce3b"
+        },
+        {
+          "name": "2.35.1",
+          "version": 1,
+          "releaseDate": "2020-12-14",
+          "url": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.1.war",
+          "sha256": "e99263bcb67a8900e062972c95c11e0d3d430ab8e905b5afa4c60b76db8c93e8"
+        },
+        {
+          "name": "2.35.2",
+          "version": 2,
+          "releaseDate": "2021-03-17",
+          "url": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.2.war",
+          "sha256": "c1247abcf3c8a6b40e98a899fa46bd6a1a8f57d4554806f667fb9ec8dd434b2c"
+        },
+        {
+          "name": "2.35.3",
+          "version": 3,
+          "releaseDate": "2021-03-29",
+          "url": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.3.war",
+          "sha256": "ede51c1b35dc907afa03a0b13e06780010c56c1aa268c1fab2182b2661b0893b"
+        },
+        {
+          "name": "2.35.4",
+          "version": 4,
+          "releaseDate": "2021-05-25",
+          "url": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.4.war",
+          "sha256": "21745175a798dadbc9ce0e40fea179e62dfb88b93951837d29dc2b458f0c965e"
+        },
+        {
+          "name": "2.35.5",
+          "version": 5,
+          "releaseDate": "2021-06-17",
+          "url": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.5.war",
+          "sha256": "3b9681d8b43c0556356d96bcb91f9cf834476af24592244334aa8ae9310ef04a"
+        },
+        {
+          "name": "2.35.6",
+          "version": 6,
+          "releaseDate": "2021-06-30",
+          "url": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.6.war",
+          "sha256": "2f9363dd4a8bca777f08b646b9a88d54eb7c670d614ff930ab34df73429aabd3"
+        },
+        {
+          "name": "2.35.7",
+          "version": 7,
+          "releaseDate": "2021-08-30",
+          "url": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.7.war",
+          "sha256": "066a5ce1082f9fb8bc9e657ddb51057d0a78ffa0c1cfe6fa39b28054fe23aa72"
+        },
+        {
+          "name": "2.35.8",
+          "version": 8,
+          "releaseDate": "2021-10-07",
+          "url": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.8.war",
+          "sha256": "d42553b3a010211a19be3b90f4c1be26cc6a192d7ea435fe680744c6463f364d"
+        },
+        {
+          "name": "2.35.9",
+          "version": 9,
+          "releaseDate": "2021-12-10",
+          "url": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.9.war",
+          "sha256": "fec959dc9eb03de918e3c5af2e4c8e415fc2c5920d713d98bf8c2909737f720e",
+          "hotfix": true
+        },
+        {
+          "name": "2.35.10",
+          "version": 10,
+          "releaseDate": "2021-12-16",
+          "url": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.10.war",
+          "sha256": "31ae514b578915b437846974451de99d0ea6d118cef7a6fa18116f8eabd0d6ad",
+          "hotfix": true
+        },
+        {
+          "name": "2.35.11",
+          "version": 11,
+          "releaseDate": "2022-01-10",
+          "url": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.11.war",
+          "sha256": "13ea1177077e8a34186698f994ffdfd3b72fbadc935eab9835fae0f7e535efe6"
+        },
+        {
+          "name": "2.35.12",
+          "version": 12,
+          "releaseDate": "2022-02-17",
+          "url": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.12.war",
+          "sha256": "fee63da3e5c4a7118ba6dc1483b0dca9bf995553ec45aa30349949a3e2a7068b",
+          "hotfix": true
+        },
+        {
+          "name": "2.35.13",
+          "version": 13,
+          "releaseDate": "2022-04-01",
+          "url": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.13.war",
+          "sha256": "4f38b3e34869ec11c8bb6d015bf4ea9efdf2111651f58b2b3cfa9775faae18d7",
+          "hotfix": true
+        },
+        {
+          "name": "2.35.14",
+          "version": 14,
+          "releaseDate": "2022-06-07",
+          "url": "https://releases.dhis2.org/2.35/dhis2-stable-2.35.14.war",
+          "sha256": "39d3dcc55de6920c6fe90af00233db4d2ced14f5ac560026d18de0fe6862d39e",
+          "hotfix": false
+        }
+      ]
+    },
+    {
+      "name": "2.34",
+      "version": 34,
+      "releaseDate": "2020-04-24",
+      "supported": false,
+      "latestPatchVersion": 9,
+      "latestStableUrl": "https://releases.dhis2.org/2.34/dhis2-stable-2.34-eos.war",
+      "patchVersions": [
+        {
+          "name": "2.34.0",
+          "version": 0,
+          "releaseDate": "2020-04-24",
+          "url": "https://releases.dhis2.org/2.34/dhis2-stable-2.34.0.war",
+          "sha256": "5581ba1d75623ee752479100403fbabb4291c3773a9906c19b9f7d1805c24956"
+        },
+        {
+          "name": "2.34.1",
+          "version": 1,
+          "releaseDate": "2020-07-14",
+          "url": "https://releases.dhis2.org/2.34/dhis2-stable-2.34.1.war",
+          "sha256": "71302c375f44a89f6a9f218c5ec01c2da953cf28c4279918062637725887981c"
+        },
+        {
+          "name": "2.34.2",
+          "version": 2,
+          "releaseDate": "2020-10-29",
+          "url": "https://releases.dhis2.org/2.34/dhis2-stable-2.34.2.war",
+          "sha256": "a0df86e915fac5ed6ae162ee945d4aedba8f3a0a26ada352e59bd2f5668ae38a"
+        },
+        {
+          "name": "2.34.3",
+          "version": 3,
+          "releaseDate": "2021-01-22",
+          "url": "https://releases.dhis2.org/2.34/dhis2-stable-2.34.3.war",
+          "sha256": "a579df3a7f55e15fff78c0ef46f85fe01ef2afd865ba69859a48a3cef84eddab"
+        },
+        {
+          "name": "2.34.4",
+          "version": 4,
+          "releaseDate": "2021-03-16",
+          "url": "https://releases.dhis2.org/2.34/dhis2-stable-2.34.4.war"
+        },
+        {
+          "name": "2.34.5",
+          "version": 5,
+          "releaseDate": "2021-06-17",
+          "url": "https://releases.dhis2.org/2.34/dhis2-stable-2.34.5.war",
+          "sha256": "fbf3243517f19c0d8f9bcdb2c198f0e0e8715505328acb9b27cf69b0ba380ff9"
+        },
+        {
+          "name": "2.34.6",
+          "version": 6,
+          "releaseDate": "2021-06-24",
+          "url": "https://releases.dhis2.org/2.34/dhis2-stable-2.34.6.war",
+          "sha256": "d3b1126a764353639a7261470ff3553fbffab3ea9866bcc274e57abad7023d96"
+        },
+        {
+          "name": "2.34.7",
+          "version": 7,
+          "releaseDate": "2021-10-04",
+          "url": "https://releases.dhis2.org/2.34/dhis2-stable-2.34.7.war",
+          "sha256": "65eaf9cf673a66fa2cf2b858d1137b3e241c814c1b62c8df919109d04e57c553"
+        },
+        {
+          "name": "2.34.8",
+          "version": 8,
+          "releaseDate": "2021-12-10",
+          "url": "https://releases.dhis2.org/2.34/dhis2-stable-2.34.8.war",
+          "sha256": "94ddd26e7004edf8e63e6c0d34d7e575b6d44d82469423a2d463aca6bf4ef9ae"
+        },
+        {
+          "name": "2.34.9",
+          "version": 9,
+          "releaseDate": "2021-12-16",
+          "url": "https://releases.dhis2.org/2.34/dhis2-stable-2.34.9.war",
+          "sha256": "081521f3a8aa4a08eda9b9bc2c449087057a06ca94fea30a344c9219b6afe9b9",
+          "hotfix": true
+        }
+      ]
+    },
+    {
+      "name": "2.33",
+      "version": 33,
+      "releaseDate": "2019-10-03",
+      "supported": false,
+      "latestPatchVersion": 9,
+      "latestStableUrl": "https://releases.dhis2.org/2.33/dhis2-stable-2.33-eos.war",
+      "patchVersions": [
+        {
+          "name": "2.33.0",
+          "version": 0,
+          "releaseDate": "2019-10-03",
+          "url": "https://releases.dhis2.org/2.33/dhis2-stable-2.33.0.war",
+          "sha256": "075a604d390e9fbc81d3c4c0a79e5f9043213c42d4de35bdfc6209b9831d704e"
+        },
+        {
+          "name": "2.33.1",
+          "version": 1,
+          "releaseDate": "2019-11-27",
+          "url": "https://releases.dhis2.org/2.33/dhis2-stable-2.33.1.war",
+          "sha256": "232c3e9bc00f9b55051c624221796f0e16113e5fd141a2e0eef0273da3514c8d"
+        },
+        {
+          "name": "2.33.2",
+          "version": 2,
+          "releaseDate": "2020-02-20",
+          "url": "https://releases.dhis2.org/2.33/dhis2-stable-2.33.2.war",
+          "sha256": "19cd8902cec278b37ee74170766615efe168d1eaafb8bf253e5ee891a33eb60d"
+        },
+        {
+          "name": "2.33.3",
+          "version": 3,
+          "releaseDate": "2020-04-08",
+          "url": "https://releases.dhis2.org/2.33/dhis2-stable-2.33.3.war",
+          "sha256": "dbb9d0f06d3b76e5001419f48b5cd4b4d5d226e21eabaaff6f55b21c4fdde9bf"
+        },
+        {
+          "name": "2.33.4",
+          "version": 4,
+          "releaseDate": "2020-05-20",
+          "url": "https://releases.dhis2.org/2.33/dhis2-stable-2.33.4.war",
+          "sha256": "eb0c037318872cbdf1ecd2e145a257f5fbe11636f068d3020afba42482c0d922"
+        },
+        {
+          "name": "2.33.5",
+          "version": 5,
+          "releaseDate": "2020-07-14",
+          "url": "https://releases.dhis2.org/2.33/dhis2-stable-2.33.5.war",
+          "sha256": "42363b249ffba5fe510c0d558d4c58f1a5d7af063cbf741978fe5c2ece845266"
+        },
+        {
+          "name": "2.33.6",
+          "version": 6,
+          "releaseDate": "2020-08-20",
+          "url": "https://releases.dhis2.org/2.33/dhis2-stable-2.33.6.war",
+          "sha256": "355035decddf75792ac41369d7b8e5c24a9ed232df6433d011c9681aa0944a6c"
+        },
+        {
+          "name": "2.33.7",
+          "version": 7,
+          "releaseDate": "2020-11-19",
+          "url": "https://releases.dhis2.org/2.33/dhis2-stable-2.33.7.war",
+          "sha256": "07ab0bb270fb3c6552108511e7192680c83687c4fb975d978dd18e75ca6d02c7"
+        },
+        {
+          "name": "2.33.8",
+          "version": 8,
+          "releaseDate": "2021-02-08",
+          "url": "https://releases.dhis2.org/2.33/dhis2-stable-2.33.8.war",
+          "sha256": "cebc681624ee0d3b0ba4ce8cdce888029114b563d64d0e489f45389535cf9cc1"
+        },
+        {
+          "name": "2.33.9",
+          "version": 9,
+          "releaseDate": "2021-06-10",
+          "url": "https://releases.dhis2.org/2.33/dhis2-stable-2.33.9.war",
+          "sha256": "f2d790e4f58b65064c1a6576db033b8816338eac829325659cff24bee67bf92d"
+        }
+      ]
+    },
+    {
+      "name": "2.32",
+      "version": 32,
+      "releaseDate": "2019-05-07",
+      "supported": false,
+      "latestPatchVersion": 7,
+      "latestStableUrl": "https://releases.dhis2.org/2.32/dhis2-stable-2.32-eos.war",
+      "patchVersions": [
+        {
+          "name": "2.32.0",
+          "version": 0,
+          "releaseDate": "2019-05-07",
+          "url": "https://releases.dhis2.org/2.32/dhis2-stable-2.32.0.war",
+          "sha256": "f405c32a8210ccff948f9da7da68e344765df263a499f0d4eb6a173a02c81cd9"
+        },
+        {
+          "name": "2.32.1",
+          "version": 1,
+          "releaseDate": "2019-07-05",
+          "url": "https://releases.dhis2.org/2.32/dhis2-stable-2.32.1.war",
+          "sha256": "662d317629bde065c797913ea796eb542b6deae9ed95ad9c0b55eea20eef04c3"
+        },
+        {
+          "name": "2.32.2",
+          "version": 2,
+          "releaseDate": "2019-09-06",
+          "url": "https://releases.dhis2.org/2.32/dhis2-stable-2.32.2.war",
+          "sha256": "671377104b680bfc0f1283d74c639a081e5b2c0d7a57a56f1a785440a1034768"
+        },
+        {
+          "name": "2.32.3",
+          "version": 3,
+          "releaseDate": "2019-11-21",
+          "url": "https://releases.dhis2.org/2.32/dhis2-stable-2.32.3.war",
+          "sha256": "07fec0dbb1fbd0ad262e82bcd3fddfaf6bf78ea5149ff7d326e72b3b34683238"
+        },
+        {
+          "name": "2.32.4",
+          "version": 4,
+          "releaseDate": "2020-01-31",
+          "url": "https://releases.dhis2.org/2.32/dhis2-stable-2.32.4.war",
+          "sha256": "5e5be41ce52de8be8d0e7344aceb2c612fc78639c79e52ead24070b5fdf5895d"
+        },
+        {
+          "name": "2.32.5",
+          "version": 5,
+          "releaseDate": "2020-05-12",
+          "url": "https://releases.dhis2.org/2.32/dhis2-stable-2.32.5.war",
+          "sha256": "9601232d8c2aaa3dea552bf697ee2952c35b94fb19b3ede44d6ce20425f4eac0"
+        },
+        {
+          "name": "2.32.6",
+          "version": 6,
+          "releaseDate": "2020-07-14",
+          "url": "https://releases.dhis2.org/2.32/dhis2-stable-2.32.6.war",
+          "sha256": "40ecb5d4b6b09296b14d7c241a24bedc0c9631ba20b94fd86aa6272e26d40707"
+        },
+        {
+          "name": "2.32.7",
+          "version": 7,
+          "releaseDate": "2020-11-12",
+          "url": "https://releases.dhis2.org/2.32/dhis2-stable-2.32.7.war",
+          "sha256": "7d3150f2f9e45f84a77663f5879fccbf49cfbc6e0a95846f2b6ae0330d866cc9"
+        }
+      ]
+    },
+    {
+      "name": "2.31",
+      "version": 31,
+      "releaseDate": "2018-12-03",
+      "supported": false,
+      "latestPatchVersion": 9,
+      "latestStableUrl": "https://releases.dhis2.org/2.31/dhis2-stable-2.31-eos.war",
+      "patchVersions": [
+        {
+          "name": "2.31.0",
+          "version": 0,
+          "releaseDate": "2018-12-03",
+          "url": "https://releases.dhis2.org/2.31/dhis2-stable-2.31.0.war",
+          "sha256": "7fa3fc486c2b3e024cbb78a747817b5b3ceed01fec1499949ea601e220267777"
+        },
+        {
+          "name": "2.31.1",
+          "version": 1,
+          "releaseDate": "2019-02-07",
+          "url": "https://releases.dhis2.org/2.31/dhis2-stable-2.31.1.war",
+          "sha256": "1b87928da8e59d28dd27d0d00bb27fd77bcfa52df0c064488061d4834eda261c"
+        },
+        {
+          "name": "2.31.2",
+          "version": 2,
+          "releaseDate": "2019-03-22",
+          "url": "https://releases.dhis2.org/2.31/dhis2-stable-2.31.2.war",
+          "sha256": "43db527cfdba5d6c9308d6cbd8b550b1951873c5f73f4dc1ad4b45148450730f"
+        },
+        {
+          "name": "2.31.3",
+          "version": 3,
+          "releaseDate": "2019-04-05",
+          "url": "https://releases.dhis2.org/2.31/dhis2-stable-2.31.3.war",
+          "sha256": "1fb9e678e65c66b8344a79895944c1d264e84a2fdac7a2ac9415c66daf4d642d"
+        },
+        {
+          "name": "2.31.4",
+          "version": 4,
+          "releaseDate": "2019-06-28",
+          "url": "https://releases.dhis2.org/2.31/dhis2-stable-2.31.4.war",
+          "sha256": "05c168909f9a704f547e1f0d87be38e598c03abf82447ab94c2e75a78b670086"
+        },
+        {
+          "name": "2.31.5",
+          "version": 5,
+          "releaseDate": "2019-08-15",
+          "url": "https://releases.dhis2.org/2.31/dhis2-stable-2.31.5.war",
+          "sha256": "0e9479ce766a961c43e90f9e48a0ae6cddfe85b7ab210b8fba5c43750d65dd9a"
+        },
+        {
+          "name": "2.31.6",
+          "version": 6,
+          "releaseDate": "2019-10-25",
+          "url": "https://releases.dhis2.org/2.31/dhis2-stable-2.31.6.war",
+          "sha256": "8ca58289dec88263f587a0f9e5d78090e54e573aba321a0e86d2c0b8481ec541"
+        },
+        {
+          "name": "2.31.7",
+          "version": 7,
+          "releaseDate": "2020-01-09",
+          "url": "https://releases.dhis2.org/2.31/dhis2-stable-2.31.7.war",
+          "sha256": "05417f3337c1ca687e52fde21f2f17ca62265bc5d2ae831db1771487fd463135"
+        },
+        {
+          "name": "2.31.8",
+          "version": 8,
+          "releaseDate": "2020-02-11",
+          "url": "https://releases.dhis2.org/2.31/dhis2-stable-2.31.8.war",
+          "sha256": "de580c37937ed0008486d38abd4652f5726fd1ab8eacc6a8324d464aaeef3bb4"
+        },
+        {
+          "name": "2.31.9",
+          "version": 9,
+          "releaseDate": "2020-05-27",
+          "url": "https://releases.dhis2.org/2.31/dhis2-stable-2.31.9.war",
+          "sha256": "3e371eb8022d8d07f5fdd879558a55008206e69eb0b7bb91dd6944494ad92ee0"
+        }
+      ]
+    },
+    {
+      "name": "2.30",
+      "version": 30,
+      "releaseDate": "2018-07-10",
+      "supported": false,
+      "latestPatchVersion": null,
+      "latestStableUrl": "https://releases.dhis2.org/2.30/dhis.war",
+      "patchVersions":[]
+    },
+    {
+      "name": "2.29",
+      "version": 29,
+      "releaseDate": "2018-03-07",
+      "supported": false,
+      "latestPatchVersion": null,
+      "latestStableUrl": "https://releases.dhis2.org/2.29/dhis.war",
+      "patchVersions":[]
+    },
+    {
+      "name": "2.28",
+      "version": 28,
+      "releaseDate": "2017-10-11",
+      "supported": false,
+      "latestPatchVersion": null,
+      "latestStableUrl": "https://releases.dhis2.org/2.28/dhis.war",
+      "patchVersions":[]
+    },
+    {
+      "name": "2.27",
+      "version": 27,
+      "releaseDate": "2017-06-01",
+      "supported": false,
+      "latestPatchVersion": null,
+      "latestStableUrl": "https://releases.dhis2.org/2.27/dhis.war",
+      "patchVersions":[]
+    },
+    {
+      "name": "2.26",
+      "version": 26,
+      "releaseDate": "2017-01-31",
+      "supported": false,
+      "latestPatchVersion": null,
+      "latestStableUrl": "https://releases.dhis2.org/2.26/dhis.war",
+      "patchVersions":[]
+    },
+    {
+      "name": "2.25",
+      "version": 25,
+      "releaseDate": "2016-10-13",
+      "supported": false,
+      "latestPatchVersion": null,
+      "latestStableUrl": "https://releases.dhis2.org/2.25/dhis.war",
+      "patchVersions":[]
+    },
+    {
+      "name": "2.24",
+      "version": 24,
+      "releaseDate": "2016-07-04",
+      "supported": false,
+      "latestPatchVersion": null,
+      "latestStableUrl": "https://releases.dhis2.org/2.24/dhis.war",
+      "patchVersions":[]
+    }
+  ]
+}
