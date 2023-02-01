@@ -45,7 +45,7 @@
        ServerAdmin {{email}}
 
        # Throw out IP based requests
-       RewriteCond %{HTTP_HOST} !^FQDNREGEX [NC]
+       RewriteCond %{HTTP_HOST} !^{{'\\.'.join(fqdn.split('.'))}} [NC]
        RewriteCond %{REQUEST_URI} !^/error [NC]
        RewriteRule ^.(.*) - [L,F]
 

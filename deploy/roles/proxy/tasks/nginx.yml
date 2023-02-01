@@ -1,86 +1,42 @@
 ---
-# tasks file for ./roles/proxy
+
+# Open port 80 from the internet.
+- name: Allow http port 80
+  community.general.ufw:
+    rule: allow
+    port: "{{ http_port | default('80')}}"
+    proto: tcp
+    comment: http
+    state: enabled
+
+# Allow https port from the internet
+- name: Allow https port 443
+  community.general.ufw:
+    rule: allow
+    port: "{{ https_port | default('443') }}"
+    proto: tcp
+    comment: https
+
+- name: Ensure apache2 is stopped and disabled. 
+  ansible.builtin.service:
+    name: apache2
+    enabled: false
+    state: stopped 
+  register: unused_disable
+  failed_when: "unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)"
+  # ignore_errors: yes
+      
+- name: Update and upgrade proxy.
+  ansible.builtin.apt: 
+    upgrade: yes 
+    update_cache: yes
+    cache_valid_time: 86400
+
 ## install nginx
-- name: Install nginx
-  apt: name=nginx update_cache=yes cache_valid_time=3600 state=latest 
+- name: Install nginx. 
+  apt: name=nginx state=latest
 
-# Remove default nginx config
-- name: Remove default nginx site 
-  file: name=/etc/nginx/sites-enabled/default state=absent
-
-# ===== letsencrypt === 
-- name: Install certbot
-  apt: name=certbot update_cache=yes cache_valid_time=3600 state=latest
-  when: SSL_TYPE == 'letsencrypt'
-
-#  Install nginx site for letsencrypt requests
-- name: Install nginx site for letsencrypt requests
-  template: src=nginx/http.j2 dest=/etc/nginx/conf.d/http.conf
-  when: SSL_TYPE == 'letsencrypt'
-  notify: Reload Nginx
-  register: nginx_letsencrypt_site
-
-# reloading nginx
-- name: Reload Nginx 
-  ansible.builtin.service: 
-    name: nginx
-    state: reloaded
-  when: nginx_letsencrypt_site is changed
-
-# Creating letsencrypt directory 
-- name: create letsencrypt directory
-  file: name=/var/www/letsencrypt state=directory
-  when: SSL_TYPE == 'letsencrypt'
-
-# certbot certonly -d $FQDN --standalone -m $EMAIL --agree-tos -n --no-eff-email
-- name: Generate TLS/SSL Certificate with certbot
-  shell: letsencrypt certonly -n --webroot -w /var/www/letsencrypt -m {{ email }} --agree-tos -d {{  fqdn  }}
-  args:
-    creates: /etc/letsencrypt/live/{{ fqdn  }}
-  when: SSL_TYPE == 'letsencrypt'
-
-- name: Add letsencrypt cronjob for cert renewal
-  cron:
-    name: letsencrypt_renewal
-    special_time: weekly
-    job: letsencrypt --renew certonly -n --webroot -w /var/www/letsencrypt -m {{ email }} --agree-tos -d {{  fqdn  }} && service nginx reload
-  when: SSL_TYPE == 'letsencrypt'
-
-# === CUSTOM_SSL ===
-# Copy certificate and key to the server 
-- name: creating ssl/tls directory
-  file:
-    path: /etc/ssl/{{fqdn}}
-    state: directory
-    modification_time: preserve
-    access_time: preserve
-  when: SSL_TYPE == 'customssl'
-
-- name: Porting TLS certificate
-  copy:
-    src: fullchain.pem
-    dest: "/etc/ssl/{{fqdn}}/"
-    owner: root
-    group: root
-    mode: 0644
-  when: SSL_TYPE == 'customssl'
-
-- name: Copy ssl key to the proxy host
-  copy:
-    src: privkey.pem
-    dest: /etc/ssl/{{fqdn}}/
-    owner: root
-    group: root
-    mode: 0644
-  when: SSL_TYPE == 'customssl'
-
-# Generate dhparams 
-- name: Generating  Diffie–Hellman key exchange parameters, takes a while, grab some coffee if you may. 
-  shell: openssl dhparam -out /etc/nginx/dhparams.pem 2048
-  args:
-    creates: /etc/nginx/dhparams.pem
-
-# Disabling nginx version show for security reasons 
+# Disabling nginx version 
 - name: Disabling nginx version show
   lineinfile:
     dest: /etc/nginx/nginx.conf
@@ -89,35 +45,54 @@
     insertafter: "types_hash_max_size"
   notify: Reload Nginx
 
-# Coping nginx configuration to the proxy 
-- name: Copy  nginx site configuration
-  template:
-    src: nginx/site.j2
-    dest: /etc/nginx/conf.d/{{fqdn}}.conf
-    owner: root
-    group: root
-    mode: 644
-  notify: Reload Nginx
+# Remove default nginx config
+- name: Remove default nginx site 
+  file: name=/etc/nginx/sites-enabled/default state=absent
 
-- name: Copy dhis2 location configuration proxy 
+# include SSL/TLS tasks 
+- include_tasks: "{{SSL_TYPE}}.yml"
+
+# Generate dhparams 
+- name: Generating  Diffie–Hellman key parameters, takes a while, you may grab some coffee:
+  shell: openssl dhparam -out /etc/nginx/dhparams.pem 2048
+  args:
+    creates: /etc/nginx/dhparams.pem
+
+# Coping nginx configuration to the proxy 
+- name: Copy nginx site configuration:
+  template: >
+    src=nginx/site.j2
+    dest=/etc/nginx/conf.d/{{fqdn}}.conf
+    owner=root group=root mode=644
+# Ensure nginx service is started
+- name: Start nginx service 
+  ansible.builtin.service: >
+    name=nginx state=started
+
+- name: Creating nginx upstream directory
+  ansible.builtin.file:
+    path: /etc/nginx/conf.d/upstream
+    state: directory
+
+- name: Copy dhis2 location configs 
   template:
     src: nginx/instance.j2
-    dest: /etc/nginx/conf.d/dhis2-location
+    dest: /etc/nginx/conf.d/upstream/dhis2.conf
   notify: Reload Nginx
 
-- name: Copy glowroot location configuration to proxy 
+- name: Copy glowroot location configs
   template:
     src: nginx/glowroot.j2 
-    dest: /etc/nginx/conf.d/glowroot-location
+    dest: /etc/nginx/conf.d/upstream/glowroot.conf
   when: >
     app_monitoring is defined and 
     app_monitoring == 'glowroot'
   notify: Reload Nginx
 
-- name: Copy munin location configuration to the proxy
+- name: Copy munin location configs
   template:
     src: nginx/munin.j2
-    dest: /etc/nginx/conf.d/munin-location
+    dest: /etc/nginx/conf.d/upstream/munin.conf 
   notify: Reload Nginx
   when: >
     server_monitoring is defined and

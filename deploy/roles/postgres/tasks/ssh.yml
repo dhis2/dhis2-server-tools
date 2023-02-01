@@ -4,6 +4,14 @@
     gather_subset:
       - network
       - '!min'
+        
+- name: Ensure acl packate is installed 
+  become: true
+  ansible.builtin.apt:
+    name: acl
+    state: present
+    update_cache: yes
+  when: inventory_hostname in groups['databases']
 
 # Allow ssh port 22. 
 - name: Allow ssh on port 22
@@ -14,10 +22,4 @@
     proto: tcp
     comment: Allow ssh access to the instance
 
-- name: Install acl package
-  become: true
-  ansible.builtin.apt:
-    name: acl
-    state: present
-    update_cache: yes
-  when: inventory_hostname in groups['databases']
+

@@ -40,13 +40,11 @@
       become: true
       command: snap restart lxd.daemon
       args:
-        creates: /tmp/.lxd-restart
+        creates: /snap/lxd/.lxd-restart
       changed_when: false
 
-    - file: 
-        path: /tmp/.lxd-restart
-        state: touch
-        mode: u+rw,g-wx,o-rwx
-        modification_time: preserve
-        access_time: preserve
+    - file: > 
+        path=/snap/lxd/.lxd-restart state=touch
+        mode=u+rw,g-wx,o-rwx modification_time=preserve
+        access_time=preserve
       

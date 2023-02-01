@@ -1,0 +1,25 @@
+--- 
+# Copy certificate and key to the server
+- name: creating ssl/tls directory
+  file:
+    path: /etc/ssl/{{fqdn}}
+    state: directory
+    modification_time: preserve
+    access_time: preserve
+
+
+- name: Porting TLS certificate
+  copy:
+    src: fullchain.pem # ensure the file exists
+    dest: "/etc/ssl/{{fqdn}}/"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Copy ssl key to the proxy host
+  copy:
+    src: privkey.pem
+    dest: /etc/ssl/{{fqdn}}/
+    owner: root
+    group: root
+    mode: 0644

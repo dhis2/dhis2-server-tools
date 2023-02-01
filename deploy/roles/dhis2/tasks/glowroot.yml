@@ -1,21 +1,15 @@
 # Creating /opt/glowroot directory
 - name: Creating  /opt/glowroot directory
-  file:
-    path:  /opt/glowroot
-    owner: tomcat
-    group: tomcat
-    state: directory
-    modification_time: preserve
-    access_time: preserve
+  file: >
+    path=/opt/glowroot owner=tomcat
+    group=tomcat state=directory
+    modification_time=preserve access_time=preserve
 
 # Download and extrace glowroot
 - name: Download and extract glowroot 
-  ansible.builtin.unarchive:
-    src: https://github.com/glowroot/glowroot/releases/download/v0.13.6/glowroot-0.13.6-dist.zip
-    dest: /opt/
-    group: tomcat
-    owner: tomcat
-    remote_src: yes
+  ansible.builtin.unarchive: >
+    src=https://github.com/glowroot/glowroot/releases/download/v0.13.6/glowroot-0.13.6-dist.zip
+    dest=/opt/ group=tomcat owner=tomcat remote_src=yes
 
 - name: Copy glowroot configs to the instances
   template:

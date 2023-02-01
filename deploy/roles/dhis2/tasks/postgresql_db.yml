@@ -3,13 +3,16 @@
   stat: path=/opt/dhis2/dhis.conf
   register: dhis2_conf
   when: inventory_hostname in groups['instances']
+  tags:
+    - never
 
 - name: Generate database password
   set_fact:
-    db_password: "{{ lookup('password','/dev/null',seed=inventory_hostname) }}"
+    db_password: "{{ lookup('password','/tmp/' + inventory_hostname,seed=inventory_hostname) }}"
   when:
-    - dhis2_conf.stat.exists is defined
-    - not dhis2_conf.stat.exists 
+    # - dhis2_conf.stat.exists is defined
+    # - not dhis2_conf.stat.exists 
+    - create_db is defined and  create_db | bool
     - inventory_hostname in groups['instances']
 
 - name: Create instances database role
@@ -21,9 +24,8 @@
     password: "{{ hostvars[item]['db_password'] }}"
   loop: "{{ groups['instances'] }}"
   when: 
-    - create_db | bool 
     - hostvars[item]['db_password'] is defined
-    - inventory_hostname == hostvars[item]['database_host'] # postgres 
+    - inventory_hostname == hostvars[item]['database_host'] 
   notify: Reload Postgres 
 
 # Creating instances databases
@@ -37,9 +39,8 @@
   loop: "{{ groups['instances'] }}"
   when:
     - hostvars[item]['db_password'] is defined
-    - create_db | bool
     - inventory_hostname == hostvars[item]['database_host']
-    - inventory_hostname in groups['databases']
+  notify: Reload Postgres 
 
 - name: Creating postgis,btree_gin and pg_trgm extensions
   become: True
@@ -51,6 +52,7 @@
     - "{{ groups['instances'] }}" 
     - "{{ postgresql_extensions }}"
   when: 
-    - inventory_hostname in groups['databases']
+    - hostvars[item.0]['db_password'] is defined
     - inventory_hostname == hostvars[item.0]['database_host'] 
+  notify: Reload Postgres 
 

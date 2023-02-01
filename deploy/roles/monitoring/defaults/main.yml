@@ -1,6 +1,8 @@
 ---
-# defaults file for roles/monitoring
+# defaults
 ansible_connection: lxd
+server_monitoring: munin
+
 munin_conf_d_directory: /etc/munin/munin-conf.d
 
 munin_dbdir: /var/lib/munin

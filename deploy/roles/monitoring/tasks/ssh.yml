@@ -4,11 +4,13 @@
     gather_subset:
       - network
       - '!min'
-
-- ansible.builtin.apt:
+# acl packate is required for user switching
+- name: Ensure acl packate is installed 
+  ansible.builtin.apt:
     name: acl
     state: present
     update_cache: yes
+      
 # Allow ssh port 22. 
 - name: Allow ssh port 22 on ufw
   community.general.ufw: 

@@ -1,7 +1,7 @@
 ---
-# defaults file for ./roles/postgresql
-postgresql_version: 13
+# defaults 
 ansible_connection: lxd 
+postgresql_version: 13
 postgresql_extensions:
   - postgis
   - btree_gin

@@ -1,8 +1,12 @@
 # apt install apache2 libcgi-fast-perl libapache2-mod-fcgid
-- name: Install munin server requirements 
+- name: update and upgrade munin
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 7200 # 2 hours
+    upgrade: yes
+
+- name: Install munin server 
   apt:
-    update_cache: yes 
-    cache_valid_time: 3600
     name:
       - apache2
       - libcgi-fast-perl 
@@ -35,7 +39,7 @@
   tags: [ never ]
 
 #  If you want to access the Munin Web interface outside your localhost, 
-- name: Edit apache2 config, munin access outside localhost
+- name: Edit munin config
   lineinfile: 
     firstmatch: yes  
     regex: '^(.*)Require local'
@@ -56,12 +60,12 @@
 - name: Allow https access from proxy
   community.general.ufw:
     rule: allow
-    port: "{{ munin_http_port | default('80')}}"
-    src: "{{ hostvars[item]['ansible_host'] }}"
+    port: "{{munin_http_port|default('80')}}"
+    src: "{{hostvars[item]['ansible_host']}}"
     proto: tcp
     comment: "Allow access from {{ item }} instance "
     state: enabled
-  loop: "{{ groups['web'] }}"
+  loop: "{{groups['web']}}"
 
 # Setup Node to monitor multiple systems 
 - name: Enable or disable the munin cron job.

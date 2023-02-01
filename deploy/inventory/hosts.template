@@ -1,49 +1,61 @@
+# proxy server/container 
 [web]
-proxy       ansible_host=172.19.2.2    ssh_port=22
+proxy  ansible_host=172.19.2.2
+# database servers/containers
 [databases]
-postgres    ansible_host=172.19.2.20
+postgres  ansible_host=172.19.2.20
+# dhis2 servers/containers
 [instances]
-# dhis  ansible_host=172.19.2.10  database_host=postgres  ssh_port=22 dhis2_war_file='https://releases.dhis2.org/2.39/dhis2-stable-2.39.0.war'
-hmis  ansible_host=172.19.2.11  database_host=postgres  ssh_port=22
+hmis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.38 
+dhis  ansible_host=172.19.2.12  database_host=postgres  dhis2_version=2.39 
+# monitoring server/container
 [monitoring]
 monitor     ansible_host=172.19.2.30 
+# integration server/container
 [integration]
 
+# variables applying to all intances, 
+# NOTE: fqdn and email are mandatory for a setup with proxy 
 [all:vars]
 fqdn=""
 email=""
+# timedatectl list-timezones to list timezones
+timezone="Africa/Nairobi"
+
 
 # monitoring
 server_monitoring="munin"
 app_monitoring="glowroot"
 
-# Options: lxd, ssh
+# note, if your connectin is ssh and using non default ssh port e.g 822, you
+# need to append ssh_port=822 on the host line.  
+# Options: lxd, ssh defaults to lxd. 
 ansible_connection=lxd
 
-# Options: nginx, apache2
+# Options: nginx, apache2 defauts to nginx. 
 proxy="nginx"
 
-# Options: letsencrypt, customssl, upstream, selfsign
+# Options: letsencrypt, customssl, upstream, selfsign, defalts=letsencrypt 
 SSL_TYPE=letsencrypt
 
-# list the timezones availlable with  timedatectl list-timezones 
-timezone="Africa/Nairobi"
 lxd_network="172.19.2.1/24" 
 lxd_bridge_interface='lxdbr1'
 guest_os=22.04
+
 # Options: amd64,arm64,armhf, defaults to amd64
 guest_os_arch='amd64'
 
-# instance related 
+# instances group variables,
 [instances:vars]
 database_host=postgres
 create_db=yes  
 JAVA_VERSION="11" 
 
-# This can be an url obtained from https://releases.dhis2.org or a file. A file
-# can be placed in roles/dhis2/files and just its name be used. If dhis2 war
-# file is placed an another directory, you need to specify its full path e.g
-# /home/example/dhis2.war 
-# https://releases.dhis2.org/ 
-dhis2_war_file="https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war"
-dhis2_version=2.38
+# This can be an url, file, version_number e.g
+# https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war,file or just version_number
+# dhis2_war_file="https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war"
+# dhi2_war_file=dhis2.war # if the file is placed in roles/dhis2/files
+# directory dhis2_war_file=/full/path/dhis2.war if war file is placed in some
+# other custom path if you want specific version for the instances please
+# append it on inventory line, 
+dhis2_version=2.38 

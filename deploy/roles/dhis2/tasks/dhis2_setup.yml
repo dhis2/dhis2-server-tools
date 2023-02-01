@@ -93,6 +93,7 @@
     url: "{{dhis2_url}}"
     dest: /opt/dhis2/dhis2.war 
     force: true
+    timeout: 30
     # checksum: "sha256:{{sha256}}"
   when: 
     - sha256 is defined 
@@ -141,18 +142,21 @@
     mode='0640' owner=root group=tomcat 
   when: db_password is defined
   ignore_errors: yes
+  notify: Restart Tomcat 
 
 # copy sever.xml config to the instances 
 - name: Copy server.xml to the instances
   ansible.builtin.copy: >
     src=server.xml dest=/etc/tomcat9/server.xml
     mode='0640' owner=root group=tomcat
+  notify: Restart Tomcat 
 
 - name: Creating tomcat9.service.d  directory
   file: >
     owner=root group=root mode=0755
     path=/etc/systemd/system/tomcat9.service.d
     state=directory
+  notify: Restart Tomcat 
 
 # Tomcat9 override file 
 - name: Create systemd override file for tomcat9
@@ -182,6 +186,7 @@
     mode: '0644'
     owner: root 
     group: root
+  notify: Restart Tomcat 
 
 # Extract dhis2 into the instances 
 - name: Extract dhis2.war file 

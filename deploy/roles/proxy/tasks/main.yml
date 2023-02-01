@@ -2,12 +2,12 @@
 - include_tasks: validate_settings.yml
   when: inventory_hostname in groups['web'] and proxy is defined
 
-- include_tasks: "{{ ansible_connection }}.yml"
-  when: inventory_hostname in groups['web'] and proxy is defined
-  
-- include_tasks: firewall.yml
+- include_tasks: "{{ansible_connection}}.yml"
   when: inventory_hostname in groups['web'] and proxy is defined
 
-- include_tasks: "{{proxy}}.yml"
-  when: inventory_hostname in groups['web'] and proxy is defined
+- include_tasks: "{{proxy}}.yml" 
+  when: inventory_hostname in groups['web'] and proxy is defined 
+
+- name: Flush Handlers
+  meta: flush_handlers
 

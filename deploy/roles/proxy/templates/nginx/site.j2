@@ -1,5 +1,4 @@
 # site configuration
-{% if SSL_TYPE == 'customssl'  %} 
 server {
     listen 80 default_server;
     server_name {{ fqdn }};
@@ -11,7 +10,7 @@ server {
         rewrite ^ https://{{ fqdn }}$request_uri? permanent;
     }
   }
-{% endif %} 
+
 server {
   listen 443 ssl;
   ssl_stapling on;
@@ -48,13 +47,7 @@ server {
     }
   # Proxy pass to the backend 
   # Location configuration 
-      include  conf.d/dhis2-location;
-  {% if server_monitoring is defined %}
-      include conf.d/{{server_monitoring}}-location;
-  {% endif %}
-  {% if app_monitoring is defined %}
-      include conf.d/{{app_monitoring}}-location;
-  {% endif %}
+      include  conf.d/upstream/*;
 location / {
   return 444; 
   }

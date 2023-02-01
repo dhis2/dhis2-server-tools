@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# update the system 
+# installing ansible 
 set -e 
-
 if ! command -v ansible &> /dev/null
 then
   export DEBIAN_FRONTEND=noninteractive
   RED='\033[0;31m'
-  sudo -E apt-get -yq update
+  sudo -E apt -yq update
   sudo -E apt -yq  upgrade
 
   # install git if not present 
@@ -25,6 +24,7 @@ fi
 
 if [ $(cat inventory/hosts  | grep -Po '(?<=ansible_connection=)([a-z].*)') == "lxd" ]
 then
+   # ensure firewall is running on the host
    UFW_STATUS=$(sudo ufw status |grep Status|cut -d ' ' -f 2)
    if [[ $UFW_STATUS == "inactive" ]]; then
       echo
@@ -37,12 +37,13 @@ then
 	    echo "Then you can try to run sudo ./deploy.sh  again"
 	    exit 1
   fi
+   # deploying dhis2 in lxd containers
    echo "Deploying dhis2 with lxd ..."
    sudo ansible-playbook lxd_setup.yml
    sudo ansible-playbook dhis2.yml
 else
+   # deploying dhis2 over ssh
    echo "Deploy dhis2 over ssh ..."
-
    read -p "Enter ssh user: " ssh_user
    su -c "ansible-playbook  dhis2.yml -kK" $ssh_user
 fi

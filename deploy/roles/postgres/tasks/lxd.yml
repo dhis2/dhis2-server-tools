@@ -4,9 +4,9 @@
   vars:
     ansible_connection: local
   community.general.lxd_container:
-    name: "{{ inventory_hostname }}"
+    name: "{{inventory_hostname}}"
     state: started
-    profiles: [ "default" ]
+    profiles: ["default"]
     ignore_volatile_options: false
     wait_for_ipv4_addresses: true
     timeout: 60
@@ -15,15 +15,14 @@
       mode: pull
       server: https://cloud-images.ubuntu.com/releases
       protocol: simplestreams
-      alias: "{{ guest_os }}/{{guest_os_arch | default('amd64')}}"
+      alias: "{{guest_os }}/{{guest_os_arch | default('amd64')}}"
     devices:
       eth0:
         type: 'nic'
         parent: "{{ lxd_bridge_interface | default ('lxdbr0') }}"
         nictype: bridged
         ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) | default(omit)}}" 
-
-# sometimes containers do n
+# Gather containers facts, which will include its default ip address and codename,
 - name: Get facts
   ansible.builtin.setup:
     gather_subset:

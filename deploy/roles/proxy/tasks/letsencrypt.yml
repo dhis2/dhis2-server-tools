@@ -1,0 +1,19 @@
+--- 
+- name: Install certbot
+  apt: name=certbot state=latest
+
+- name: Generate TLS/SSL Certificate with certbot
+  become: true
+  shell: |
+    systemctl stop {{proxy}} 
+    certbot certonly -n -m {{email}} --agree-tos -d {{fqdn}} --standalone --no-eff-email 
+  args:
+    creates: /etc/letsencrypt/live/{{fqdn}}
+
+- name: Add letsencrypt cronjob for cert renewal
+  cron:
+    name: letsencrypt_renewal
+    special_time: weekly
+    job: letsencrypt --renew certonly -n --webroot -w /var/www/letsencrypt -m {{email}} --agree-tos -d {{fqdn}} && service {{proxy}} reload
+  tags:
+    - never

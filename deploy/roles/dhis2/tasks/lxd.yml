@@ -23,9 +23,7 @@
         type: nic
         ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) }}" 
 
-# Gather containers facts, which will include its default ip address and codename, e.g jammy
-# Gathered facts are important, e.g when static ip address does not apply to the created container
-# or when you want to install a package based on the codename
+# Gather containers facts, which will include its default ip address and codename,
 - name: Get facts
   ansible.builtin.setup:
     gather_subset:

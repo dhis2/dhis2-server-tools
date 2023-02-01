@@ -6,15 +6,18 @@
   become_user: root
   community.general.ufw:
     state: reloaded
+    enabled: true
 
 - name: Reload Nginx
-  service:
+  ansible.builtin.service:
     name: nginx
     state: reloaded
+    enabled: true 
 
 - name: Reload Apache2
-  service:
+  ansible.builtin.service:
     name: apache2
     state: reloaded
+    enabled: true
 
 
