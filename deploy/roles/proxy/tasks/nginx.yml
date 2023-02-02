@@ -26,7 +26,7 @@
   failed_when: "unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)"
   # ignore_errors: yes
       
-- name: Update and upgrade proxy.
+- name: update and upgrade proxy.
   ansible.builtin.apt: 
     upgrade: yes 
     update_cache: yes
@@ -53,34 +53,34 @@
 - include_tasks: "{{SSL_TYPE}}.yml"
 
 # Generate dhparams 
-- name: Generating  Diffie–Hellman key parameters, takes a while, you may grab some coffee:
-  shell: openssl dhparam -out /etc/nginx/dhparams.pem 2048
+- name: Generating  Diffie–Hellman key parameters, takes a while, you may grab some coffee
+  command: openssl dhparam -out /etc/nginx/dhparams.pem 2048
   args:
     creates: /etc/nginx/dhparams.pem
 
 # Coping nginx configuration to the proxy 
-- name: Copy nginx site configuration:
+- name: "Copy nginx site configuration"
   template: >
     src=nginx/site.j2
     dest=/etc/nginx/conf.d/{{fqdn}}.conf
     owner=root group=root mode=644
 # Ensure nginx service is started
-- name: Start nginx service 
+- name: "Start nginx service" 
   ansible.builtin.service: >
     name=nginx state=started
 
-- name: Creating nginx upstream directory
+- name: "Creating nginx upstream directory"
   ansible.builtin.file:
     path: /etc/nginx/conf.d/upstream
     state: directory
 
-- name: Copy dhis2 location configs 
+- name: "Copy dhis2 location configs" 
   template:
     src: nginx/instance.j2
     dest: /etc/nginx/conf.d/upstream/dhis2.conf
   notify: Reload Nginx
 
-- name: Copy glowroot location configs
+- name: "Copy glowroot location configs"
   template:
     src: nginx/glowroot.j2 
     dest: /etc/nginx/conf.d/upstream/glowroot.conf

@@ -1,4 +1,10 @@
 ---
+- name: update and upgrade dhis2 server/container
+  ansible.builtin.apt:
+    upgrade: yes
+    update_cache: yes
+    cache_valid_time: 86400
+
 - name: Download dhis2 releases.json file
   vars:
     ansible_connection: local
@@ -43,8 +49,6 @@
 - name: Installing java and tomcat and zip 
   apt: > 
     name=openjdk-{{JAVA_VERSION}}-jre-headless,unzip,tomcat9,tomcat9-admin,ufw 
-    update_cache=yes
-    cache_valid_time=3600
 
 # Creating /opt/dhis2 directory
 - name: Creating /opt/dhis2  directory 

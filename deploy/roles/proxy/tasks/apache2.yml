@@ -26,7 +26,7 @@
   failed_when: "unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)"
   # ignore_errors: yes
 
-- name: Update and upgrade proxy.
+- name: update and upgrade proxy.
   ansible.builtin.apt:
     upgrade: yes
     update_cache: yes

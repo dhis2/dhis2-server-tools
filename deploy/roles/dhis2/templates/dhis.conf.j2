@@ -10,15 +10,15 @@ connection.driver_class = org.postgresql.Driver
 # Database connection URL
 {% for host in groups['databases'] %}
     {% if hostvars[inventory_hostname]['database_host'] == host %}
-connection.url = jdbc:postgresql://{{ hostvars[host]['ansible_host'] }}/{{ inventory_hostname }}
+connection.url = jdbc:postgresql://{{ hostvars[host]['ansible_host'] }}/{{inventory_hostname}}
     {% endif %}
 {% endfor %}
 # Database username
-connection.username =  {{ inventory_hostname }}
+connection.username = {{inventory_hostname}}
 
 
 # Database password (sensitive)
-connection.password =  {{ db_password }}
+connection.password = {{db_password}}
 
 # Database schema behavior, can be 'validate', 'update', 'create', 'create-drop'
 connection.schema = update

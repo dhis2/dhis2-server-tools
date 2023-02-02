@@ -1,26 +1,26 @@
 ---
 # Adding postgresql signing key
-- name: Update and upgrade
+- name: update and upgrade database
   ansible.builtin.apt:
     upgrade: yes
     update_cache: yes
     cache_valid_time: 86400
 
-- name: Add an Apt signing key
+- name: Adding postgresql repo signing key
   become: True
   ansible.builtin.apt_key:
     url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
     state: present
 
  # add postgres apt repository 
-- name: Add Postgres APT repository into sources list
+- name: Adding postgres apt repository to sources list
   ansible.builtin.apt_repository:
     repo: "deb https://apt.postgresql.org/pub/repos/apt {{ hostvars[inventory_hostname]['ansible_facts']['distribution_release'] }}-pgdg main"
     update_cache: True
     state: present
 
 # Install postgresql and python module for Postgres
-- name: "Install postgres Version {{ postgresql_version }}"
+- name: "Installing postgres version {{ postgresql_version }}"
   ansible.builtin.apt: 
     name: 
       - ca-certificates
@@ -39,8 +39,8 @@
     state: started
     enabled: yes
   
-# Check postgresql Version
-- name: Check posgresql Version
+# Check postgresql Version, reguired for pg_hba path determination
+- name: Checking postgresql Version
   become: true
   become_method: sudo
   become_user: postgres
@@ -60,7 +60,7 @@
     - inventory_hostname == hostvars[item]['database_host'] 
   notify: Restart Postgres
 
-- name: Allow posgress listening on network
+- name: Allow postgres database listening on network
   lineinfile:
     dest: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/postgresql.conf
     regex: "^#?listen_addresses"
