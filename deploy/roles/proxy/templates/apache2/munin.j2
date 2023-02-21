@@ -1,5 +1,5 @@
   <Location /munin>
     Require all granted
-    ProxyPass "http://{{hostvars['monitor']['ansible_host']+':80' }}/munin"
-    ProxyPassReverse "http://{{hostvars['monitor']['ansible_host']+':80' }}/munin"
+    ProxyPass "http://{{hostvars['munin']['ansible_host']+':80' }}/munin"
+    ProxyPassReverse "http://{{hostvars['munin']['ansible_host']+':80' }}/munin"
   </Location>

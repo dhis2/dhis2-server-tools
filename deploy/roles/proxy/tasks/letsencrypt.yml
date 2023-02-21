@@ -10,10 +10,11 @@
   args:
     creates: /etc/letsencrypt/live/{{fqdn}}
 
+#  daily is identical with  0 0 * * *  
 - name: Add letsencrypt cronjob for cert renewal
-  cron:
+  ansible.builtin.cron:
+    cron_file: /etc/cron.d/certbot
     name: letsencrypt_renewal
-    special_time: weekly
-    job: letsencrypt --renew certonly -n --webroot -w /var/www/letsencrypt -m {{email}} --agree-tos -d {{fqdn}} && service {{proxy}} reload
-  tags:
-    - never
+    special_time: daily 
+    user: root
+    job: certbot renew --standalone --pre-hook="service {{proxy}} stop" --post-hook="service {{proxy}} start"

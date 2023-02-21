@@ -5,6 +5,9 @@ if ! command -v ansible &> /dev/null
 then
   export DEBIAN_FRONTEND=noninteractive
   RED='\033[0;31m'
+  # disable interactive prompt with aptget 
+  sed -i 's/#$nrconf{restart} = '"'"'i'"'"';/$nrconf{restart} = '"'"'a'"'"';/g' /etc/needrestart/needrestart.conf  
+
   sudo -E apt -yq update
   sudo -E apt -yq  upgrade
 

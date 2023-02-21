@@ -26,7 +26,7 @@
   failed_when: "unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)"
   # ignore_errors: yes
       
-- name: update and upgrade proxy.
+- name: Update and upgrade proxy.
   ansible.builtin.apt: 
     upgrade: yes 
     update_cache: yes
@@ -64,6 +64,7 @@
     src=nginx/site.j2
     dest=/etc/nginx/conf.d/{{fqdn}}.conf
     owner=root group=root mode=644
+  notify: Reload Nginx
 # Ensure nginx service is started
 - name: "Start nginx service" 
   ansible.builtin.service: >
@@ -97,4 +98,5 @@
   when: >
     server_monitoring is defined and
     server_monitoring == "munin" 
-
+- name: Flush Handlers
+  meta: flush_handlers

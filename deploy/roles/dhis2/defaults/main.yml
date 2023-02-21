@@ -1,7 +1,7 @@
 ---
 # defaults 
 ansible_connection: lxd
-JAVA_VERSION: "11"
+JAVA_VERSION: 11
 app_monitoring: glowroot
 database_host: postgres
 dhis2_war_file: "https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war"

@@ -7,7 +7,3 @@
 
 - include_tasks: "{{proxy}}.yml" 
   when: inventory_hostname in groups['web'] and proxy is defined 
-
-- name: Flush Handlers
-  meta: flush_handlers
-

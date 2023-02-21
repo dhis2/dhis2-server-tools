@@ -1,5 +1,5 @@
 # apt install apache2 libcgi-fast-perl libapache2-mod-fcgid
-- name: update and upgrade munin server
+- name: Update and upgrade munin server
   ansible.builtin.apt:
     update_cache: yes
     cache_valid_time: 7200 # 2 hours

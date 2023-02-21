@@ -4,7 +4,10 @@
   vars:
     ansible_connection: local
   community.general.lxd_container:
+    config:
+      "boot.autostart.priority": "2"
     name: "{{ inventory_hostname }}"
+    # architecture: "{{ guest_os_arch | default('amd64')}}"
     state: started
     profiles: [ "default" ]
     ignore_volatile_options: False
@@ -13,9 +16,9 @@
     source:
       type: image
       mode: pull
-      server: https://cloud-images.ubuntu.com/releases
-      protocol: simplestreams
-      alias: "{{ guest_os }}/{{guest_os_arch | default('amd64')}}"
+      server: "{{ lxd_source_server | default('https://cloud-images.ubuntu.com/releases') }}"
+      protocol: "{{lxd_source_protocol | default('simplestreams')}}"
+      alias: "{{guest_os | default('22.04')}}"
     devices:
       eth0:
         nictype:  bridged

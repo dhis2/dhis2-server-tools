@@ -5,6 +5,7 @@
     ansible_connection: local
   community.general.lxd_container:
     name: "{{ inventory_hostname }}"
+    # architecture: "{{ guest_os_arch}}"
     state: started
     profiles: ["default"]
     ignore_volatile_options: false
@@ -14,9 +15,9 @@
       type: image
       mode: pull
       #server: https://images.linuxcontainers.org
-      server: https://cloud-images.ubuntu.com/releases
-      protocol: simplestreams
-      alias: "{{ guest_os }}/{{guest_os_arch | default('amd64')}}"
+      server: "{{ lxd_source_server | default('https://cloud-images.ubuntu.com/releases') }}"
+      protocol: "{{lxd_source_protocol | default('simplestreams')}}"
+      alias: "{{guest_os | default('22.04')}}"
     devices:
       #"80":
       #  listen: tcp:0.0.0.0:80
@@ -32,7 +33,7 @@
         nictype: "bridged"
         parent: "{{ lxd_bridge_interface | default ('lxdbr0') }}"
         type: "nic"
-        ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) | default(omit)}}" 
+        ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network)}}" 
 
 - name: Get facts
   ansible.builtin.setup:

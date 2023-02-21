@@ -1,23 +1,25 @@
 ---
 # Adding postgresql signing key
-- name: update and upgrade database
+- name: "Update and upgrade database"
   ansible.builtin.apt:
     upgrade: yes
     update_cache: yes
     cache_valid_time: 86400
 
-- name: Adding postgresql repo signing key
-  become: True
-  ansible.builtin.apt_key:
-    url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
-    state: present
+- name: "Adding  postgresql repository" 
+  block: 
+  # adding apt signing key
+  - name: "Adding postgresql repo signing key" 
+    ansible.builtin.get_url:
+      url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
+      dest: /etc/apt/trusted.gpg.d/postgresql.asc
 
- # add postgres apt repository 
-- name: Adding postgres apt repository to sources list
-  ansible.builtin.apt_repository:
-    repo: "deb https://apt.postgresql.org/pub/repos/apt {{ hostvars[inventory_hostname]['ansible_facts']['distribution_release'] }}-pgdg main"
-    update_cache: True
-    state: present
+   # add postgres apt repository 
+  - name: "Adding postgres apt repository to sources list"
+    ansible.builtin.apt_repository:
+      repo: "deb [arch={{guest_os_arch|default('amd64')}} signed-by=/etc/apt/trusted.gpg.d/postgresql.asc] https://apt.postgresql.org/pub/repos/apt {{ hostvars[inventory_hostname]['ansible_facts']['distribution_release'] }}-pgdg main"
+      update_cache: true
+      state: present
 
 # Install postgresql and python module for Postgres
 - name: "Installing postgres version {{ postgresql_version }}"
@@ -32,7 +34,7 @@
       - libdbd-pg-perl
 
 # sometimes postgres is installed but not started
-- name: Ensure postgresql is running
+- name: "Ensure postgresql is running"
   become: True
   ansible.builtin.service:
     name: postgresql
@@ -40,7 +42,7 @@
     enabled: yes
   
 # Check postgresql Version, reguired for pg_hba path determination
-- name: Checking postgresql Version
+- name: "Checking postgresql Version"
   become: true
   become_method: sudo
   become_user: postgres
@@ -49,7 +51,7 @@
   register: postgresql_version_info
 
 # Fixing pg_hba.conf permissions
-- name: Fixing pg_hba.conf permissions, allowing instances to connect
+- name: "Fixing pg_hba.conf permissions, allowing instances to connect"
   become: True
   lineinfile:
     path: /etc/postgresql/{{postgresql_version_info.version.major}}/main/pg_hba.conf
@@ -60,7 +62,7 @@
     - inventory_hostname == hostvars[item]['database_host'] 
   notify: Restart Postgres
 
-- name: Allow postgres database listening on network
+- name: "Allow postgres database listening on network"
   lineinfile:
     dest: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/postgresql.conf
     regex: "^#?listen_addresses"
@@ -68,7 +70,7 @@
   notify: Restart Postgres
 
 # Allow access from dhis2 instances to postgresql port 5432
-- name: Firewall | Open port 5432 from dhis2 instances
+- name: "Firewall | Open port 5432 from dhis2 instances"
   community.general.ufw:
     rule: allow
     port: "{{ postgresql_port | default('5432')}}"
@@ -78,3 +80,6 @@
     state: enabled
   loop: "{{ groups['instances'] }}"
   when: inventory_hostname == hostvars[item]['database_host']
+- name: Flushing Handlers
+  meta: flush_handlers
+

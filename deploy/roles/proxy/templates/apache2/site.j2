@@ -142,8 +142,13 @@
        #===========================================================
        SSLEngine on
        # set these to match your server certificate and key
+       {% if SSL_TYPE == 'letsencrypt' %}
        SSLCertificateFile      /etc/letsencrypt/live/{{fqdn}}/fullchain.pem
        SSLCertificateKeyFile /etc/letsencrypt/live/{{fqdn}}/privkey.pem
+       {% else  %}
+       SSLCertificateFile /etc/ssl/{{fqdn}}/{{SSL_TYPE}}.crt;
+       SSLCertificateKeyFile /etc/ssl/{{fqdn}}/{{SSL_TYPE}}.key;
+       {%endif%}
 
        SSLProtocol TLSv1.1 TLSv1.2
        SSLHonorCipherOrder on
@@ -158,5 +163,4 @@
        BrowserMatch "MSIE [17-9]" ssl-unclean-shutdown
 
   </VirtualHost>
-
 </IfModule>

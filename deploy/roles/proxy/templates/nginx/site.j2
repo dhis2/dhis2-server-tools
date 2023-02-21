@@ -19,9 +19,9 @@ server {
   {% if SSL_TYPE == 'letsencrypt' %} 
   ssl_certificate /etc/letsencrypt/live/{{fqdn}}/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/{{fqdn}}/privkey.pem;
-  {% elif SSL_TYPE == 'customssl' %}
-  ssl_certificate /etc/ssl/{{ fqdn }}/fullchain.pem;
-  ssl_certificate_key /etc/ssl/{{ fqdn }}/privkey.pem;
+  {% else %}
+  ssl_certificate /etc/ssl/{{fqdn}}/{{SSL_TYPE}}.crt;
+  ssl_certificate_key /etc/ssl/{{fqdn}}/{{SSL_TYPE}}.key;
   {% endif %}
   ssl_protocols TLSv1.2 TLSv1.3;
   #ssl_session_cache shared:SSL:20m;
@@ -47,8 +47,7 @@ server {
   if ($host != "{{ fqdn }}") {
     return 444;
     }
-  # Proxy pass to the backend 
-  # Location configuration 
+# Location configuration 
       include  conf.d/upstream/*;
 location / {
   return 444; 
