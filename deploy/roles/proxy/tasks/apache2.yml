@@ -26,7 +26,7 @@
   failed_when: "unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)"
   # ignore_errors: yes
 
-- name: update and upgrade proxy.
+- name: Update and upgrade proxy.
   ansible.builtin.apt:
     upgrade: yes
     update_cache: yes
@@ -102,4 +102,5 @@
     server_monitoring is defined and
     server_monitoring == "munin" 
   notify: Reload Apache2
-
+- name: Flush Handlers
+  meta: flush_handlers

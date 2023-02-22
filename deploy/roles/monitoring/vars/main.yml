@@ -1,3 +1,4 @@
 ---
 # vars file for roles/monitoring
 ansible_host: "{{ inventory_hostname if ansible_connection == 'lxd' else hostvars[inventory_hostname]['ansible_host'] }}"
+include_vars: "{{server_monitoring}}.yml"

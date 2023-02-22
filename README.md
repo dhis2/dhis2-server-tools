@@ -1,39 +1,57 @@
 # dhis2-server-tools
+**Table of Contents**
+- [DHIS2 install with ansible](#dhis2-server-tools)
+  * [Introduction](#Introduction)
+  * [Pre-requisites](#Requirements-before-you-begin-installation)
+  * [Installing ansible](#step1-installing-ansible-configuration-tool)
+  * [Download Deployment code](#step2-download-deployment-tools)
+  * [Customization before install](#step3-customization-before-installation)
+    * [hosts-list-configuration](#hosts-list-configuration)
+        * [sample Host configuration](#sample-host-configuration)
+        * [Hosts grouping](#hosts-grouping)
+    * [Important Variables](#important-variables)
+    * [Other variables](#other-variables)
+  * [Beging installation](#step4-the-installation)
+  * [Custom TLS](#using-a-custom-ssl-certificate)
+  * [Database Tuning](#customizing-postgresql)
+  * [Basic lxc container management](#lxc-container-management)
+  * [Monitoring](#monitoring)
 
-This tools install DHIS2 application stack with ansible. The stack is comprised
-of dhis2 tomcat instance(s), database(postgresql), proxy (nginx/apache2) and
-monitoring (munin).
-Ths installation can be single server or on multiple servers. Single server setup is using lxd. 
+## Introduction 
 
-1. setup on a single ubuntu server<br> 
-    Uses lxd containers, set `ansible_connection` to `lxd`.
-2. Setup on multiple servers.<br> 
-    dhis2 application stack, i.e database, apps,monitor and proxy are setup on
-    on separate virtual machines or servers. 
+This tools install DHIS2 application stack using ansible configuration
+management tool. DHIS2 stack is comprised tomcat9 server/servers, database(postgresql),
+proxy (nginx/apache2) and monitoring (munin). Two install approaches supported, 
 
-## Pre-requisites
-Before you start installation, you will need -:,
-* fqdn (fully qualified domain name). <br>
-  It should be mapped to server or proxy public ip address depending on your setup. <br> 
+1. setup on a single server, with lxd:-<br> 
+    Uses lxd containers, you'll set `ansible_connection` variable to `lxd`, more info below. 
+2. Setup on multiple servers:- <br> 
+    dhis2 application stack running on separate servers/Virtual-machines. e.g
+    database server runs on its own VM.  
+
+## Requirements before you begin installation
+
 * ubuntu server running 20.04 or 22.04. 
-* SSL/TLS certificate - The installation defaults to obtaining SSL/TLS
-  certificate from letsencrypt, you can also bring your own.  
+* ssh access to the server. 
+* non root user with sudo rights. 
+* proxy specific requirements, required if you'll be managing your proxy, if
+  proxy is managed somewhere, use self-signed ssl. 
+    * fqdn (fully qualified domain name), <br>
+      It should be mapped to proxy server  public ip address <br> 
+    * SSL/TLS certificate - The installation defaults to obtaining SSL/TLS
+      certificate from letsencrypt, you can also bring your own.  
 
-### Step1 :- Install ansible and other dependencies.
-#### environment setup. 
-_**NOTE:** In case of multiple server setup, this happens on the deployment server._ <br> 
-update and upgrade system packages <br>
+### Step1: Installing ansible configuration tool.
+_**NOTE:** In case your architecture is a multiple server setup, you'll need a
+central deployment server, with working ssh access to all managed servers._ <br> 
+ansible community.general modules which we are suing requires ,ansible version
+≥ **_2.11_**
+If you are doing installation on ubuntu 18.04, use pip3 instead.
+
+run below commands to install ansible <br>
 ```
 sudo apt -y update
 sudo apt -y upgrade
-```
-Ensure git is installed. <br>
-`sudo apt install -y git`
-
-ansible version **_2.11_** or above is a requirement for community.general modules. 
-If you are doing installation on ubuntu 18.04, use pip3 instead. 
-
-```
 sudo apt install -y  software-properties-common
 sudo apt-add-repository --yes --update ppa:ansible/ansible
 sudo apt install -y ansible
@@ -42,49 +60,72 @@ sudo apt-get install -y python3-netaddr
 Install community.general ansible modules, required for lxd_container, ufw and other modules <br>
 `ansible-galaxy collection install community.general -f`
 
-### Step2 :- Pull ansible deployment code from git
+### Step2: Download deployment tools
+`sudo apt install -y git` # ensures git is installed  <br>
+
+Get the tools from git, 
+
 `git clone https://github.com/dhis2/dhis2-server-tools`
 
-### Step3:- Customization before installation
-Navigate into project diretory, 
-```
-cd dhis2-server-tools/deploy
-```
-Create `./inventory/hosts` by copying `./inventory/hosts.template`, 
-i.e `cp ./inventory/hosts.template ./inventory/hosts`
-edit the file  `./inventory/hosts`. The file has a list
-of hosts, can either be physical servers or  virtual servers or lxd containers depending on
-your setup architecture.
+### Step3: Customization before installation
 
-#### hosts configuration 
+All configurations are set on `dhis2-server-tools/deploy/inventory/hosts`
+file. <br> The file is not available by default. 
+
+Create it by copying`hosts.template` to `hosts`
+
+`cp dhis2-server-tools/deploy/inventory/hosts.template dhis2-server-tools/deploy/inventory/hosts`
+
+Edit hosts file  `vim dhis2-server-tools/deploy/inventory/hosts` and configure
+your hosts entries. 
+
+#### hosts list configuration 
 Change ip address for these hosts to suite network environment. <br>
 _**NOTE**: `When the install is on a single host with lxd, ensure your
-lxd_network is unique and  not overlaping with any of your already existing
-host network.`_ <br> 
-
-Use an editor of your choice, here we are using vim, you could use `nano` as well. <br> 
-`vim ./inventory/hosts`
+lxd_network is unique and not overlaping with any of your host network.`_ <br> 
 
 ##### Sample host configuration 
 ```
 [proxy]
-proxy       ansible_host=192.168.0.2 
+proxy  ansible_host=172.19.2.2
+
 [databases]
-postgres    ansible_host=192.168.0.20
+postgres  ansible_host=172.19.2.20
+
 [instances]
-hmis  ansible_host=192.168.0.10  database_host=postgres  
+hmis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.38 
+dhis  ansible_host=172.19.2.12  database_host=postgres  dhis2_version=2.39 
+
 [monitoring]
+munin   ansible_host=172.19.2.30 
+
 ```
-####  Configuration parameters 
+#### Hosts grouping
+The host are grouped into categories below, 
+* `[proxy]` - These are the servers that are used to access dhis2 application
+  from the outside. Public ip address is mapped to this host. In most cases
+  it’s just a single host but you can have multiple servers as well.
+* `[database]` - This is a group of servers that are used to host the databases,
+  which is postgresql in our case. It can be one or many as well.
+* `[instances]` - Servers intended for installing dhis2 web  application will be
+  under this group.
+* `[monitoring]`  - Servers intended for monitoring.
+
+#### Important variables 
 dhis2-server-tools configurations are located on the same inventory file , i.e 
 `dhis2-server-tools/deploy/inventory/hosts`.
 
-Below is a list of available configuration parameters, of importance is fqdn and email, ( mail required for letsencrypt cert expiry notification )
-##### important configuration parameters 
-Your proxy setup will need these two variables be set for it to work. 
+Below is a list of available configuration parameters, do change the first
+three variabls only i.e `fqdn`, `email` and `timezone`
+you can leave others to the defaults. 
+
 * `fqdn` this is the domain used to access dhis2 application 
-* `email` This is an email used to generate letsencrypt certificate and letsencrypt expiration emails
-* `ansible_connection` parameter is also a requirement, it defaults to `lxd`, however is you are setting up dhis2 over ssh, on multiple servers you'll need to change it to `ssh`
+* `email` This is an email used to generate letsencrypt certificate and
+  letsencrypt expiration email, required only if you are using letsencrypt.
+* `timezone` 
+* `ansible_connection` parameter is also a requirement, it defaults to `lxd`,
+  however is you are setting up dhis2 over ssh, on multiple servers you'll need
+  to change it to `ssh`
 
 _Important: dhis2 is designed to work on the dedicated domain. You can use
 either a domain like yourdomain.com or a subdomain of any level. During the
@@ -92,7 +133,7 @@ installation, the install checks the existence of the domain name entered
 (otherwise proxy setup is aborted). Therefore, you need to create and setup a
 (sub)domain so it is resolved to an external IP address of your server._
 
-##### optional parameters 
+##### Other variables 
 * `proxy=nginx`  here you specify proxy software of your choice, can be nginx
   or apache2 default is nginx, only nginx supported for now. 
 * `SSL_TYPE=letsencrypt` this parameter enables to specify whether you'd want
@@ -113,16 +154,6 @@ installation, the install checks the existence of the domain name entered
 * `database_host=postgres` this is the database server that the instance should
   use, defaults to postgres. Must be also defined on you inventory file. 
 
-#### hosts grouping
-The host are grouped into categories below, 
-* `[proxy]` - These are the servers that are used to access dhis2 application
-  from the outside. Public ip address is mapped to this host. In most cases
-  it’s just a single host but you can have multiple servers as well.
-* `[database]` - This is a group of servers that are used to host the databases,
-  which is postgresql in our case. It can be one or many as well.
-* `[instances]` - Servers intended for installing dhis2 web  application will be
-  under this group.
-* `[monitoring]`  - Servers intended for monitoring.
 
 
 ### Step4: The installation
@@ -162,9 +193,9 @@ For HTTPS connection, the install used Letsencrypt to obtain an SSL/TLS certific
 should work fine most OS and browsers, however, these scripts provides a way of
 using your own SSL/TLS certificates. To use your own custom SSL/TLS certs, follow below steps, 
 
-1. Get/generate `fullchain.pem` file which will be concatenating your certificate
+1. Get/generate `customssl.crt` file which will be concatenating your certificate
    and any other intermediate and root certificates.
-2. Get/generate `privkey.pem` file, this contains private key used for certificate signing.
+2. Get/generate `customssl.key` file, this contains private key used for certificate signing.
 3. Copy these two files into `dhis2-server-tools/deploy/roles/proxy/files/` directory.
 4. edit `dhis2-server-tools/deploy/inventory/hosts` and change `SSL_TYPE`  to `customssl` 
 
@@ -278,7 +309,7 @@ Postgresql is an extremely customizable  database with multiple configuration
 parameters. This brief installation guide only touches on the most important
 tunables.
 
-## lxd container operation
+## lxc container management
 lxd environment offers `lxc` command line tool which can be used to manage and
 administer containers 
 
@@ -307,7 +338,9 @@ restart container <br>
 
 deletes a container<br>
 `lxc delete <container_name>`
-## MONITORING
+
+
+## Monitoring
 By default the script implements monitoring with munin and glowroot. Munin is
-for server monitoring whereas glowroot is for tomcat application monitoring.  
+for server monitoring whereas glowroot is for tomcat application monitoring and profiling.  
 

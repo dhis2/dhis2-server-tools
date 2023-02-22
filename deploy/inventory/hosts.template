@@ -10,7 +10,7 @@ hmis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.38
 dhis  ansible_host=172.19.2.12  database_host=postgres  dhis2_version=2.39 
 # monitoring server/container
 [monitoring]
-monitor     ansible_host=172.19.2.30 
+munin   ansible_host=172.19.2.30 
 # integration server/container
 [integration]
 
@@ -31,19 +31,21 @@ app_monitoring="glowroot"
 # need to append ssh_port=822 on the host line.  
 # Options: lxd, ssh defaults to lxd. 
 ansible_connection=lxd
+lxd_network="172.19.2.1/24" 
+lxd_bridge_interface='lxdbr1'
+guest_os=22.04
+# Options: amd64,arm64,armhf, defaults_to amd64
+guest_os_arch='amd64'
+
+# lxd_source_server=
+# lxd_source_protocol=
 
 # Options: nginx, apache2 defauts to nginx. 
 proxy="nginx"
 
-# Options: letsencrypt, customssl, upstream, selfsign, defalts=letsencrypt 
+# Options: letsencrypt, customssl,selfsign, upstream :- defaults_to=letsencrypt 
+# upstream not supported yet. 
 SSL_TYPE=letsencrypt
-
-lxd_network="172.19.2.1/24" 
-lxd_bridge_interface='lxdbr1'
-guest_os=22.04
-
-# Options: amd64,arm64,armhf, defaults to amd64
-guest_os_arch='amd64'
 
 # instances group variables,
 [instances:vars]
@@ -59,3 +61,4 @@ JAVA_VERSION="11"
 # other custom path if you want specific version for the instances please
 # append it on inventory line, 
 dhis2_version=2.38 
+

@@ -3,16 +3,16 @@
 - include_tasks: "{{ansible_connection}}.yml"
   when: inventory_hostname in groups['instances']
 
-- include_tasks: postgresql_db.yml
+- include_tasks: generate_db_pass.yml
+  when: inventory_hostname in groups['instances']
 
-# this deploys dhis2 tomcat application. 
+- include_tasks: postgresql_db.yml
+  when: inventory_hostname in groups['databases']
+
 - include_tasks: dhis2_setup.yml
   when: inventory_hostname in groups['instances']
 
-- include_tasks: "{{app_monitoring}}.yml"
-  when:
-    - inventory_hostname in groups['instances'] 
-    - app_monitoring is defined 
-
-- name: Flush Handlers 
-  meta: flush_handlers
+# - include_tasks: "{{app_monitoring}}.yml"
+#   when:
+#     - inventory_hostname in groups['instances'] 
+#     - app_monitoring is defined 

@@ -1,2 +1,6 @@
 ---
+# lxd_connection variables
+
+ansible_lxd_executable: /bin/bash
+
 

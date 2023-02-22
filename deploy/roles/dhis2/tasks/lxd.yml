@@ -1,10 +1,13 @@
 # create instance(s) container(s)
-- name: Creating dhis2 containers
+- name: "Creating dhis2 containers"
   become: True
   vars:
     ansible_connection: local
   community.general.lxd_container:
+    config:
+      "boot.autostart.priority": "2"
     name: "{{ inventory_hostname }}"
+    # architecture: "{{ guest_os_arch | default('amd64')}}"
     state: started
     profiles: [ "default" ]
     ignore_volatile_options: False
@@ -13,18 +16,18 @@
     source:
       type: image
       mode: pull
-      server: https://cloud-images.ubuntu.com/releases
-      protocol: simplestreams
-      alias: "{{ guest_os }}/{{guest_os_arch | default('amd64')}}"
+      server: "{{ lxd_source_server | default('https://cloud-images.ubuntu.com/releases') }}"
+      protocol: "{{lxd_source_protocol | default('simplestreams')}}"
+      alias: "{{guest_os }}/{{guest_os_arch | default('amd64')}}"
     devices:
       eth0:
         nictype:  bridged
-        parent: "{{ lxd_bridge_interface | default ('lxdbr0') }}"
+        parent: "{{ lxd_bridge_interface | default ('lxdbr1') }}"
         type: nic
         ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) }}" 
 
 # Gather containers facts, which will include its default ip address and codename,
-- name: Get facts
+- name: "Get facts"
   ansible.builtin.setup:
     gather_subset:
       - network
@@ -32,7 +35,7 @@
 
 # in case created container's static ip address is not the same as one
 # defined, it is restarted, this behavior rarely happens
-- name: Ensuring container has configured static ip address
+- name: "Ensuring container has configured static ip address"
   become: True
   vars:
     ansible_connection: local

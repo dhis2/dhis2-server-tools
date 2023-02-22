@@ -12,7 +12,7 @@
     dest=/opt/ group=tomcat owner=tomcat remote_src=yes
 
 - name: Copy glowroot configs to the instances
-  template:
+  ansible.builtin.template:
     src: glowroot_admin.json
     dest: /opt/glowroot/admin.json
     group: tomcat

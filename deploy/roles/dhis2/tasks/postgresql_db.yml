@@ -1,21 +1,5 @@
 # Check if dhis2.conf exists
-- name: Check if dhis2.conf exists
-  stat: path=/opt/dhis2/dhis.conf
-  register: dhis2_conf
-  when: inventory_hostname in groups['instances']
-  tags:
-    - never
-
-- name: Generate database password
-  set_fact:
-    db_password: "{{ lookup('password','/tmp/' + inventory_hostname,seed=inventory_hostname) }}"
-  when:
-    # - dhis2_conf.stat.exists is defined
-    # - not dhis2_conf.stat.exists 
-    - create_db is defined and  create_db | bool
-    - inventory_hostname in groups['instances']
-
-- name: Create instances database role
+- name: "Create instances database role:"
   become: yes
   become_user: postgres
   community.general.postgresql_user:
@@ -29,7 +13,7 @@
   notify: Reload Postgres 
 
 # Creating instances databases
-- name: Creating instances databases
+- name: "Creating instances databases"
   become: yes
   become_user: postgres
   community.postgresql.postgresql_db:
@@ -38,11 +22,11 @@
     owner: "{{ item }}"
   loop: "{{ groups['instances'] }}"
   when:
-    - hostvars[item]['db_password'] is defined
     - inventory_hostname == hostvars[item]['database_host']
   notify: Reload Postgres 
 
-- name: Creating postgis,btree_gin and pg_trgm extensions
+# Creating postgresql extensions
+- name: "Creating postgis,btree_gin and pg_trgm extensions"
   become: True
   become_user: postgres
   community.general.postgresql_ext:
@@ -54,5 +38,7 @@
   when: 
     - hostvars[item.0]['db_password'] is defined
     - inventory_hostname == hostvars[item.0]['database_host'] 
+  loop_control:
+    label: "{{ item.1 }}"
   notify: Reload Postgres 
 
