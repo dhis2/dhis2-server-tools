@@ -3,8 +3,8 @@
 - [DHIS2 install with ansible](#dhis2-server-tools)
   * [Introduction](#Introduction)
   * [Pre-requisites](#Requirements-before-you-begin-installation)
-  * [Installing ansible](#Step1:-Installing-ansible-configuration-tool)
-  * [Download Deployment code](#step2-download-ansible-deployment-code)
+  * [Installing ansible](#step1-installing-ansible-configuration-tool)
+  * [Download Deployment code](#step2-download-deployment-tools)
   * [Customization before install](#step3-customization-before-installation)
     * [hosts-list-configuration](#hosts-list-configuration)
         * [sample Host configuration](#sample-host-configuration)
@@ -60,7 +60,7 @@ sudo apt-get install -y python3-netaddr
 Install community.general ansible modules, required for lxd_container, ufw and other modules <br>
 `ansible-galaxy collection install community.general -f`
 
-### Step2:-Download-ansible-deployment-code
+### Step2: Download deployment tools
 `sudo apt install -y git` # ensures git is installed  <br>
 
 Get the tools from git, 

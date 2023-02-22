@@ -1,5 +1,5 @@
 # create database container(s)
-- name: Creating postgres container
+- name: "Creating postgres container"
   become: True
   vars:
     ansible_connection: local
@@ -18,7 +18,7 @@
       mode: pull
       server: "{{ lxd_source_server | default('https://cloud-images.ubuntu.com/releases') }}"
       protocol: "{{lxd_source_protocol | default('simplestreams')}}"
-      alias: "{{guest_os | default('22.04')}}"
+      alias: "{{guest_os }}/{{guest_os_arch | default('amd64')}}"
     devices:
       eth0:
         type: 'nic'
@@ -27,13 +27,13 @@
         ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network)}}" 
 
 # Gather container's facts, required is  ip.address and codename
-- name: Get facts
+- name: "Get facts"
   ansible.builtin.setup:
     gather_subset:
       - network
       - '!min'
 # compare running ip address with the one configured on inventory host. 
-- name: Ensuring container has configured static ip address
+- name: "Ensuring container has configured static ip address"
   become: True
   vars:
     ansible_connection: local
