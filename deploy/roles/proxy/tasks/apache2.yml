@@ -1,7 +1,7 @@
 ---
 
 # Open port 80 to the internet. 
-- name: Open http port 80
+- name: "Open http port 80"
   community.general.ufw:
     rule: allow
     port: "{{ http_port | default('80')}}"
@@ -10,7 +10,7 @@
     state: enabled
 
 # Allow https port from the internet.  
-- name: Open https port 443
+- name: "Open https port 443"
   community.general.ufw:
     rule: allow
     port: "{{ https_port | default('443') }}"
@@ -26,27 +26,27 @@
   failed_when: "unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)"
   # ignore_errors: yes
 
-- name: Update and upgrade proxy.
+- name: "Update and upgrade proxy."
   ansible.builtin.apt:
     upgrade: yes
     update_cache: yes
     cache_valid_time: 86400  # one day
 
-- name: Installing apache2.
+- name: "Installing apache2."
   ansible.builtin.apt:
     name: 
       - apache2
       - libwww-perl 
     state: latest
     
-- name: Enabling apache2 modules
+- name: "Enabling apache2 modules"
   community.general.apache2_module:
     name: "{{item}}"
     state: present
   loop: "{{  [ 'ssl','cache','rewrite','proxy_http','headers' ] }}"
   notify: Reload Apache2
 
-- name: Remove default apache2 site
+- name: "Remove default apache2 site"
   ansible.builtin.file:
     path: /etc/apache2/sites-enabled/000-default.conf
     state: absent
@@ -54,7 +54,7 @@
 # include SSL/TLS tasks 
 - include_tasks: "{{SSL_TYPE}}.yml"
 
-- name: Copy apache2 site configuration to proxy
+- name: "Copy apache2 site configuration to proxy"
   ansible.builtin.template:
     src: apache2/site.j2
     dest: /etc/apache2/sites-available/{{fqdn}}.conf
@@ -62,30 +62,30 @@
     group: root
     mode: 640
 
-- name: Start apache2 service 
+- name: "Start apache2 service"
   ansible.builtin.service:
     name: apache2
     state: started
 
-- name: Enable apache2 configuration 
+- name: "Enable apache2 configuration"
   ansible.builtin.command: a2ensite {{fqdn}}.conf
   args:
     creates: /etc/apache2/sites-enabled/{{fqdn}}.conf
   notify: Reload Apache2
 
-- name: Create apache2 upstream directory 
+- name: "Create apache2 upstream directory"
   ansible.builtin.file:
     path:  /etc/apache2/upstream
     state: directory
 
 # Enable apache location configs
-- name: Copy dhis2 location configuration
+- name: "Copy dhis2 location configuration"
   template:
     src: apache2/instance.j2
     dest: /etc/apache2/upstream/dhis2.conf
   notify: Reload Apache2
 
-- name: Copy glowroot location configuration to proxy 
+- name: "Copy glowroot location configuration to proxy"
   template:
     src: apache2/glowroot.j2 
     dest: /etc/apache2/upstream/glowroot.conf 
@@ -94,7 +94,7 @@
     app_monitoring == 'glowroot'
   notify: Reload Apache2
 
-- name: Copy munin location config
+- name: "Copy munin location config"
   template:
     src: apache2/munin.j2
     dest: /etc/apache2/upstream/munin.conf 
@@ -102,5 +102,5 @@
     server_monitoring is defined and
     server_monitoring == "munin" 
   notify: Reload Apache2
-- name: Flush Handlers
+- name: "Flush Handlers"
   meta: flush_handlers

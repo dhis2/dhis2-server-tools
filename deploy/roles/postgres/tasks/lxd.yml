@@ -1,4 +1,5 @@
 # create database container(s)
+
 - name: "Creating postgres container"
   become: True
   vars:
@@ -32,6 +33,7 @@
     gather_subset:
       - network
       - '!min'
+
 # compare running ip address with the one configured on inventory host. 
 - name: "Ensuring container has configured static ip address"
   become: True

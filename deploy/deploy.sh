@@ -42,7 +42,6 @@ then
   fi
    # deploying dhis2 in lxd containers
    echo "Deploying dhis2 with lxd ..."
-   sudo ansible-playbook lxd_setup.yml
    sudo ansible-playbook dhis2.yml
 else
    # deploying dhis2 over ssh

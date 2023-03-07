@@ -1,12 +1,12 @@
 ---
 - include_vars: "{{server_monitoring}}.yml"
 
-- name: Update and monitoring server
+- name: "Update and Upgrade monitoring server"
   ansible.builtin.apt:
     upgrade: yes
     update_cache: yes
     cache_valid_time: 86400
-- name: Set variables
+- name: "Set variables"
   ansible.builtin.set_fact:
     zabbix_short_version: "{{zabbix_version | regex_replace('\\.', '') }}"
     zabbix_server_apt_repository:
@@ -22,7 +22,7 @@
 
 # Installing zabbix repository
 - name: "Installing zabbix repository for {{ ansible_distribution }}"
-  apt_repository:
+  ansible.builtin.apt_repository:
     repo: "{{item}} [signed-by={{zabbix_key['dest']}}] {{ zabbix_server_apt_repository | join(' ') }}"
     state: present
     update_cache: true
@@ -33,13 +33,20 @@
 # apt install zabbix-server-pgsql zabbix-frontend-php php8.1-pgsql zabbix-nginx-conf zabbix-sql-scripts zabbix-agent
 - name: "Installing zabbix-server-{{ zabbix_server_database }}"
   ansible.builtin.apt:
-    pkg: zabbix-server-{{ zabbix_server_database }}
+    pkg: 
+      - zabbix-server-{{ zabbix_server_database }}
+      - zabbix-frontend-php
+      - php8.1-pgsql
+      - zabbix-sql-scripts
+      - zabbix-nginx-conf
+      - zabbix-agent
     state: present
     update_cache: yes
     cache_valid_time: 0
     install_recommends: "{{ zabbix_server_install_recommends }}"
   register: zabbix_server_package_installed
   until: zabbix_server_package_installed is succeeded
+  tags: [never]
 
 - name: "Installing the postgresql database"
   include_tasks: zabbix_postgreql.yml

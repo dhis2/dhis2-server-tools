@@ -1,12 +1,12 @@
 # apt install apache2 libcgi-fast-perl libapache2-mod-fcgid
-- name: Update and upgrade munin server
+- name: "Updating and Upgrading monitoring server"
   ansible.builtin.apt:
     update_cache: yes
     cache_valid_time: 7200 # 2 hours
     upgrade: yes
 
 - name: Install munin tool 
-  apt:
+  ansible.builtin.apt:
     name:
       - apache2
       - libcgi-fast-perl 
@@ -15,8 +15,8 @@
       - python3-passlib
 
 # Copy munin configuration from the template
-- name: Copy munin configurations.
-  template:
+- name: "Copy munin configurations."
+  ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
     owner: root
@@ -29,7 +29,7 @@
       dest: "{{ munin_conf_d_directory }}/hosts.conf"
 
 # Creating munin loging details
-- name: Create munin user via htpasswd.
+- name: "Create munin user via htpasswd."
   htpasswd:
     create: true
     name: "{{ munin_admin_user }}"
@@ -39,8 +39,8 @@
   tags: [ never ]
 
 #  If you want to access the Munin Web interface outside your localhost, 
-- name: Edit munin config
-  lineinfile: 
+- name: "Edit munin config"
+  ansible.builtin.lineinfile: 
     firstmatch: yes  
     regex: '^(.*)Require local'
     dest: /etc/munin/apache24.conf
@@ -48,8 +48,8 @@
     backrefs: yes
 
 # Enable apache2 configurations for munin monitoring
-- name: Enable apache2 configuration for munin access from the web.
-  file:
+- name: "Enable apache2 configuration for munin access from the web."
+  ansible.builtin.file:
     src: /etc/munin/apache24.conf
     dest: /etc/apache2/sites-enabled/munin.conf
     state: link
@@ -57,7 +57,7 @@
     mode: '0644'
   notify: Restart Apache2
 
-- name: Allow https access from proxy
+- name: "Allow https access from proxy"
   community.general.ufw:
     rule: allow
     port: "{{munin_http_port|default('80')}}"
@@ -68,8 +68,8 @@
   loop: "{{groups['web']}}"
 
 # Setup Node to monitor multiple systems 
-- name: Enable or disable the munin cron job.
-  lineinfile:
+- name: "Enable or disable the munin cron job."
+  ansible.builtin.lineinfile:
     dest: /etc/cron.d/munin
     state: "{{ munin_cron_job }}"
     regexp: "^\\*/5 \\* \\* \\* \\*"

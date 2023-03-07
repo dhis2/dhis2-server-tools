@@ -1,20 +1,20 @@
 # Ensure munin-node is installed
-- name: Ensure munin-node is installed
-  apt: >
+- name: "Ensure munin-node is installed"
+  ansible.builtin.apt: >
     name=munin-node,munin-plugins-core,munin-plugins-extra 
     state=present update_cache=yes cache_valid_time=3600
 
-- name: Copy munin-node configuration.
-  template: >
+- name: "Copy munin-node configuration."
+  ansible.builtin.template: >
     src=munin-node.conf.j2 dest=/etc/munin/munin-node.conf 
     owner=root group=root mode=0644
   notify: restart munin_node
 
 - name: Ensure munin-node is running.
-  service: name=munin-node state=started enabled=yes
+  ansible.builtin.service: name=munin-node state=started enabled=yes
 
 # Open port 4949 on monitored nodes  
-- name: Open port 4949 (from munin server ) on monitored nodes 
+- name: "Open port 4949 (from munin server ) on monitored nodes" 
   community.general.ufw:
     rule: allow
     port: "{{ munin_node_port | default('4949') }}"

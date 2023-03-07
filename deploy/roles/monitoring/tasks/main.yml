@@ -5,11 +5,11 @@
     - inventory_hostname in groups['monitoring']
     - server_monitoring is defined
 
-- include_tasks: "{{server_monitoring}}-server.yml"
+- include_tasks: "{{ server_monitoring }}-server.yml"
   when: 
     - inventory_hostname in groups['monitoring']
     - server_monitoring is defined
         
-- include_tasks: "{{server_monitoring}}-client.yml"
+- include_tasks: "{{ server_monitoring }}-client.yml"
   when: 
     - server_monitoring is defined 

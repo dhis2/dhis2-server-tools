@@ -26,13 +26,13 @@
         type:     "nic"
         ipv4.address:  "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) | default(omit)}}" 
 
-- name: Get facts
+- name: "Get facts"
   ansible.builtin.setup:
     gather_subset:
       - network
       - '!min'
 
-- name: Ensuring container has configured static ip address
+- name: "Ensuring container has configured static ip address"
   become: True
   vars:
     ansible_connection: local

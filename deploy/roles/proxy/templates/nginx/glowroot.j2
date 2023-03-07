@@ -1,42 +1,13 @@
-{#
-- name: glowroot location configuration
-  blockinfile:
-    path: "/etc/nginx/sites-available/{{ fqdn }}"
-    marker: "# {mark} {{ item }}-glowroot block configuration."
-    insertafter: "# Proxy pass to the backend"
-    block: |2
-        location /{{item}}-glowroot {
-          proxy_pass http://{{ hostvars[item]['ansible_host']+':4000' }}/{{item}}-glowroot;
-          proxy_redirect off;
-          proxy_set_header Host $host;
-          proxy_set_header X-Real-IP $remote_addr;
-          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-          proxy_set_header X-Forwarded-Proto https;
-          proxy_hide_header X-Powered-By;
-          proxy_set_header X-Frame-Options "SAMEORIGIN";  # To mitigate the risk of clickjacking attacks
-          proxy_set_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload";
-          proxy_set_header X-Content-Type-Options "nosniff"; # drive-by download attacks
-          proxy_set_header X-Xss-Protection "1; mode=block"; #To leverage browser-based protections against cross-site scripting
-          proxy_hide_header Server;
-          }
-  loop: "{{ groups['instances'] }}"
-  notify: Reload Nginx
-  when: app_monitoring is defined and  app_monitoring == "glowroot"
-#}
-
 {% for host in groups['instances'] %}
-  location /{{host}}-glowroot {
-          proxy_pass http://{{ hostvars[host]['ansible_host']+':4000' }}/{{host}}-glowroot;
-          proxy_redirect off;
-          proxy_set_header Host $host;
-          proxy_set_header X-Real-IP $remote_addr;
-          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-          proxy_set_header X-Forwarded-Proto https;
-          proxy_hide_header X-Powered-By;
-          proxy_set_header X-Frame-Options "SAMEORIGIN";  # To mitigate the risk of clickjacking attacks
-          proxy_set_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload";
-          proxy_set_header X-Content-Type-Options "nosniff"; # drive-by download attacks
-          proxy_set_header X-Xss-Protection "1; mode=block"; #To leverage browser-based protections against cross-site scripting
-          proxy_hide_header Server;
-          }
+location /{{host}}-glowroot {
+   proxy_pass http://{{ hostvars[host]['ansible_host']+':4000' }}/{{host}}-glowroot;
+   include /etc/nginx/proxy_params;
+   proxy_redirect off;
+   proxy_hide_header X-Powered-By;
+   proxy_set_header X-Frame-Options "SAMEORIGIN";  # To mitigate the risk of clickjacking attacks
+   proxy_set_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload";
+   proxy_set_header X-Content-Type-Options "nosniff"; # drive-by download attacks
+   proxy_set_header X-Xss-Protection "1; mode=block"; #To leverage browser-based protections against cross-site scripting
+   proxy_hide_header Server;
+   }
 {% endfor %}

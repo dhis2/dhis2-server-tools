@@ -3,7 +3,5 @@
   set_fact:
     db_password: "{{ lookup('password','/tmp/' + inventory_hostname,seed=inventory_hostname) }}"
   when:
-    # - dhis2_conf.stat.exists is defined
-    # - not dhis2_conf.stat.exists 
     - create_db is defined and  create_db | bool
     - inventory_hostname in groups['instances']

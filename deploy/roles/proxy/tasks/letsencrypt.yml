@@ -1,8 +1,8 @@
 --- 
-- name: Install certbot
+- name: "Install certbot"
   apt: name=certbot state=latest
 
-- name: Generate TLS/SSL Certificate with certbot
+- name: "Generate TLS/SSL Certificate with certbot"
   become: true
   shell: |
     systemctl stop {{proxy}} 
@@ -11,7 +11,7 @@
     creates: /etc/letsencrypt/live/{{fqdn}}
 
 #  daily is identical with  0 0 * * *  
-- name: Add letsencrypt cronjob for cert renewal
+- name: "Add letsencrypt cronjob for cert renewal"
   ansible.builtin.cron:
     cron_file: /etc/cron.d/certbot
     name: letsencrypt_renewal

@@ -3,5 +3,3 @@
 ansible_connection: lxd
 proxy: nginx
 SSL_TYPE: letsencrypt
-
-

@@ -61,8 +61,9 @@ cidr_allow {{ allowed_cidr }}
 {% for denied_cidr in munin_node_denied_cidrs %}
 cidr_deny {{ denied_cidr }}
 {% endfor %}
-
-cidr_allow {{ hostvars['munin']['ansible_host'] }}/32
+{% for host in groups['monitoring'] %}
+    cidr_allow {{ hostvars[host]['ansible_host'] }}/32
+{% endfor %}
 
 # Which address to bind to;
 {# host {{ munin_node_bind_host }} #}
