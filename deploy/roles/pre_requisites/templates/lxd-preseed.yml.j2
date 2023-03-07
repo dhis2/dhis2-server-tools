@@ -1,0 +1,31 @@
+config: {}
+networks:
+- config:
+    ipv4.address: "{{ lxd_network }}"
+    ipv4.nat: "true"
+    ipv6.address: none
+    ipv4.dhcp.ranges: "{{ '.'.join(lxd_network.split('.')[:3]) + '.40-' + '.'.join(lxd_network.split('.')[:3])+'.50'}}" 
+  description: "DHIS2 Network"
+  name: "{{ lxd_bridge_interface }}"
+  type: "bridge"
+storage_pools:
+- config: {}
+  description: ""
+  name: default
+  driver: dir
+profiles:
+- config:
+    environment.TZ: "{{ timezone }}"
+  description: "Default LXD profile"
+  devices:
+    eth0:
+      name: eth0
+      nictype: bridged
+      parent: "{{ lxd_bridge_interface }}"
+      type: nic
+    root:
+      path: /
+      pool: default
+      type: disk
+  name: default
+cluster: null

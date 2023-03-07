@@ -1,0 +1,54 @@
+---
+# install lxd with snap
+- name: "Initiate lxd"
+  vars:
+    ansible_connection: local 
+  block:
+  - name: "Gathering facts"
+    ansible.builtin.setup:
+      gather_subset:
+        - network
+        - '!min'
+
+  - name: "Ensure lxd is installed"
+    community.general.snap:
+      name: lxd
+
+  - name: "lxc info"
+    ansible.builtin.command: lxc info
+    register: lxc_info_src0
+    run_once: true
+    changed_when: false
+
+  - name: "create lxd-preseed.yml"
+    set_fact:
+      master: "{{ lookup('template', 'lxd-preseed.yml.j2') }}"
+  
+  - name: "Backup lxd-preseed configuration to /tmp directory" 
+    ansible.builtin.copy:
+      dest: /tmp/lxd-preseed.yml
+      content: "{{ master }}"
+      mode: '0644'
+    changed_when: false
+
+  - name: "Initiating lxd with lxd-preseed.yml"
+    ansible.builtin.command: lxd init --preseed <
+    args:
+      stdin: "{{ master }}"
+      creates: "{{ lxd_init_file_test }}"
+    when: >
+      (not lxd_cluster or inventory_hostname == groups.all[0])
+      and
+      lxc_info_src0.stdout.find('storage: \"\"') != -1
+  - name: "Restarting LXD service initiating"
+    ansible.builtin.command: snap restart lxd.daemon
+    args:
+      creates: /snap/lxd/.lxd-restart
+    changed_when: false
+  - ansible.builtin.file: > 
+      path=/snap/lxd/.lxd-restart state=touch
+      mode=u+rw,g-wx,o-rwx modification_time=preserve
+      access_time=preserve
+      
+  - include_tasks: firewall.yml
+      
