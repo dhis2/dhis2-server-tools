@@ -1,7 +1,6 @@
 ---
-# tasks file for roles/integration
 # Creating integration container 
-- name: Create postgres container
+- name: "Create integration container"
   become: True
   vars:
     ansible_connection: local
@@ -26,7 +25,7 @@
         nictype: bridged
         ipv4.address: "{{ ip_address | ansible.utils.ipaddr(lxd_network) }}" 
 
-- name: Starting integration container 
+- name: "Starting integration container" 
   become: True
   vars:
     ansible_connection: local
@@ -37,20 +36,20 @@
 # update and upgrade
     
 # installing jre
-- name: install java-11 
+- name: "install java-11" 
   ansible.builtin.apt:
     name: openjdk-11-jre-headless
     update_cache: yes
     cache_valid_time: 3600
   delegate_to: "{{ container_name }}" 
 
-- name: Creating application diretory
+- name: "Creating application diretory"
   file:
     dest: /opt/<application_name>
     type: diretory
 
 # Creating systemd service 
-- name: Copy systemd file to the server 
+- name: "Copy systemd file to the server" 
   template: 
     src:
     dest:

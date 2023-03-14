@@ -1,12 +1,12 @@
 ---
-- name: Get host facts
+- name: "Get host facts"
   ansible.builtin.setup:
     gather_subset:
       - network
       - '!min'
         
 # allow port 22
-- name: Allow ssh on port 22
+- name: "Allow ssh on port 22"
   community.general.ufw:
     rule: limit
     port: "{{ ssh_port | default('22') }}"

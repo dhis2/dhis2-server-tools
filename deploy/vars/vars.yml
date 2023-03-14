@@ -1,6 +1,4 @@
 ---
 # lxd_connection variables
-
 ansible_lxd_executable: /bin/bash
-
-
+ansible_lxd_host: "{{inventory_hostname}}"

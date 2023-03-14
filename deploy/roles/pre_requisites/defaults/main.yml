@@ -1,6 +1,5 @@
 ---
 # defaults file for ./roles/lxd-init
-ansible_connection: lxd 
 lxd_noreboot: true
 lxd_cluster: false
 lxd_cluster_secret: "your_secret_here"
@@ -39,3 +38,9 @@ lxd_force_ubuntu_backports: false
 ## https://github.com/lxc/lxd/issues/1229, increase required if using nesting
 lxd_subid_start: 100000
 lxd_subid_range: 65536
+
+ufw_inactive_msg:
+      - "    UFW in disabled !"
+      - "    Please enable it to continue with the setup"
+      - "    sudo ufw limit 22   # allows ssh connections to the server"
+      - "    sudo ufw enable     # starts and enables ufw"

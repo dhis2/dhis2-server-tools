@@ -1,12 +1,12 @@
 ---
 # tasks file for ./roles/ufw
-- name: check ufw status
+- name: "Checking firewall status"
   become: true
-  shell: ufw status
+  ansible.builtin.command: ufw status
   changed_when: False
   ignore_errors: True
   register: ufw_check
-- debug:
+- ansible.builtin.debug:
     msg:
       - UFW is disabled !!
       - Please enable it to continue with the setup
@@ -18,17 +18,17 @@
   when: "'inactive' in ufw_check.stdout"
 
 # Enabling UFW default forward police to ACCEPT
-- name: set UFW default forward policy to ACCEPT
+- name: "Set UFW default forward policy to ACCEPT"
   become: True
   become_user: root
-  lineinfile:
+  ansible.builtin.lineinfile:
     dest: /etc/default/ufw
     regexp: "^DEFAULT_FORWARD_POLICY\\="
     line: DEFAULT_FORWARD_POLICY="ACCEPT"
   notify: Reload UFW
 
 # sudo ufw allow in on lxdbr0
-- name: Add rules for lxd bridge
+- name: "Add rules for lxd bridge"
   community.general.ufw:
     rule: allow
     direction: in
@@ -36,7 +36,7 @@
     
 
 # NAT configuration to the proxy container
-- name: Configure host to NAT to the proxy container
+- name: "Configure host to NAT to the proxy container"
   vars:
     ansible_connection: local
   become: true

@@ -13,7 +13,7 @@
   notify: Reload Postgres 
 
 # Creating instances databases
-- name: "Creating instances databases"
+- name: "Creating dhis2 database/databases"
   become: yes
   become_user: postgres
   community.postgresql.postgresql_db:

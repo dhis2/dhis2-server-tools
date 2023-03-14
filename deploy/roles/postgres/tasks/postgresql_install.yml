@@ -29,7 +29,6 @@
       - postgresql-{{ postgresql_version }}
       - postgresql-client-{{ postgresql_version }}
       - postgresql-{{ postgresql_version }}-postgis-{{'2.5' if guest_os == '20.04' else '3'}}
-      # - postgresql-{{ postgresql_version }}-postgis-2.5
       - python3-psycopg2 
       - libdbd-pg-perl
 
@@ -49,6 +48,15 @@
   community.postgresql.postgresql_info:
     filter: ver*
   register: postgresql_version_info
+
+# Adding root postgresql_user
+- name: "Adding root postgresql role"
+  become: yes
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    db: postgres
+    name: root
+    role_attr_flags: "SUPERUSER"
 
 # Fixing pg_hba.conf permissions
 - name: "Fixing pg_hba.conf permissions, allowing instances to connect"

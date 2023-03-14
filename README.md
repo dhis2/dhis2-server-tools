@@ -8,12 +8,12 @@
   * [Customization before install](#step3-customization-before-installation)
     * [hosts-list-configuration](#hosts-list-configuration)
         * [sample Host configuration](#sample-host-configuration)
-        * [Hosts grouping](#hosts-grouping)
+        * [hosts grouping](#hosts-grouping)
     * [Important Variables](#important-variables)
     * [Other variables](#other-variables)
   * [Beging installation](#step4-the-installation)
   * [Custom TLS](#using-a-custom-ssl-certificate)
-  * [Database Tuning](#customizing-postgresql)
+  * [Database Tuning](#optimizing-postgresql)
   * [Basic lxc container management](#lxc-container-management)
   * [Monitoring](#monitoring)
 
@@ -165,11 +165,9 @@ Navigate to the deploy directory, `cd dhis2-server-tools/deploy/` <br>
 Run below two playbooks on the host where you'll be setting up dhis2, remember,
 ensure you are on `deploy` directory for the scripts to work.
 
-`sudo ansible-playbook lxd_setup.yml`    # this sets up lxd environment., -K is
-for privilege escalation <br>
-`sudo ansible-playbook dhis2.yml` # this deploys the app on lxd containers <br>
+`sudo ansible-playbook dhis2.yml` # this deploys dhis2 on lxd containers <br>
 
-#### DHIS2 install on multiple servers
+#### install on multiple servers with ssh connection
 You'll need a deployment server for this architecture, it is from the
 deployment server that you'll be running your ansible scripts. It needs to have
 ssh connection to the other hosts.  Test your ssh connectin with `ansible all -m ping -u <username> -k`
@@ -203,7 +201,7 @@ To start using a custom certificate instead of the default Letsencrypt
 certificate, you need to switch off the certbot service in the `/deploy/inventory/hosts` 
 configuration and ensure you have both `fullchain.pem` and `private.pem` files
 
-## Customizing postgresql
+## optimizing postgresql
 Installed postgresql database comes with default settings which should be fine
 and working at this stage. However, these settings can be changed a bit for
 performance optimization and maximum utilization of the available system
@@ -344,3 +342,10 @@ deletes a container<br>
 By default the script implements monitoring with munin and glowroot. Munin is
 for server monitoring whereas glowroot is for tomcat application monitoring and profiling.  
 
+You can access munin on https://your_fqdn/munin and glowroot is available on
+https://your_fqdn/app_name-glowroot where app_name is your running dhis2
+instances name. 
+
+Ensure you secure these monitoring apps. Setting password for glowroot is
+pretty straight forward. You could add new admin user with super secret
+password and deleting anonymous user which is usually the default.   

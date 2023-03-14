@@ -1,11 +1,11 @@
 ---
-- name: Get host facts
+- name: "Get host facts"
   ansible.builtin.setup:
     gather_subset:
       - network
       - '!min'
         
-- name: Ensure acl packate is installed 
+- name: "Ensure acl packate is installed"
   become: true
   ansible.builtin.apt:
     name: acl
@@ -14,7 +14,7 @@
   when: inventory_hostname in groups['databases']
 
 # Allow ssh port 22. 
-- name: Allow ssh on port 22
+- name: "Allow ssh on port 22"
   community.general.ufw:
     rule: limit
     port: "{{ ssh_port | default('22') }}"

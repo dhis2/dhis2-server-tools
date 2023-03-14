@@ -5,12 +5,13 @@ if ! command -v ansible &> /dev/null
 then
   export DEBIAN_FRONTEND=noninteractive
   RED='\033[0;31m'
-  # disable interactive prompt with aptget 
+  # disable interactive prompt with  
   sed -i 's/#$nrconf{restart} = '"'"'i'"'"';/$nrconf{restart} = '"'"'a'"'"';/g' /etc/needrestart/needrestart.conf  
+  sed -i "s/#\$nrconf{kernelhints} = -1;/\$nrconf{kernelhints} = -1;/g" /etc/needrestart/needrestart.conf 
+
 
   sudo -E apt -yq update
   sudo -E apt -yq  upgrade
-
   # install git if not present 
   sudo apt install -yqq  git 
 # install ansible
@@ -18,9 +19,8 @@ then
   sudo apt-add-repository --yes --update ppa:ansible/ansible
   sudo apt install -yqq  ansible
 # install python3-netaddr required for ansible.utils.ipaddr utility
-  sudo -E apt-get install -yqq python3-netaddr
+  # sudo -E apt-get install -yqq python3-netaddr
   sudo -E apt-get -qy autoclean
-
 # install community general collections 
   ansible-galaxy collection install community.general
 fi
@@ -42,7 +42,6 @@ then
   fi
    # deploying dhis2 in lxd containers
    echo "Deploying dhis2 with lxd ..."
-   sudo ansible-playbook lxd_setup.yml
    sudo ansible-playbook dhis2.yml
 else
    # deploying dhis2 over ssh

@@ -23,28 +23,19 @@
       file: releases.json
       name: dhis2_releases
   when: dhis2_version is defined 
+ 
+- name: "DHIS2 release version"
+  ansible.builtin.set_fact:
+    dhis2_release_version: "{{ dhis2_releases.versions | selectattr('name', 'eq', dhis2_version | string) |first }}"
+  when: dhis2_version is defined
 
-- name: "dhis2.war facts, sha256 and dhis2_url, patchversions"
+- name: "Set dhis2.war facts"
   vars:
     ansible_connection: local
   ansible.builtin.set_fact:
-    sha256: "{{item.sha256}}"
-    dhis2_url: "{{item.latestStableUrl}}"
-    patchVersions: "{{item.patchVersions}}"
-  with_items: "{{ dhis2_releases.versions }}"
-  when: >
-    dhis2_version is defined and
-    item.sha256 is defined and
-    item.name == dhis2_version|string 
-  loop_control:
-    label: "{{ item.name }}"
-  
-- name: "set_fact, latest_patchversion" 
-  vars:
-    ansible_connection: local
-  ansible.builtin.set_fact:
-    latest_patchversion: "{{( patchVersions | last ).name}}"
-  when: patchVersions is iterable
+    sha256: "{{ dhis2_release_version['sha256'] | default (omit)}}"
+    dhis2_url: "{{ dhis2_release_version['latestStableUrl']}}"
+    latest_patchversion: "{{(dhis2_release_version['patchVersions']|last).name | default(omit)}}"
 
 # tomcat setup
 - name: "installing java and tomcat and zip" 
@@ -95,7 +86,7 @@
 
 
 # Download dhis2 from hard-coarded url 
-- name: "Download dhis2.war with hard-corded url"
+- name: "Download dhis2.war with hard coded url"
   ansible.builtin.get_url:
     url: "{{dhis2_war_file}}"
     dest: /opt/dhis2/dhis2.war

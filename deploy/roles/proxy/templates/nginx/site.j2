@@ -1,16 +1,11 @@
-# site configuration
+# http block
 server {
-    listen 80 default_server;
-    server_name {{ fqdn }};
-    if ($host != "{{ fqdn }}") {
-    return 444;
-      }
-    # return 301 https://$host$request_uri;
-    location / {
-        rewrite ^ https://{{ fqdn }}$request_uri? permanent;
-    }
-  }
+  listen 80 ;
+  server_name {{ fqdn }};
+  return 301 https://$host$request_uri;
+}
 
+# https block 
 server {
   listen 443 ssl;
   ssl_stapling on;
@@ -41,16 +36,16 @@ server {
   client_max_body_size 100M;
   proxy_set_header X-Frame-Options "SAMEORIGIN";
   # in case your want access your site on / 
-  # rewrite ^/$ /app_name; 
+  # rewrite ^/$ /dhis; 
 # This is quite strict.  If you have much older windoze browsers
   ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
+# Location configuration 
+    include  conf.d/upstream/*;
+  location / {
+  return 444; 
+  }
   if ($host != "{{ fqdn }}") {
     return 444;
     }
-# Location configuration 
-      include  conf.d/upstream/*;
-location / {
-  return 444; 
-  }
 }
 
