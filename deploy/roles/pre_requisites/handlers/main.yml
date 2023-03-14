@@ -1,2 +1,9 @@
 ---
-# handlers file for ./roles/lxd-init
+# handlers file for ./roles/
+- name: Reload UFW
+  vars:
+    ansible_connection: local
+  become: true
+  become_user: root
+  community.general.ufw:
+    state: reloaded

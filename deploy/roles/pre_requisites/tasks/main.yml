@@ -1,3 +1,4 @@
 --- 
-- include_tasks: "{{ ansible_connection }}.yml"
+- name: "Pre-requisites for {{ ansible_connection }} setup" 
+  include_tasks: "{{ ansible_connection }}.yml"
 

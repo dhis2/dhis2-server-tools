@@ -10,26 +10,48 @@
         - network
         - '!min'
 
+  - name: "Updating and upgrading the host"
+    ansible.builtin.apt:
+      update_cache: yes
+      cache_valid_time: 86400
+      upgrade: yes
+
+  - name: "Ensure python's netaddr is installed"
+    ansible.builtin.apt:
+      name: python3-netaddr
+      state: present
+
   - name: "Ensure lxd is installed"
     community.general.snap:
       name: lxd
 
-  - name: "lxc info"
+  - name: "Getting lxc info"
     ansible.builtin.command: lxc info
     register: lxc_info_src0
     run_once: true
     changed_when: false
 
-  - name: "create lxd-preseed.yml"
+  - name: "Creating lxd-preseed.yml"
     set_fact:
       master: "{{ lookup('template', 'lxd-preseed.yml.j2') }}"
-  
+
+  - name: "lxc_info_src0.stdout.find"
+    ansible.builtin.debug:
+      msg: "{{lxc_info_src0.stdout.find('storage: \"\"') }}"
+    tags: [never]
+
+  - name: "lxc_info_src0"
+    ansible.builtin.debug:
+      msg: "{{ lxc_info_src0.stdout }}"
+    tags: [never]
+
   - name: "Backup lxd-preseed configuration to /tmp directory" 
     ansible.builtin.copy:
       dest: /tmp/lxd-preseed.yml
       content: "{{ master }}"
       mode: '0644'
-    changed_when: false
+    # changed_when: false
+    # tags: [ never ]
 
   - name: "Initiating lxd with lxd-preseed.yml"
     ansible.builtin.command: lxd init --preseed <
@@ -38,17 +60,37 @@
       creates: "{{ lxd_init_file_test }}"
     when: >
       (not lxd_cluster or inventory_hostname == groups.all[0])
-      and
-      lxc_info_src0.stdout.find('storage: \"\"') != -1
-  - name: "Restarting LXD service initiating"
+      and lxc_info_src0.stdout.find('storage: \"\"') != -1
+
+  - name: "Restarting LXD service"
     ansible.builtin.command: snap restart lxd.daemon
     args:
       creates: /snap/lxd/.lxd-restart
     changed_when: false
-  - ansible.builtin.file: > 
+
+  - name: "Making lxd restart idempotent"
+    ansible.builtin.file: > 
       path=/snap/lxd/.lxd-restart state=touch
       mode=u+rw,g-wx,o-rwx modification_time=preserve
       access_time=preserve
-      
-  - include_tasks: firewall.yml
-      
+  - name: "Copy service sripts to /usr/local/bin/" 
+    ansible.builtin.copy:
+      src: "{{item}}"
+      dest:  /usr/local/bin/
+      owner: root
+      group: root
+      mode: u=rwx,g=rwx,o=x
+    loop:
+      - dhis2-backup
+      - dhis2-create-instance
+      - dhis2-dbactivity
+      - dhis2-delete-instance
+      - dhis2-deploy-war
+      - dhis2-logview
+      - dhis2-query-killer.py
+      - dhis2-restoredb 
+      - dhis2-tomcat-munin
+
+  - name: "Including firewall configuration tasks on the host" 
+    include_tasks: firewall.yml
+
