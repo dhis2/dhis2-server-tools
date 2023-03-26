@@ -10,7 +10,6 @@ postgres  ansible_host=172.19.2.20
 # dhis2 servers/containers
 [instances]
 hmis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.38 
-dhis  ansible_host=172.19.2.12  database_host=postgres  dhis2_version=2.39 
 # monitoring server/container
 [monitoring]
 monitor   ansible_host=172.19.2.30 
@@ -56,12 +55,11 @@ database_host=postgres
 create_db=yes  
 JAVA_VERSION="11" 
 
-# This can be an url, file, version_number e.g
-# https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war,file or just version_number
+# ways of supplying dhis2 war file 
 # dhis2_war_file="https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war"
+# OR
 # dhi2_war_file=dhis2.war # if the file is placed in roles/dhis2/files
-# directory dhis2_war_file=/full/path/dhis2.war if war file is placed in some
-# other custom path if you want specific version for the instances please
-# append it on inventory line, 
-dhis2_version=2.38 
-
+# dhis2_war_file=/full/path/dhis2.war 
+# OR
+# version_number
+dhis2_version=2.38
