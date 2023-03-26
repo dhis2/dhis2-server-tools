@@ -22,7 +22,7 @@ monitor   ansible_host=172.19.2.30
 fqdn=""
 email=""
 # timedatectl list-timezones to list timezones
-timezone="Africa/Nairobi"
+timezone="Africa/Kigali"
 
 
 # monitoring
