@@ -1,0 +1,20 @@
+---
+- name: "{{ ansible_connection }} specific tasks"
+  include_tasks: "{{ansible_connection}}.yml"
+  when: inventory_hostname in groups['artemis']
+
+- name: "Adding artemis application user" 
+  include_tasks: artemis_user.yml
+  when: inventory_hostname in groups['artemis']
+
+- name: "Installing artemis" 
+  include_tasks: artemis_setup.yml 
+  when: inventory_hostname in groups['artemis']
+
+- name: "Creating brokers"
+  include_tasks: instance/instance.yml
+  with_items: "{{ artemis_brokers }}"
+  loop_control:
+    loop_var: broker
+    label: "{{ broker.name }}"
+  when: inventory_hostname in groups['artemis']

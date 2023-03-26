@@ -39,7 +39,8 @@
     name: postgresql
     state: started
     enabled: yes
-  
+
+
 # Check postgresql Version, reguired for pg_hba path determination
 - name: "Checking postgresql Version"
   become: true
@@ -48,6 +49,16 @@
   community.postgresql.postgresql_info:
     filter: ver*
   register: postgresql_version_info
+
+# Deploying dhis2pg.conf 
+- name: "Deploy dhis2pg.conf"
+  ansible.builtin.copy:
+    src: dhispg.conf
+    dest: /etc/postgresql/{{postgresql_version_info.version.major}}/main/conf.d/dhispg.conf 
+    mode: "0644"
+    owner: root
+    group: root
+
 
 # Adding root postgresql_user
 - name: "Adding root postgresql role"

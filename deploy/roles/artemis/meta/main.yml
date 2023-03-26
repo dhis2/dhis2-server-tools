@@ -1,0 +1,26 @@
+---
+galaxy_info:
+  author: Matthieu Rémy
+  description: Ansible role to install artemis brokers.
+  license: "license (BSD, MIT)"
+  min_ansible_version: 2.4.0
+
+  platforms:
+    - name: EL
+      versions:
+        - 6
+        - 7
+    - name: Debian
+      versions:
+        - all
+    - name: Ubuntu
+      versions:
+        - all
+
+  galaxy_tags:
+    - activemq
+    - middleware
+    - broker
+
+
+dependencies: []

@@ -18,7 +18,9 @@
 
   - name: "Ensure python's netaddr is installed"
     ansible.builtin.apt:
-      name: python3-netaddr
+      name:
+        - python3-netaddr
+        - unzip
       state: present
 
   - name: "Ensure lxd is installed"

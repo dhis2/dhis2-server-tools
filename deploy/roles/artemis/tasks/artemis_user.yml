@@ -1,0 +1,25 @@
+- name: "Add Artemis group"
+  group:
+    name: "{{ artemis_user.group }}"
+    gid: "{{ artemis_group.gid }}"
+    state: "present"
+
+- name: "Add Artemis user"
+  ansible.builtin.user:
+    name: "{{ artemis_user.name }}"
+    group: "{{ artemis_user.group }}"
+    uid: "{{ artemis_user.uid }}"
+    createhome: no
+    state: "present"
+    system: yes
+
+- name: "Create requires directories"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0755
+    owner: "{{ artemis_user.name }}"
+    group: "{{ artemis_user.group }}"
+  with_items:
+    - "{{ artemis_home }}"
+    - "{{ artemis_log_dir }}"
