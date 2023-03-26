@@ -1,0 +1,63 @@
+---
+# defaults file for artemis
+
+artemis_version: "2.28.0"
+artemis_download_url: "https://www.apache.org/dyn/closer.cgi?filename=activemq/activemq-artemis/{{ artemis_version }}/apache-artemis-{{ artemis_version }}-bin.tar.gz&action=download"
+
+artemis_group:
+  name: "artemis"
+  gid: 501
+
+artemis_user:
+  name: "artemis"
+  group: "{{ artemis_group.name }}"
+  uid: 501
+  createhome: no
+  system: yes
+
+artemis_install_dir: "/opt"
+artemis_log_dir: []
+artemis_home: "{{ artemis_install_dir }}/apache-artemis-{{ artemis_version }}"
+artemis_home_symlink: "{{ artemis_install_dir }}/artemis"
+
+# artemis_brokers:
+artemis_brokers:
+  - name: "artemis-broker"
+    path: "/opt/artemis-brokers/bin"
+    user: "admin"
+    password: "admin"
+
+artemis_host: "0.0.0.0"
+artemis_port_artemis: 61616
+artemis_port_amqp: 5672
+artemis_port_stomp: 61613
+artemis_port_hornetq: 5445
+artemis_port_mqtt: 1883
+
+artemis_journal_type: "NIO"
+artemis_journal_pool_files: 10
+artemis_journal_buffer_timeouts:
+  NIO: "3333333"
+  ASYNCIO: "500000"
+artemis_journal_buffer_timeout: "{{ artemis_journal_buffer_timeouts[artemis_journal_type] }}"
+
+artemis_acceptors:
+  - name: "artemis"
+    url: "tcp://{{ artemis_host }}:{{ artemis_port_artemis }}?tcpSendBufferSize=1048576;tcpReceiveBufferSize=1048576;protocols=CORE,AMQP,STOMP,HORNETQ,MQTT,OPENWIRE;useEpoll=true;amqpCredits=1000;amqpLowCredits=300"
+  - name: "amqp"
+    url: "tcp://{{ artemis_host }}:{{ artemis_port_amqp }}?tcpSendBufferSize=1048576;tcpReceiveBufferSize=1048576;protocols=AMQP;useEpoll=true;amqpCredits=1000;amqpLowCredits=300"
+  - name: "stomp"
+    url: "tcp://{{ artemis_host }}:{{ artemis_port_stomp }}?tcpSendBufferSize=1048576;tcpReceiveBufferSize=1048576;protocols=STOMP;useEpoll=true"
+  - name: "hornetq"
+    url: "tcp://{{ artemis_host }}:{{ artemis_port_hornetq }}?protocols=HORNETQ,STOMP;useEpoll=true"
+  - name: "mqtt"
+    url: "tcp://{{ artemis_host }}:{{ artemis_port_mqtt }}?tcpSendBufferSize=1048576;tcpReceiveBufferSize=1048576;protocols=MQTT;useEpoll=true"
+
+artemis_web_port: 8161
+# artemis_web_host: localhost
+artemis_web_host: "0.0.0.0"
+
+artemis_log_file: "${artemis.instance}/log/artemis.log"
+
+jolokia_cors:
+  - "*://localhost*"

@@ -1,0 +1,44 @@
+---
+- name: "Init broker with default values."
+  set_fact:
+    _broker:
+      artemis_home: "{{ broker.artemis_home | default(artemis_home_symlink) }}"
+      name: "{{ broker.name }}"
+      path: "{{ broker.path }}"
+      user: "{{ broker.user }}"
+      password: "{{ broker.password }}"
+      host: "{{ broker.host | default(artemis_host) }}"
+      journal_type: "{{ broker.journal_type | default(artemis_journal_type) }}"
+      journal_pool_files: "{{ broker.journal_pool_files | default(artemis_journal_pool_files) }}"
+      journal_buffer_timeout: "{{ artemis_journal_buffer_timeout }}"
+      acceptors: "{{ broker.acceptors | default(artemis_acceptors) }}"
+      web_port: "{{ broker.web_port | default(artemis_web_port) }}"
+      web_host: "{{ broker.web_host | default(artemis_web_host) }}"
+      jolokia_cors: "{{ broker.jolokia_cors | default(jolokia_cors) }}"
+      log_file: "{{ broker.log_file | default(artemis_log_file) }}"
+
+- name: "Check if {{ _broker.name }} already created"
+  stat: path={{ _broker.path }}/{{ _broker.name }}
+  register: broker_path
+
+- name: "Create broker {{ _broker.name }}"
+  artemis_create:
+    name: "{{ _broker.name }}"
+    path: "{{ _broker.path }}"
+    user: "{{ _broker.user }}"
+    password: "{{ _broker.password }}"
+  when: not broker_path.stat.exists
+
+- name: "Update owner / group for broker folder"
+  file:
+    path: "{{ _broker.path }}/{{ _broker.name }}"
+    state: directory
+    recurse: true
+    owner: "{{ artemis_user.name }}"
+    group: "{{ artemis_user.group }}"
+
+- name: "Configure instance"
+  include: configure.yml
+
+- name: "Install broker as service"
+  include_tasks: service.yml

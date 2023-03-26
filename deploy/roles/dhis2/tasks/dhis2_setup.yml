@@ -34,8 +34,16 @@
     ansible_connection: local
   ansible.builtin.set_fact:
     sha256: "{{ dhis2_release_version['sha256'] | default (omit)}}"
-    dhis2_url: "{{ dhis2_release_version['latestStableUrl']}}"
+    # dhis2_url: "{{ dhis2_release_version['latestStableUrl']}}"
     latest_patchversion: "{{(dhis2_release_version['patchVersions']|last).name | default(omit)}}"
+  when: dhis2_version is defined 
+
+- name: "Set dhis2_url variable "
+  vars:
+    ansible_connection: local
+  ansible.builtin.set_fact:
+    dhis2_url: "{{ dhis2_release_version['latestStableUrl']}}"
+  when: dhis2_war_file is undefined # and dhis2_war_file | regex_search('(https:\/\/)') and dhis2_url is undefined
 
 # tomcat setup
 - name: "installing java and tomcat and zip" 
@@ -68,8 +76,11 @@
   debug:
     msg: "running dhis2 versin is:{{ version_results.stdout | trim }} new stable version {{latest_patchversion}} is availlable, upgrading"
   when: 
+    - dhis2_version is defined 
+    - dhis2_war_file is undefined
     - "'skipped' not in  version_results.stdout"
     - version_results.stdout | trim is version(latest_patchversion, '<')
+    # - latest_patchversion is defined 
 
 # Downaload dhis2.war file 
 - name: "Download dhis2 war file" 
@@ -77,31 +88,34 @@
     url: "{{dhis2_url}}"
     dest: /opt/dhis2/dhis2.war 
     force: true
-    timeout: 30
     # checksum: "sha256:{{sha256}}"
   when: 
+    - "'skipped' in version_results.stdout or version_results.stdout | trim is version(latest_patchversion, '<')"
     - sha256 is defined 
     - dhis2_url is defined 
-    - ( "'skipped' in version_results.stdout" or version_results.stdout | trim is version(latest_patchversion, '<'))
-
 
 # Download dhis2 from hard-coarded url 
 - name: "Download dhis2.war with hard coded url"
   ansible.builtin.get_url:
     url: "{{dhis2_war_file}}"
+    timeout: 30
     dest: /opt/dhis2/dhis2.war
-  when: dhis2_war_file is defined and dhis2_war_file | regex_search('(https:\/\/)') and dhis2_url is undefined
+    force: true
+  # when: dhis2_war_file is defined and dhis2_war_file | regex_search('(https:\/\/)') and dhis2_url is undefined
+  when: dhis2_war_file is defined and dhis2_war_file | regex_search('(https:\/\/)') 
 
+# 
 - name: "Copy dhis2.war file from ansible controller" 
   ansible.builtin.copy:
     src: "{{ dhis2_war_file }}"
     dest: /opt/dhis2/dhis2.war 
-  when: dhis2_war_file | regex_search('^(?!.*?https:\/\/).*$')
+  when: dhis2_war_file is defined and dhis2_war_file | regex_search('^(?!.*?https:\/\/).*$')
 
 # Cleaning up webapps directory
 - name: "Clean /var/lib/tomcat9/webapps" 
   file: path=/var/lib/tomcat9/webapps/ state=absent
-  when: "'skipped' in version_results.stdout or version_results.stdout | trim is version(latest_patchversion, '<') or dhis2_war_file |regex_search('^(?!.*?https:\/\/).*$')"
+  when: "'skipped' in version_results.stdout or version_results.stdout | trim is version(latest_patchversion, '<') or dhis2_war_file is defined"
+  # when: "'skipped' in version_results.stdout or version_results.stdout | trim is version(latest_patchversion, '<') or dhis2_war_file |regex_search('^(?!.*?https:\/\/).*$')"
 
 # Creating application directories
 - name: "Creating webapps directories"

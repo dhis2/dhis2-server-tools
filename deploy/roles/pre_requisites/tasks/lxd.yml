@@ -18,7 +18,9 @@
 
   - name: "Ensure python's netaddr is installed"
     ansible.builtin.apt:
-      name: python3-netaddr
+      name:
+        - python3-netaddr
+        - unzip
       state: present
 
   - name: "Ensure lxd is installed"
@@ -82,14 +84,14 @@
       mode: u=rwx,g=rwx,o=x
     loop:
       - dhis2-backup
-      - dhis2-create-instance
+      # - dhis2-create-instance
       - dhis2-dbactivity
-      - dhis2-delete-instance
+      # - dhis2-delete-instance
       - dhis2-deploy-war
       - dhis2-logview
-      - dhis2-query-killer.py
+      # - dhis2-query-killer.py
       - dhis2-restoredb 
-      - dhis2-tomcat-munin
+      # - dhis2-tomcat-munin
 
   - name: "Including firewall configuration tasks on the host" 
     include_tasks: firewall.yml

@@ -1,0 +1,22 @@
+---
+- name: "Init service var with default values."
+  set_fact:
+    _service:
+      name: "{{ _broker.name }}"
+      user: "{{ artemis_user.name }}"
+      group: "{{ artemis_user.group }}"
+      start: "{{ _broker.path }}/{{ _broker.name }}/bin/artemis-service start"
+      stop: "{{ _broker.path }}/{{ _broker.name }}/bin/artemis-service stop"
+
+- name: "Install {{ _service.name }} as service"
+  template:
+    src: "etc/systemd/artemis.service"
+    dest: "/etc/systemd/system/{{ _service.name }}.service"
+    owner: "{{ _service.user }}"
+    group: "{{ _service.group }}"
+
+- name: "Enable service"
+  service:
+    name: "{{ _service.name }}"
+    enabled: yes
+  notify: "restart broker"
