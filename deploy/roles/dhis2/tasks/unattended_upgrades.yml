@@ -1,0 +1,49 @@
+---
+# install unattended-unattended package
+- name: "Install unattended upgrades package"
+  ansible.builtin.apt:
+    name: 
+      - unattended-upgrades
+      - update-notifier-common
+    state: present
+
+# Switch on unattended updates  
+- name: "Enabling unattended-updates, APT::Periodic::Update-Package-Lists "
+  ansible.builtin.lineinfile:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    regexp: '^#?APT::Periodic::Update' 
+    line: 'APT::Periodic::Update-Package-Lists "1";'
+  notify: restart unattended-upgrades
+
+# Switch on unattended upgrades
+- name: "Enabling unattended-upgrades, APT::Periodic::Unattended-Upgrade"
+  ansible.builtin.lineinfile:
+    dest:  /etc/apt/apt.conf.d/20auto-upgrades
+    regexp: '^#?APT::Periodic::Unattended' 
+    line: 'APT::Periodic::Unattended-Upgrade "1";'
+  notify: restart unattended-upgrades
+
+
+# Switch on unattended package upgrades
+- name: "Enabling Package upgrades"
+  ansible.builtin.lineinfile:
+    dest: "/etc/apt/apt.conf.d/50unattended-upgrades"
+    regexp: '.*"\$\{distro_id\}:\$\{distro_codename\}-updates";'
+    line: "\t\"${distro_id}:${distro_codename}-updates\";"
+    state: present 
+  notify: restart unattended-upgrades
+    
+# Ensure unused dependencies are removed from the system. 
+- name: "Enable remove unused deps in /etc/apt/apt.conf.d/50unattended-upgrades"
+  ansible.builtin.lineinfile:
+    dest: "/etc/apt/apt.conf.d/50unattended-upgrades"
+    line: 'Unattended-Upgrade::Remove-Unused-Dependencies "true";'
+    insertafter: '^//Unattended-Upgrade::Remove-Unused-Dependencies'
+  notify: restart unattended-upgrades
+
+#  include package updates 
+# //      "${distro_id}:${distro_codename}-updates";  # regex 
+# //Unattended-Upgrade::Mail ""; 
+# //Unattended-Upgrade::MailReport "on-change"; # regex 
+# - name: "Edit /etc/apt/apt.conf.d/50unattended-upgrades enabling upgradeds an mail, templates ??"
+# - name: "Restart un-attended upgrades service"

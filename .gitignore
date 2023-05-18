@@ -7,6 +7,7 @@ notes.sh
 create_containers.yml
 notes
 *test*
+*dev*
 *.vim
 *.war
 deploy.log

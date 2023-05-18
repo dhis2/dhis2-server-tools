@@ -7,3 +7,11 @@
   become_user: root
   community.general.ufw:
     state: reloaded
+
+# Restarting unattended-upgrades
+- name: restart unattended-upgrades
+  vars:
+    ansible_connection: local
+  ansible.builtin.service:
+    name: unattended-upgrades
+    state: restarted

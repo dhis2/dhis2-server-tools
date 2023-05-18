@@ -6,24 +6,9 @@
     state: directory
     modification_time: preserve
     access_time: preserve
-
-# - name: "Porting TLS certificate"
-#   copy:
-#     src: fullchain.pem # ensure the file exists
-#     dest: "/etc/ssl/{{fqdn}}/"
-#     owner: root
-#     group: root
-#     mode: 0644
-
-# - name: "Copy ssl key to the proxy host"
-#   copy:
-#     src: privkey.pem
-#     dest: /etc/ssl/{{fqdn}}/privkey.pem 
-#     owner: root
-#     group: root
-#     mode: 0644
-
-- name: "Porting TLS certificate|"
+      
+# Copying over ssl certificate
+- name: "Porting TLS certificate"
   copy:
     src: "{{item}}" # ensure the file exists
     dest: /etc/ssl/{{fqdn}}/{{item}}

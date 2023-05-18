@@ -27,7 +27,7 @@
     line: DEFAULT_FORWARD_POLICY="ACCEPT"
   notify: Reload UFW
 
-# sudo ufw allow in on lxdbr0
+# sudo ufw allow in on lxdbr1
 - name: "Add rules for lxd bridge"
   community.general.ufw:
     rule: allow

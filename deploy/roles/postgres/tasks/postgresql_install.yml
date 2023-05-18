@@ -98,8 +98,8 @@
     comment: "Allow access from {{ item }} instance "
     state: enabled
   loop: "{{ groups['instances'] }}"
-  when: inventory_hostname == hostvars[item]['database_host']
+  when:
+    - inventory_hostname == hostvars[item]['database_host']
 
 - name: Flushing Handlers
   meta: flush_handlers
-

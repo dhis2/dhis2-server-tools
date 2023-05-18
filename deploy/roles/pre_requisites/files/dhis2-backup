@@ -20,7 +20,7 @@ function perform_backups()
         echo "`date` Cannot create backup directory in $FINAL_BACKUP_DIR. Go and fix it!"
         exit 1;
   fi;
-
+  #  sudo su -c "pg_dump -O -Fp $DBNAME -T aggregated_* -T analytics_* -T completeness_*  | gzip > ./$DB_NAME.sql.gz" postgres
   for DBNAME in $PLAIN_BACKUPS
   do
      if ! lxc exec postgres -- pg_dump -O -Fp $DBNAME $EXCLUDED | gzip > $FINAL_BACKUP_DIR"$DBNAME".sql.gz.in_progress; then

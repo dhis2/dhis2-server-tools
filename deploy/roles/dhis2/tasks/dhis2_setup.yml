@@ -185,6 +185,7 @@
     remote_src: yes
   notify: Restart Tomcat
 
+# including glowroot monitoring tasks
 - name: "Glowroot app monitoring"
   include_tasks: "{{app_monitoring}}.yml"
   when: app_monitoring is defined

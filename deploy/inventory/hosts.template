@@ -4,33 +4,35 @@
 # proxy server/container 
 [web]
 proxy  ansible_host=172.19.2.2
+
 # database servers/containers
 [databases]
 postgres  ansible_host=172.19.2.20
+
 # dhis2 servers/containers
 [instances]
-hmis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.38 
+hmis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.39 proxy_rewrite=True
+
 # monitoring server/container
 [monitoring]
 monitor   ansible_host=172.19.2.30 
+
 # integration server/container
 [integration]
 
-# variables applying to all intances, 
-# NOTE: fqdn and email are mandatory for a setup with proxy 
+# variables applying to all hosts, 
 [all:vars]
+# if you do not set fqdn, you dhis2 will be set up with self-signed certificate
 fqdn=""
+# required for LetsEncrypt certificate notification. 
 email=""
 # timedatectl list-timezones to list timezones
 timezone="Africa/Kigali"
-
 
 # monitoring
 server_monitoring="munin"
 app_monitoring="glowroot"
 
-# note, if your connectin is ssh and using non default ssh port e.g 822, you
-# need to append ssh_port=822 on the host line.  
 # Options: lxd, ssh defaults to lxd. 
 ansible_connection=lxd
 lxd_network="172.19.2.1/24" 
@@ -38,15 +40,13 @@ lxd_bridge_interface='lxdbr1'
 guest_os=22.04
 # Options: amd64,arm64,armhf, defaults_to amd64
 guest_os_arch='amd64'
-
 # lxd_source_server=
 # lxd_source_protocol=
 
-# Options: nginx, apache2 defauts to nginx. 
+# Options: nginx, apache2 defaults to nginx
 proxy="nginx"
 
-# Options: letsencrypt, customssl,selfsign, upstream :- defaults_to=letsencrypt 
-# upstream not supported yet. 
+# Options: letsencrypt, customssl, default(letsencrypt)
 SSL_TYPE=letsencrypt
 
 # instances group variables,
@@ -54,12 +54,8 @@ SSL_TYPE=letsencrypt
 database_host=postgres
 create_db=yes  
 JAVA_VERSION="11" 
+dhis2_war_file="https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war"
 
-# ways of supplying dhis2 war file 
-# dhis2_war_file="https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war"
-# OR
-# dhi2_war_file=dhis2.war # if the file is placed in roles/dhis2/files
-# dhis2_war_file=/full/path/dhis2.war 
-# OR
-# version_number
-dhis2_version=2.38
+# dhis2_version=2.38
+# NOTE: dhis2_war_file and dhis2_version are two ways of specifying url to download dhis2 binary, if both are defined, dhis2_war_file wins. 
+# dhis2_war_file=/full/path/dhis2.war  

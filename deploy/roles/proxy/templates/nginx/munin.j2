@@ -9,5 +9,9 @@ location /{{server_monitoring}} {
    proxy_set_header X-Content-Type-Options "nosniff"; # drive-by download attacks
    proxy_set_header X-Xss-Protection "1; mode=block"; #To leverage browser-based protections against cross-site scripting
    proxy_hide_header Server;
+{% if server_monitoring == 'munin'  and munin_users is defined and munin_users is iterable %}
+    auth_basic "Restricted Content";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+{% endif %}
    }
 {% endfor %}
