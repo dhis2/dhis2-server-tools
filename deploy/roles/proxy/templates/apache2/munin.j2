@@ -1,5 +1,17 @@
-  <Location /munin>
+{% for host in groups['monitoring'] %}
+<Location /{{server_monitoring}}>
+    ProxyPass "http://{{hostvars[host]['ansible_host']+':80' }}/{{server_monitoring}}"
+    ProxyPassReverse "http://{{hostvars[host]['ansible_host']+':80' }}/{{server_monitoring}}"
+{% if server_monitoring == 'munin'  and munin_users is defined  and munin_users is iterable%}
+    AuthType Basic
+    AuthName "Restricted Area"
+    AuthBasicProvider file
+    AuthUserFile /etc/apache2/.htpasswd
+{% for user in munin_users if user.state == 'present' %}
+    Require user {{user.name}}
+{%endfor%}
+{%else%}
     Require all granted
-    ProxyPass "http://{{hostvars['munin']['ansible_host']+':80' }}/munin"
-    ProxyPassReverse "http://{{hostvars['munin']['ansible_host']+':80' }}/munin"
-  </Location>
+{%endif%}
+</Location>
+{% endfor %}

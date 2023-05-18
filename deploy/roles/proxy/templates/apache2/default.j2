@@ -23,9 +23,8 @@
 
 
 <VirtualHost *:80>
-        ServerName {{fqdn}}
-        ServerAdmin {{email}}
-
+        {# ServerName {{fqdn}} #}
+        {# ServerAdmin {{email}} #}
         RewriteEngine On
 
         # Exception to let certbot do its authentication challenge
@@ -41,14 +40,13 @@
 
 # Main vhost configuration
   <VirtualHost *:443>
-       ServerName {{fqdn}}
-       ServerAdmin {{email}}
+       {# ServerName {{fqdn}} #}
+       {# ServerAdmin {{email}} #}
 
        # Throw out IP based requests
-       RewriteCond %{HTTP_HOST} !^{{'\\.'.join(fqdn.split('.'))}} [NC]
-       RewriteCond %{REQUEST_URI} !^/error [NC]
-       RewriteRule ^.(.*) - [L,F]
-
+       {# RewriteCond %{HTTP_HOST} !^{{'\\.'.join(fqdn.split('.'))}} [NC] #}
+       {# RewriteCond %{REQUEST_URI} !^/error [NC] #}
+       {# RewriteRule ^.(.*) - [L,F] #}
        RewriteEngine On
 
        KeepAlive on
@@ -83,12 +81,7 @@
         #===========================================================
 
         # RewriteRule   ^/$  /dhis/  [R]
-{% for host in groups['instances']  if hostvars[host]['proxy_rewrite'] is defined and 
-(hostvars[host]['proxy_rewrite'] == true or hostvars[host]['proxy_rewrite'] == "true") %}
-{% if loop.first %}
-        RewriteRule   ^/$  /{{host}}/  [R]
-{%endif%}
-{%endfor%}
+
         #===========================================================
         # Logging
         #===========================================================
@@ -147,14 +140,9 @@
        #===========================================================
        SSLEngine on
        # set these to match your server certificate and key
-{% if SSL_TYPE == 'letsencrypt' %}
-       SSLCertificateFile      /etc/letsencrypt/live/{{fqdn}}/fullchain.pem
-       SSLCertificateKeyFile /etc/letsencrypt/live/{{fqdn}}/privkey.pem
-{% elif SSL_TYPE == 'customssl' %}
-       SSLCertificateFile /etc/ssl/{{fqdn}}/customssl.crt
-       SSLCertificateKeyFile /etc/ssl/{{fqdn}}/customssl.key
-{%endif%}
-
+     
+       SSLCertificateFile      /etc/ssl/self-signed/self-signed.crt
+       SSLCertificateKeyFile /etc/ssl/self-signed/self-signed.key
        SSLProtocol TLSv1.1 TLSv1.2
        SSLHonorCipherOrder on
        SSLCipherSuite "EECDH+ECDSA+AESGCM EECDH+aRSA+AESGCM EECDH+ECDSA+SHA384 EECDH+ECDSA+SHA256 EECDH+aRSA+SHA384 EECDH+aRSA+SHA256 EECDH+aRSA+RC4 EECDH EDH+aRSA RC4 !aNULL !eNULL !LOW !3DES !MD5 !EXP !PSK !SRP !DSS !RC4"

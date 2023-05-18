@@ -18,3 +18,4 @@
     special_time: daily 
     user: root
     job: certbot renew --standalone --pre-hook="service {{proxy}} stop" --post-hook="service {{proxy}} start"
+

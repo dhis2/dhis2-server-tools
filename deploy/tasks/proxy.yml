@@ -1,0 +1,8 @@
+- gather_facts: False
+  hosts: all
+  force_handlers: True
+  become: True
+  vars_files:
+    - ../vars/vars.yml
+  roles:
+    - role: proxy

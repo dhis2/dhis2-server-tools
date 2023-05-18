@@ -1,0 +1,109 @@
+---
+- name: Install RapidPro
+  hosts: all
+  become: true
+  vars:
+     rapidpro_version: 7.0.7
+     rapidpro_url: https://github.com/rapidpro/rapidpro/archive/v{{ rapidpro_version }}.tar.gz
+     rapidpro_home: /opt/rapidpro
+     rapidpro_user: rapidpro
+     rapidpro_group: rapidpro
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - python3-dev
+          - libmysqlclient-dev
+          - libssl-dev
+          - libffi-dev
+          - build-essential
+          - python3-pip
+          - nginx
+        state: present
+
+    - name: Create rapidpro user and group
+      group:
+        name: "{{ rapidpro_group }}"
+        state: present
+
+    - name: "Create rapidpro user"
+      user:
+        name: "{{ rapidpro_user }}"
+        group: "{{ rapidpro_group }}"
+        home: "{{ rapidpro_home }}"
+        shell: /bin/bash
+        create_home: yes
+        system: yes
+        state: present
+
+    - name: Install virtualenv
+      pip:
+        name: virtualenv
+        executable: pip3
+        state: present
+
+    - name: Create virtual environment for RapidPro
+      command: virtualenv -p python3 "{{ rapidpro_home }}/venv"
+      args:
+        creates: "{{ rapidpro_home }}/venv"
+
+    - name: Download and extract RapidPro
+      get_url:
+        url: "{{ rapidpro_url }}"
+        dest: /tmp/rapidpro.tar.gz
+        mode: '0644'
+
+    - command: tar xzf /tmp/rapidpro.tar.gz --strip 1 -C "{{ rapidpro_home }}"
+
+    - name: Install RapidPro requirements
+      pip:
+        requirements: "{{ rapidpro_home }}/requirements/base.txt"
+        executable: "{{ rapidpro_home }}/venv/bin/pip"
+        state: present
+
+    - name: Set file permissions
+      file:
+        path: "{{ item }}"
+        owner: "{{ rapidpro_user }}"
+        group: "{{ rapidpro_group }}"
+      with_items:
+        - "{{ rapidpro_home }}"
+        - "{{ rapidpro_home }}/venv"
+        - "{{ rapidpro_home }}/src"
+        - "{{ rapidpro_home }}/static"
+        - "{{ rapidpro_home }}/media"
+        - "{{ rapidpro_home }}/logs"
+        - "{{ rapidpro_home }}/supervisor"
+        - "{{ rapidpro_home }}/nginx"
+        - "{{ rapidpro_home }}/venv/bin/*"
+        - "{{ rapidpro_home }}/src/temba/*"
+
+    - name: Configure Nginx
+      copy:
+        src: rapidpro-nginx.conf
+        dest: /etc/nginx/sites-available/rapidpro
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Enable Nginx site
+      file:
+        src: /etc/nginx/sites-available/rapidpro
+        dest: /etc/nginx/sites-enabled/rapidpro
+        state: link
+
+    - name: Create supervisor configuration file
+      copy:
+        src: rapidpro-supervisor.conf
+        dest: /etc/supervisor/conf.d/rapidpro.conf
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Reload supervisor
+      supervisorctl:
+        state: restarted

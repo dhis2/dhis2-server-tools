@@ -1,7 +1,7 @@
 {% for host in groups['instances'] %}
-    <Location /{{host}}-glowroot>
+<Location /{{host}}-glowroot>
     Require all granted
     ProxyPass "http://{{hostvars[host]['ansible_host']+':4000'}}/{{host}}-glowroot"
     ProxyPassReverse "http://{{hostvars[host]['ansible_host']+':4000'}}/{{host}}-glowroot"
-    </Location>
+</Location>
 {% endfor %}

@@ -1,23 +1,19 @@
 # http block
 server {
-  listen 80 ;
-  server_name {{ fqdn }};
+  listen 80;
+  server_name _;
   return 301 https://$host$request_uri;
 }
 
 # https block 
 server {
   listen 443 ssl;
+  server_name _;
   ssl_stapling on;
   ssl_stapling_verify  on;
-  server_name {{fqdn}};
-{%if SSL_TYPE == 'letsencrypt'%} 
-  ssl_certificate /etc/letsencrypt/live/{{fqdn}}/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/{{fqdn}}/privkey.pem;
-{%elif SSL_TYPE == 'customssl'%}
-  ssl_certificate /etc/ssl/{{fqdn}}/customssl.crt;
-  ssl_certificate_key /etc/ssl/{{fqdn}}/customssl.key;
-{%endif%}
+  server_name _;
+  ssl_certificate     /etc/ssl/self-signed/self-signed.crt;
+  ssl_certificate_key /etc/ssl/self-signed/self-signed.key;
   ssl_protocols TLSv1.2 TLSv1.3;
   #ssl_session_cache shared:SSL:20m;
   ssl_session_timeout 10h;
@@ -35,13 +31,8 @@ server {
   client_header_timeout 10;
   client_max_body_size 100M;
   proxy_set_header X-Frame-Options "SAMEORIGIN";
-  # in case your want access your site on 
-{% for host in groups['instances']  if hostvars[host]['proxy_rewrite'] is defined and 
-(hostvars[host]['proxy_rewrite'] == true or hostvars[host]['proxy_rewrite'] == "true") %}
-{% if loop.first %}
-  rewrite ^/$ /{{host}}; 
-{%endif%}
-{%endfor%}
+  # in case your want access your site on / 
+  # rewrite ^/$ /dhis; 
 # This is quite strict.  If you have much older windoze browsers
   ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
 # Location configuration 
@@ -49,8 +40,5 @@ server {
   location / {
   return 444; 
   }
-  if ($host != "{{ fqdn }}") {
-    return 444;
-    }
 }
 

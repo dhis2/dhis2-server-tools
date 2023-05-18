@@ -33,15 +33,28 @@
     name: "{{ container_name }}"
     state: started
     wait_for_ipv4_addresses: True
-# update and upgrade
+- name: "Update and upgrade"
+  ansible.builtin.apt:
+    upgrade: yes
+    update_cache: yes
+    cache_valid_time: 86400
     
 # installing jre
-- name: "install java-11" 
+- name: "Install java-11-jre-headless" 
   ansible.builtin.apt:
     name: openjdk-11-jre-headless
-    update_cache: yes
-    cache_valid_time: 3600
   delegate_to: "{{ container_name }}" 
+
+- name: "Creating integration user"
+  ansible.builtin.user:
+    name: integration
+    shell: /sbin/nologin
+    home: /opt/integration 
+    system: True
+# install jar under /usr/local/bin
+#dd https://github.com/dhis2/integration-dhis-rapidpro/releases/download/v2.0.1/dhis2rapidpro.jar 
+
+# install properties under /usr/local/etc 
 
 - name: "Creating application diretory"
   file:
@@ -53,5 +66,4 @@
   template: 
     src:
     dest:
-  notify: Reload Systemd 
-
+  notify: Reload Systemd

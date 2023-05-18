@@ -15,7 +15,7 @@
     port: "{{ https_port | default('443') }}"
     proto: tcp
     comment: https
-
+# stopping apache2, we do not  need it running. 
 - name: "Ensure apache2 is stopped and disabled." 
   ansible.builtin.service:
     name: apache2
@@ -49,31 +49,50 @@
   file: name=/etc/nginx/sites-enabled/default state=absent
 
 # include SSL/TLS tasks 
-- include_tasks: "{{SSL_TYPE}}.yml"
+- name: "Include TLS configurarion tasks, Letsencrypt | Customssl"
+  include_tasks: "{{SSL_TYPE}}.yml"
+  when: fqdn is defined and (fqdn != None) and fqdn
+
+- name: "Include self-signed TLS Certificate tasks, when fqdn is not defined"
+  include_tasks: self-signed.yml
+  when: fqdn is undefined or (fqdn == None) or (not fqdn) 
+
+
+# Coping nginx configuration to the proxy 
+- name: "Copy nginx site configuration"
+  ansible.builtin.template: >
+    src=nginx/site.j2
+    dest=/etc/nginx/conf.d/{{ fqdn}}.conf
+    owner=root group=root mode=0644
+  when: fqdn is defined and (fqdn != None) and fqdn
+  notify: Reload Nginx
+
+- name: "Default nginx configuration, fqdn is undefined"
+  ansible.builtin.template: >
+    src=nginx/default.j2
+    dest=/etc/nginx/conf.d/default.conf
+    owner=root group=root mode=0644
+  when: fqdn is undefined or (fqdn == None) or (not fqdn) 
+  notify: Reload Nginx
 
 # Generate dhparams 
 - name: "Generating  Diffie–Hellman key parameters, takes a while, you may grab some coffee"
   command: openssl dhparam -out /etc/nginx/dhparams.pem 2048
   args:
     creates: /etc/nginx/dhparams.pem
-
-# Coping nginx configuration to the proxy 
-- name: "Copy nginx site configuration"
-  template: >
-    src=nginx/site.j2
-    dest=/etc/nginx/conf.d/{{fqdn}}.conf
-    owner=root group=root mode=644
   notify: Reload Nginx
+      
 # Ensure nginx service is started
 - name: "Start nginx service" 
   ansible.builtin.service: >
     name=nginx state=started
 
+# location configs
 - name: "Creating nginx upstream directory"
   ansible.builtin.file:
     path: /etc/nginx/conf.d/upstream
     state: directory
-
+      
 - name: "Copy dhis2 location configs" 
   template:
     src: nginx/instance.j2
@@ -87,12 +106,15 @@
   when: app_monitoring is defined
   notify: Reload Nginx
 
+- include_tasks: securing_munin.yml
+  when: server_monitoring is defined and server_monitoring == 'munin'
+
 - name: "Copy {{ server_monitoring }} location configs"
   template:
     src: nginx/{{server_monitoring}}.j2
     dest: /etc/nginx/conf.d/upstream/{{ server_monitoring }}.conf 
-  notify: Reload Nginx
   when: server_monitoring is defined 
+  notify: Reload Nginx
 
 - name: "Flush Handlers"
   meta: flush_handlers

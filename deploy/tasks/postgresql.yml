@@ -1,0 +1,8 @@
+---
+- gather_facts: False
+  become: True
+  hosts: databases
+  vars_files:
+    - ../vars/vars.yml
+  roles:
+    - role: postgres
