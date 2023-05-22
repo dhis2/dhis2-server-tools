@@ -49,7 +49,7 @@ pytest==4.4.1
 python-dateutil==2.8.0
 python-gilt==1.2.1
 PyYAML>=4.2b1
-requests==2.21.0
+requests==2.31.0
 ruamel.yaml==0.15.94
 sh==1.12.14
 six==1.11.0
