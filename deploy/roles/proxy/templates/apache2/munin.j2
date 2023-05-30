@@ -7,7 +7,7 @@
     AuthName "Restricted Area"
     AuthBasicProvider file
     AuthUserFile /etc/apache2/.htpasswd
-{% for user in munin_users if user.state == 'present' %}
+{% for user in munin_users if user.state | default('present') == 'present' %}
     Require user {{user.name}}
 {%endfor%}
 {%else%}

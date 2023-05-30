@@ -13,7 +13,7 @@
     mode: 0640
     state: "{{ item.state | default(omit) }}"
   loop: "{{ munin_users }}"
-  # loop_control:
-  #   label: "{{item.name}}"
+  loop_control:
+    label: "{{item.name}}"
   when: munin_users is defined and munin_users is iterable
   notify: Reload {{proxy | capitalize }}

@@ -3,21 +3,36 @@
 # Adjust depending on number of DHIS2 instances and their pool size
 # By default each instance requires up to 80 connections
 # This might be different if you have set pool in dhis.conf
-max_connections = 200
+# max_connections = 200 
+{# {% if postgres_max_connections is defined  %} #}
+max_connections = {{postgres_max_connections | default(200)}}
+{# {% endif %} #}
 
 # Tune these according to your environment
 # About 25% available RAM for postgres
 # shared_buffers = 3GB
+{% if postgres_shared_buffers is defined  %}
+shared_buffers = {{postgres_shared_buffers }}
+{% endif %}
 
 # Multiply by max_connections to know potentially how much RAM is required
 # work_mem=20MB
+{% if postgres_work_mem is defined  %}
+work_mem = {{postgres_work_mem }}
+{% endif %}
 
 # As much as you can reasonably afford.  Helps with index generation 
 # during the analytics generation task
 # maintenance_work_mem=512MB
+{% if postgres_maintenance_work_mem is defined %}
+maintenance_work_mem = {{postgres_maintenance_work_mem}}
+{% endif %}
 
 # Approx 80% of (Available RAM - maintenance_work_mem - max_connections*work_mem)
 # effective_cache_size=8GB
+{% if postgres_effective_cache_size is defined  %}
+effective_cache_size = {{postgres_effective_cache_size}}
+{% endif %}
 
 checkpoint_completion_target = 0.8
 synchronous_commit = off

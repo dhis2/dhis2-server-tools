@@ -37,23 +37,11 @@
     set_fact:
       master: "{{ lookup('template', 'lxd-preseed.yml.j2') }}"
 
-  - name: "lxc_info_src0.stdout.find"
-    ansible.builtin.debug:
-      msg: "{{lxc_info_src0.stdout.find('storage: \"\"') }}"
-    tags: [never]
-
-  - name: "lxc_info_src0"
-    ansible.builtin.debug:
-      msg: "{{ lxc_info_src0.stdout }}"
-    tags: [never]
-
   - name: "Backup lxd-preseed configuration to /tmp directory" 
     ansible.builtin.copy:
       dest: /tmp/lxd-preseed.yml
       content: "{{ master }}"
       mode: '0644'
-    # changed_when: false
-    # tags: [ never ]
 
   - name: "Initiating lxd with lxd-preseed.yml"
     ansible.builtin.command: lxd init --preseed <

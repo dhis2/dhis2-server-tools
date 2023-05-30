@@ -28,16 +28,6 @@
     - src: hosts.conf.j2
       dest: "{{ munin_conf_d_directory }}/hosts.conf"
 
-# Creating munin loging details
-- name: "Create munin user via htpasswd."
-  htpasswd:
-    create: true
-    name: "{{ munin_admin_user }}"
-    password: "{{ munin_admin_password }}"
-    path: /etc/munin/munin-htpasswd
-    state: present
-  tags: [ never ]
-
 #  If you want to access the Munin Web interface outside your localhost, 
 - name: "Edit munin config"
   ansible.builtin.lineinfile: 

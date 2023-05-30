@@ -12,3 +12,5 @@ notes
 *.war
 deploy.log
 hosts
+deploy/inventory/host_vars/*
+!deploy/inventory/host_vars/*.teplate
