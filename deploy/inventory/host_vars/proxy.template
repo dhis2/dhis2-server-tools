@@ -1,0 +1,6 @@
+---
+# This is a template for proxy variables,
+# to use it, copy to ./proxy and encrypt it with ansible-vault (it contains passwords)
+munin_users:
+  - name: admin
+    password: admin
