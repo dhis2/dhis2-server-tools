@@ -21,7 +21,7 @@ if [[ $UFW_STATUS == "inactive" ]]; then
 	    echo "Then you can try to run sudo ./deploy.sh  again"
 	    exit 1
   fi
-# install ansible on ubutnu 20.04 
+# install ansible on ubuntu 20.04 
 ansible_install_2004() {
   sudo apt -yq update
   # sudo apt -yq  upgrade
