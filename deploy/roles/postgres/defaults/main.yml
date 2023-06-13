@@ -6,4 +6,3 @@ postgresql_extensions:
   - postgis
   - btree_gin
   - pg_trgm
-

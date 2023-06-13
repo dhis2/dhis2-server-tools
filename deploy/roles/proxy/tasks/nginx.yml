@@ -87,18 +87,20 @@
   ansible.builtin.service: >
     name=nginx state=started
 
-# location configs
+# Creating upstream directory
 - name: "Creating nginx upstream directory"
   ansible.builtin.file:
     path: /etc/nginx/conf.d/upstream
     state: directory
       
+# Instance location configuration
 - name: "Copy dhis2 location configs" 
   template:
     src: nginx/instance.j2
     dest: /etc/nginx/conf.d/upstream/dhis2.conf
   notify: Reload Nginx
 
+# munin location configurarion
 - name: "Copy {{ app_monitoring }} location configs"
   template:
     src: nginx/{{ app_monitoring }}.j2 

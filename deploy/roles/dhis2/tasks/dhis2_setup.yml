@@ -5,7 +5,7 @@
     update_cache: yes
     cache_valid_time: 86400
 
-- name: "download dhis2 releases.json file"
+- name: "Download dhis2 releases.json file"
   vars:
     ansible_connection: local
   become: False
@@ -13,10 +13,10 @@
     url: https://releases.dhis2.org/v1/versions/stable.json
     dest: vars/releases.json
     force: true
-  when: dhis2_version is defined and dhis2_version | type_debug == "float"
+  when: dhis2_version is defined and dhis2_version | type_debug == "float" and dhis2_war_file is undefined 
   changed_when: false
 
-- name: "load releases.json file"
+- name: "Load releases.json file"
   vars:
     ansible_connection: local
   ansible.builtin.include_vars:
@@ -43,7 +43,8 @@
     ansible_connection: local
   ansible.builtin.set_fact:
     dhis2_url: "{{ dhis2_release_version['latestStableUrl']}}"
-  when: dhis2_war_file is undefined # and dhis2_war_file | regex_search('(https:\/\/)') and dhis2_url is undefined
+  when: dhis2_war_file is undefined
+  # and dhis2_war_file | regex_search('(https:\/\/)') and dhis2_url is undefined
 
 # tomcat setup
 - name: "installing java and tomcat and zip" 
@@ -72,9 +73,11 @@
   register: version_results  
   changed_when: false 
 
-- name: "Print Version number"
-  debug:
-    msg: "running dhis2 versin is:{{ version_results.stdout | trim }} new stable version {{latest_patchversion}} is availlable, upgrading"
+- ansible.builtin.debug:
+    msg: 
+    - "Running release: {{ version_results.stdout | trim }}."
+    - "Latest patch release: {{latest_patchversion}}." 
+    - set dhis2_auto_upgrade = True in your inventory file to enable automatic upgrade. 
   when: 
     - dhis2_version is defined 
     - dhis2_war_file is undefined
@@ -90,7 +93,7 @@
     force: true
     # checksum: "sha256:{{sha256}}"
   when: 
-    - "'skipped' in version_results.stdout or version_results.stdout | trim is version(latest_patchversion, '<')"
+    - "'skipped' in version_results.stdout or (version_results.stdout | trim is version(latest_patchversion, '<') and dhis2_auto_upgrade | default(false) | bool)"
     - sha256 is defined 
     - dhis2_url is defined 
 
@@ -114,8 +117,7 @@
 # Cleaning up webapps directory
 - name: "Clean /var/lib/tomcat9/webapps" 
   file: path=/var/lib/tomcat9/webapps/ state=absent
-  when: "'skipped' in version_results.stdout or version_results.stdout | trim is version(latest_patchversion, '<') or dhis2_war_file is defined"
-  # when: "'skipped' in version_results.stdout or version_results.stdout | trim is version(latest_patchversion, '<') or dhis2_war_file |regex_search('^(?!.*?https:\/\/).*$')"
+  when: "'skipped' in version_results.stdout or (version_results.stdout | trim is version(latest_patchversion, '<') and dhis2_auto_upgrade | default(false)) or dhis2_war_file is defined"
 
 # Creating application directories
 - name: "Creating webapps directories"
@@ -218,3 +220,4 @@
 
 - name: Flushing handlers
   meta: flush_handlers
+

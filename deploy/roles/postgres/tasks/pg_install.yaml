@@ -57,7 +57,8 @@
     mode: "0644"
     owner: root
     group: root
-
+  notify: Restart Postgres
+    
 
 # Adding root postgresql_user
 - name: "Adding root postgresql role"

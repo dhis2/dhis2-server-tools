@@ -1,5 +1,4 @@
-# create database container(s)
-
+# create lxd container for postgres instance
 - name: "Creating postgres container"
   become: True
   vars:
@@ -45,4 +44,3 @@
     wait_for_ipv4_addresses: True
   when:
     - hostvars[inventory_hostname]['ansible_host'] != hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['address']
-

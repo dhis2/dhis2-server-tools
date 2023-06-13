@@ -6,5 +6,5 @@
 
 # installing postgresql database
 - name: "Installing postgres over {{ansible_connection}} connection"
-  include_tasks: postgresql_install.yml
+  include_tasks: pg_install.yaml
   when: inventory_hostname in groups['databases']
