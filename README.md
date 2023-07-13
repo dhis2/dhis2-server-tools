@@ -1,4 +1,5 @@
 # dhis2-server-tools
+
 **Table of Contents**
 - [DHIS2 install with ansible](#dhis2-server-tools)
   * [Introduction](#Introduction)
@@ -19,13 +20,20 @@
 
 ## Introduction 
 
-This tools install DHIS2 application stack using ansible configuration
-management tool. DHIS2 stack is comprised tomcat9 server/servers, database(postgresql),
-proxy (nginx/apache2) and monitoring (munin). Two install approaches supported, 
+In this repository, you'll find Ansible playbooks and roles designed to
+automate the installation and configuration of the DHIS2 application stack. The
+ultimate objective is to set up all the components of the DHIS2 stack,
+including the Java web app, PostgreSQL, proxy and monitoring tools. 
+
+With these tools, we strive to support various architectures, such as having
+all components on a single server (boombox), each component running on its
+dedicated machines/VMs, or a hybrid combination.
+
+Two install architectures tested,
 
 1. setup on a single server, with lxd:-<br> 
-    Uses lxd containers, you'll set `ansible_connection` variable to `lxd`, more info below. 
-2. Setup on multiple servers:- <br> 
+    Uses lxd containers, you'll set `ansible_connection` variable to `lxd`, 
+2. Setup on multiple machines/VMs:- <br> 
     dhis2 application stack running on separate servers/Virtual-machines. e.g
     database server runs on its own VM.  
 
@@ -46,7 +54,7 @@ _**NOTE:** In case your architecture is a multiple server setup, you'll need a
 central deployment server, with working ssh access to all managed servers._ <br> 
 ansible community.general modules which we are suing requires ,ansible version
 ≥ **_2.11_**
-If you are doing installation on ubuntu 18.04, use pip3 instead.
+If you are doing installation on ubuntu 18.04, use pip3 to install latest ansible.
 
 run below commands to install ansible <br>
 ```

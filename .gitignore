@@ -5,6 +5,7 @@ privkey.pem
 .stversions/
 notes.sh
 create_containers.yml
+releases.json
 notes
 *test*
 *dev*

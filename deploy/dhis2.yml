@@ -1,13 +1,15 @@
 ---
-- hosts: 127.0.0.1
-  become: True
-  gather_facts: False
+- name: "Preparing localhost"
+  hosts: 127.0.0.1
+  become: true
+  gather_facts: false
   roles:
     - pre_requisites
 
-- gather_facts: False
-  force_handlers: True
-  become: True
+- name: "DHIS2 setup"
+  gather_facts: false
+  force_handlers: true
+  become: true
   hosts: all:!127.0.0.1
   vars_files:
     - vars/vars.yml
@@ -17,9 +19,11 @@
     - role: proxy
     - role: monitoring
   tasks:
-    - include_tasks: playbooks/unattended_upgrades.yml
-      when: 
-      - unattended_upgrades is defined
-      - unattended_upgrades | bool == true
+    - name: "Install and configure unattended_upgrades"
+      ansible.builtin.include_tasks: playbooks/unattended_upgrades.yml
+      when:
+        - unattended_upgrades is defined
+        - unattended_upgrades | bool == true
   handlers:
-    - import_tasks: playbooks/handlers.yml
+    - name: "Handlers to restart unattended_upgrades etc"
+      ansible.builtin.import_tasks: playbooks/handlers.yml

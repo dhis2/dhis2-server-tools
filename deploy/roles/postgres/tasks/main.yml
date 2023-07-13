@@ -1,10 +1,10 @@
 ---
 # Can either be ssh or lxd related tasks
-- name: "Including database {{ ansible_connection }} connection tasks"
-  include_tasks: "{{ansible_connection}}.yml"
+- name: "Including tasks | {{ ansible_connection }}"
+  ansible.builtin.include_tasks: "{{ ansible_connection }}.yml"
   when: inventory_hostname in groups['databases']
 
 # installing postgresql database
-- name: "Installing postgres over {{ansible_connection}} connection"
-  include_tasks: pg_install.yaml
+- name: "Installing postgres over {{ ansible_connection }}"
+  ansible.builtin.include_tasks: pg_install.yaml
   when: inventory_hostname in groups['databases']

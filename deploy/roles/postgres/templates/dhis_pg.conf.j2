@@ -4,8 +4,8 @@
 # By default each instance requires up to 80 connections
 # This might be different if you have set pool in dhis.conf
 # max_connections = 200 
-{% if pg_max_connections is defined  and pg_max_connections != None and pg_max_connections | trim %}
-max_connections = {{pg_max_connections | default(200)}}
+{% if pg_max_connections is defined and pg_max_connections | regex_search('\d+') %}
+max_connections = {{ pg_max_connections }}
 {% else %}
 max_connections = 200
 {% endif %}
@@ -13,27 +13,27 @@ max_connections = 200
 # Tune these according to your environment
 # About 25% available RAM for postgres
 # shared_buffers = 3GB
-{% if pg_shared_buffers is defined  and pg_shared_buffers != None and pg_shared_buffers | trim %}
-shared_buffers = {{pg_shared_buffers }}
+{% if pg_shared_buffers is defined and pg_shared_buffers | regex_search('^\d+(GB|MB|KB)$') %}
+shared_buffers = {{ pg_shared_buffers }}
 {% endif %}
 
 # Multiply by max_connections to know potentially how much RAM is required
 # work_mem=20MB
-{% if pg_work_mem is defined and pg_work_mem != None and pg_work_mem | trim   %}
-work_mem = {{pg_work_mem}}
+{% if pg_work_mem is defined and  pg_work_mem | regex_search('^\d+(GB|MB|KB)$') %}
+work_mem = {{ pg_work_mem }}
 {% endif %}
 
 # As much as you can reasonably afford.  Helps with index generation 
 # during the analytics generation task
 # maintenance_work_mem=512MB
-{% if pg_maintenance_work_mem is defined and pg_maintenance_work_mem != None and pg_maintenance_work_mem | trim %}
-maintenance_work_mem = {{pg_maintenance_work_mem}}
+{% if pg_maintenance_work_mem is defined and pg_maintenance_work_mem | regex_search('^\d+(GB|MB|KB)$') %}
+maintenance_work_mem = {{ pg_maintenance_work_mem }}
 {% endif %}
 
 # Approx 80% of (Available RAM - maintenance_work_mem - max_connections*work_mem)
 # effective_cache_size=8GB
-{% if pg_effective_cache_size is defined and pg_effective_cache_size != None and pg_effective_cache_size | trim %}
-effective_cache_size = {{pg_effective_cache_size}}
+{% if pg_effective_cache_size is defined and pg_effective_cache_size | regex_search('^\d+(GB|MB|KB)$') %}
+effective_cache_size = {{ pg_effective_cache_size }}
 {% endif %}
 
 checkpoint_completion_target = 0.8

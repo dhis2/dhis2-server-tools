@@ -2,7 +2,7 @@
 # install lxd with snap
 - name: "Initiate lxd"
   vars:
-    ansible_connection: local 
+    ansible_connection: local
   block:
   - name: "Gathering facts"
     ansible.builtin.setup:
@@ -12,9 +12,9 @@
 
   - name: "Updating and upgrading the host"
     ansible.builtin.apt:
-      update_cache: yes
+      update_cache: true
       cache_valid_time: 86400
-      upgrade: yes
+      upgrade: true
 
   - name: "Ensure python's netaddr is installed"
     ansible.builtin.apt:
@@ -34,12 +34,12 @@
     changed_when: false
 
   - name: "Creating lxd-preseed.yml"
-    set_fact:
+    ansible.builtin.set_fact:
       master: "{{ lookup('template', 'lxd-preseed.yml.j2') }}"
 
-  - name: "Backup lxd-preseed configuration to /tmp directory" 
+  - name: "Backup lxd-preseed configuration to /etc directory"
     ansible.builtin.copy:
-      dest: /tmp/lxd-preseed.yml
+      dest: /etc/lxd-preseed.yml
       content: "{{ master }}"
       mode: '0644'
 
@@ -59,14 +59,16 @@
     changed_when: false
 
   - name: "Making lxd restart idempotent"
-    ansible.builtin.file: > 
-      path=/snap/lxd/.lxd-restart state=touch
-      mode=u+rw,g-wx,o-rwx modification_time=preserve
-      access_time=preserve
-  - name: "Copy service sripts to /usr/local/bin/" 
+    ansible.builtin.file:
+      path: /snap/lxd/.lxd-restart
+      state: touch
+      mode: u+rw,g-wx,o-rwx
+      modification_time: preserve
+      access_time: preserve
+  - name: "Copy service sripts to /usr/local/bin/"
     ansible.builtin.copy:
-      src: "{{item}}"
-      dest:  /usr/local/bin/
+      src: "{{ item }}"
+      dest: /usr/local/bin/
       owner: root
       group: root
       mode: u=rwx,g=rwx,o=x
@@ -78,9 +80,8 @@
       - dhis2-deploy-war
       - dhis2-logview
       # - dhis2-query-killer.py
-      - dhis2-restoredb 
+      - dhis2-restoredb
       # - dhis2-tomcat-munin
 
-  - name: "Including firewall configuration tasks on the host" 
-    include_tasks: firewall.yml
-
+  - name: "Including firewall configuration tasks on the host"
+    ansible.builtin.include_tasks: firewall.yml

@@ -2,7 +2,11 @@ JAVA_OPTS="-Djava.awt.headless=true"
 # Set desired HEAP size here.  By default jvm will assume that it can
 # use up 25% of the memory it sees.  Better to set explicitly.
 # For production instances, set minimum size the same as maximum
+{% if heap_memory_size is defined  and heap_memory_size |  regex_search('\\d+[G|M|g|m]') %}
+ JAVA_OPTS="${JAVA_OPTS} -Xmx{{ heap_memory_size }} -Xms{{ heap_memory_size }}"
+{% else %}
 # JAVA_OPTS="${JAVA_OPTS} -Xmx16G -Xms16G"
+{% endif %}
 
 # Mitigating log4j vulnerability
 JAVA_OPTS="${JAVA_OPTS} -Dlog4j2.formatMsgNoLookups=true"

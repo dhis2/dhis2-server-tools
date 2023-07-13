@@ -62,15 +62,23 @@ then
     # install community general collections 
     ansible-galaxy collection install community.general
 fi
-
-if [ $(cat inventory/hosts  | grep -Po '(?<=ansible_connection=)([a-z].*)') == "lxd" ]
-then
-    # deploying dhis2 in lxd containers
-   echo "Deploying dhis2 with lxd ..."
-   sudo ansible-playbook dhis2.yml
-else
-   # deploying dhis2 over ssh
-   echo "Deploy dhis2 over ssh ..."
-   read -p "Enter ssh user: " ssh_user
-   su -c "ansible-playbook  dhis2.yml -kK" $ssh_user
+# deploying dhis2 
+if [[ -f inventory/hosts ]]; then
+    if [ $(cat inventory/hosts  | grep -Po '(?<=ansible_connection=)([a-z].*)') == "lxd" ]
+    then
+        # deploying dhis2 in lxd containers
+       echo "Deploying dhis2 with lxd ..."
+       sudo ansible-playbook dhis2.yml
+    else
+       # deploying dhis2 over ssh
+       echo "Deploy dhis2 over ssh ..."
+       read -p "Enter ssh user: " ssh_user
+       su -c "ansible-playbook  dhis2.yml -kK" $ssh_user
+    fi
+  else
+    echo -e "\e${RED}============= ERROR =================="
+    echo "Ensure you create a hosts file in the inventory directory"
+    echo "by copying inventory/hosts.template to inventory/hosts"
+    echo "cp inventory/{hosts.template,hosts}"
+    echo "jot in your email and fqdn (fully qualified domain name) in the file as well"
 fi

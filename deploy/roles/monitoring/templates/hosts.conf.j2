@@ -12,6 +12,6 @@
 #}
 {% for host in ansible_play_batch %}
 [{{ host }}]
-    address {{hostvars[host]['ansible_host']}}
+    address {{ hostvars[host]['ansible_host'] }}
     use_node_name yes
 {% endfor %}

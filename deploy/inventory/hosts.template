@@ -29,6 +29,10 @@ email=""
 # timedatectl list-timezones to list timezones
 timezone="Africa/Kigali"
 
+# database 
+# this is the host gateway address to the database server if the database is on another network
+# db_gateway_address=172.21.0.2 
+
 # monitoring
 server_monitoring="munin"
 app_monitoring="glowroot"

@@ -1,13 +1,14 @@
+---
 # create lxd container for postgres instance
 - name: "Creating postgres container"
-  become: True
+  become: true
   vars:
     ansible_connection: local
   community.general.lxd_container:
     config:
       "boot.autostart.priority": "0"
-    name: "{{inventory_hostname}}"
-    # architecture: "{{ guest_os_arch | default('amd64')}}"
+    name: "{{ inventory_hostname }}"
+    # architecture: "{{ guest_os_arch | default('amd64') }}"
     state: started
     profiles: ["default"]
     ignore_volatile_options: false
@@ -17,14 +18,14 @@
       type: image
       mode: pull
       server: "{{ lxd_source_server | default('https://cloud-images.ubuntu.com/releases') }}"
-      protocol: "{{lxd_source_protocol | default('simplestreams')}}"
-      alias: "{{guest_os }}/{{guest_os_arch | default('amd64')}}"
+      protocol: "{{ lxd_source_protocol | default('simplestreams') }}"
+      alias: "{{ guest_os }}/{{ guest_os_arch | default('amd64') }}"
     devices:
       eth0:
         type: 'nic'
-        parent: "{{ lxd_bridge_interface | default ('lxdbr1') }}"
+        parent: "{{ lxd_bridge_interface | default('lxdbr1') }}"
         nictype: bridged
-        ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network)}}" 
+        ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) }}"  # need more refactoring
 
 # Gather container's facts, required is  ip.address and codename
 - name: "Get facts"
@@ -33,14 +34,14 @@
       - network
       - '!min'
 
-# compare running ip address with the one configured on inventory host. 
+# compare running ip address with the one configured on inventory host.
 - name: "Ensuring container has configured static ip address"
-  become: True
+  become: true
   vars:
     ansible_connection: local
   community.general.lxd_container:
     name: "{{ inventory_hostname }}"
     state: restarted
-    wait_for_ipv4_addresses: True
+    wait_for_ipv4_addresses: true
   when:
     - hostvars[inventory_hostname]['ansible_host'] != hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['address']
