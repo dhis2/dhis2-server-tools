@@ -2,17 +2,17 @@
   set_fact:
     now: "{{ lookup('pipe', 'date +%F-%H%M-') }}"
 - name: "Create a backup directory"
-  file:
+  ansible.builtin.file:
     path: "/var/backups/postgres/"
-    mode: 0700
+    mode: '0700'
     owner: postgres
     state: directory
 
 - name: "Preparing to upgrade DHIS2, it is recommended to back up the database beforehand.\nThe duration of the backup process may vary based on the size of your database."
-  postgresql_db:
+  community.general.postgresql_db:
     state: dump
     name: "{{ item }}"
-    target: "/var/backups/postgres/{{ now }}{{item}}.dump.gz"
-  become: yes
+    target: "/var/backups/postgres/{{ now }}{{ item }}.dump.gz"
+  become: true
   become_user: postgres
   loop: "{{ groups['instances'] }}"

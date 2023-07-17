@@ -32,7 +32,6 @@ your database, tailored to different deployment scenarios. These specifications
 aim to facilitate smooth operation and efficient handling of DHIS2's data
 management requirements.
 
-
 * RAM - At least 2 GB for a small instance, 16 GB for a medium instance, 64 GB
   or more for a large instance.
 * CPU -  4 CPU cores for a small instance, 8 CPU cores for a medium instance,
@@ -52,7 +51,6 @@ Check disk latency with
 * `libdbd-pg-perl `
 * `postgresql-13-postgis-3`
 
-
 ## Installation
 
 Although the official Ubuntu repositories do offer PostgreSQL packages, they
@@ -62,20 +60,14 @@ PostgreSQL 14 by default. To install a specific version—in this case,
 PostgreSQL 13—we will utilize the official PostgreSQL repositories, which
 ensure access to the desired version for our installation.
 
-
 ### Step1 -  update and upgrade the server. 
-
 
 ```
 sudo apt update -y 
 sudo apt upgrade -y 
 ```
 
-
-
 ### Step2 -  installing PostgreSQL database 
-
-
 
 * Add postgresql repo signing key
 
@@ -93,10 +85,7 @@ sudo apt upgrade -y
     sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
     ```
 
-
-
     Update your cache after adding repository
-
 
     ```
     sudo apt update	
@@ -108,19 +97,13 @@ sudo apt upgrade -y
     sudo apt install postgresql-13 postgresql-client-13 libdbd-pg-perl postgresql-13-postgis-3
     ```
 
-
 * Ensure postgresql is running
-
 
 ```
 	sudo systemctl start postgresql
 ```
 
-
-
 ### Step3 -  postgresql configuration
-
-
 
 * The "postgresql.conf" file serves as the primary configuration file for
   PostgreSQL. It provides essential settings that can be modified to configure
@@ -134,7 +117,6 @@ sudo apt upgrade -y
   To implement our custom configurations that will override the settings in
   "postgresql.conf," we will create a new file called **"dhispg.conf"** within
   the **"/etc/postgresql/<pg_major_version>/main/conf.d" **directory.
-
 
     ```
     vim /etc/postgresql/13/main/conf.d/dhispg.conf
@@ -207,7 +189,6 @@ sudo apt upgrade -y
   host      dhis         dhis  172.19.2.12/32    md5
   ```
 
-
 ### Step4 - Firewall 
 
 To ensure the security of your database server, it is important to assign a
@@ -230,13 +211,11 @@ unauthorized access or attacks.
 Below are examples of ufw commands allowing ssh access and db access from the
 application server. 
 
-
 ```
 sudo ufw allow proto tcp from <instnce_ip> to 0.0.0.0 port 5432 comment "dhis2-traffic" 
 sudo ufw allow proto tcp from 0.0.0.0 to 0.0.0.0 port 22 comment "ssh traffic"
 sudo ufw enable
 ```
-
 
 DB Maintenance and backup
 
@@ -247,7 +226,6 @@ invoke,
 ```
 sudo -u postgres psql 
 ```
-
 
 We shall be interacting with postgresql database for simple tasks with psql, 
 To create a database 
@@ -274,8 +252,6 @@ database backup. To customize the backup script, you will need to modify it
 with the details of your remote location. Below are some common remote
 locations supported by the tools. 
 
-
-
 * A remote server dedicated to backups, which requires ample storage space. If
   the remote server runs on a Linux system, we utilize the rsync tool.
   Otherwise, if it's a different operating system, we employ scp. For this
@@ -284,7 +260,6 @@ locations supported by the tools.
 * S3-compatible object storage. In this scenario, you can push your backups to
   a remote storage solution that is compatible with the S3 protocol.
 
-
 ### Troubleshooting and monitoring
 
 When encountering any problems with your PostgreSQL database, it is essential
@@ -292,11 +267,9 @@ to investigate the logs, which are typically stored in the /var/log/postgresql/
 directory. By carefully examining these logs, you can gather valuable insights
 into the system's behavior and identify any potential errors or irregularities.
 
-
 ```
 sudo tail -f /var/log/postgresql/postgresql-13-main.log
 ```
-
 
 Furthermore, PostgreSQL logs are automatically recorded in the system journal.
 To analyze these logs, you can utilize the journalctl system logging service.
@@ -312,7 +285,6 @@ lines on the postgresql configuration file.
 Common troubleshooting tips 
 
 Check whether postgresql is invoking,  
-
 
 ```
 ps aux | grep postgres 
@@ -362,6 +334,7 @@ psql -U dhis -d dhis -W
         update_cache: true
         filename: apt_postgresql_org
         state: present
+
     # Install postgresql and python module for Postgres
     - name: "Installing postgres version {{ postgresql_version }}"
       ansible.builtin.apt:

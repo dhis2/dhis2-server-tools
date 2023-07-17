@@ -1,6 +1,6 @@
 {% for host in groups['instances'] %}
-location /{{host}}-glowroot {
-   proxy_pass http://{{ hostvars[host]['ansible_host']+':4000' }}/{{host}}-glowroot;
+location /{{ host }}-glowroot {
+   proxy_pass http://{{ hostvars[host]['ansible_host']+':4000' }}/{{ host }}-glowroot;
    include /etc/nginx/proxy_params;
    proxy_redirect off;
    proxy_hide_header X-Powered-By;

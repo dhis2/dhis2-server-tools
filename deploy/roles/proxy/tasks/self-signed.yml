@@ -5,17 +5,17 @@
     state: directory
     modification_time: preserve
     access_time: preserve
+    mode: '0755'
     owner: root
     group: root
   register: self_signed_dir
 
 - name: "Generating private key RSA, 4096 bits"
   community.crypto.openssl_privatekey:
-    path: "{{self_signed_dir['path']}}/self-signed.key"
+    path: "{{ self_signed_dir['path'] }}/self-signed.key"
 
 - name: "Generating self-signed certificate"
   community.crypto.x509_certificate:
-    path: "{{self_signed_dir['path']}}/self-signed.crt"
-    privatekey_path: "{{self_signed_dir['path']}}/self-signed.key"
-    provider: selfsigned 
-      
+    path: "{{ self_signed_dir['path'] }}/self-signed.crt"
+    privatekey_path: "{{ self_signed_dir['path'] }}/self-signed.key"
+    provider: selfsigned

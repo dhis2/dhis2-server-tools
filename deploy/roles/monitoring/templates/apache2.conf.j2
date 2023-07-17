@@ -1,0 +1,42 @@
+# Munin configuration for apache2
+# Apache can serve munin's files that are either statically generated
+# (in a cron job) or generated on demand (via cgi).
+# The relevant munin settings are "html_strategy" and "graph_strategy".
+# The related apache settings can be adjusted at the end of this file.
+#
+# See /usr/share/doc/munin/README.Debian for details.
+
+
+# ***** COMMON SETTINGS FOR ALL STRATEGIES *****
+
+ScriptAlias /munin-cgi/munin-cgi-graph /usr/lib/munin/cgi/munin-cgi-graph
+Alias /munin/static/ /var/cache/munin/www/static/
+
+<Directory /var/cache/munin/www>
+    Require all granted
+    Options None
+</Directory>
+
+<Directory /usr/lib/munin/cgi>
+    Require all granted
+    <IfModule mod_fcgid.c>
+        SetHandler fcgid-script
+    </IfModule>
+    <IfModule !mod_fcgid.c>
+        SetHandler cgi-script
+    </IfModule>
+</Directory>
+
+
+# ***** SETTINGS FOR CGI/CRON STRATEGIES *****
+
+# pick _one_ of the following lines depending on your "html_strategy"
+# html_strategy: cron (default)
+
+{% if hostvars['proxy']['munin_base_path'] is defined and hostvars['proxy']['munin_base_path'] is not none and  hostvars['proxy']['munin_base_path'] | trim != '' %}
+    Alias /{{ hostvars['proxy']['munin_base_path'] }} /var/cache/munin/www
+{% else %}
+Alias /{{ server_monitoring }} /var/cache/munin/www
+{% endif %}
+# html_strategy: cgi (requires the apache module "cgid" or "fcgid")
+#ScriptAlias /munin /usr/lib/munin/cgi/munin-cgi-html

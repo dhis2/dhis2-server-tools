@@ -72,7 +72,7 @@
     name: root
     role_attr_flags: "SUPERUSER"
 
-- name: "Allow postgres database listening on network"
+- name: "Postgresql | listen_addresses '*'"
   ansible.builtin.lineinfile:
     dest: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/postgresql.conf
     regex: "^#?listen_addresses"
@@ -80,7 +80,7 @@
   notify: Restart Postgres
 
 # Fixing pg_hba.conf permissions
-- name: "Edit pg_hba.conf permissions, allowing instances to connect, with database on another network/host "
+- name: "Edit pg_hba.conf permissions, allowing instances to connect"
   become: true
   ansible.builtin.lineinfile:
     path: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf
@@ -106,7 +106,7 @@
     - inventory_hostname == hostvars[item]['database_host']
     - db_gateway_address is undefined
 
-- name: "Edit pg_hba.conf permissions, allowing connection dhis instances, dhis2 app server"
+- name: "Edit pg_hba.conf permissions, allowing connection from dhis instances,"
   become: true
   ansible.builtin.lineinfile:
     path: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf
