@@ -103,7 +103,7 @@ sudo apt upgrade -y
 	sudo systemctl start postgresql
 ```
 
-### Step3 -  postgresql configuration
+### Step3 -  Postgresql configuration and optimization.   
 
 * The "postgresql.conf" file serves as the primary configuration file for
   PostgreSQL. It provides essential settings that can be modified to configure

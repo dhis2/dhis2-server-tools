@@ -124,7 +124,7 @@
   ansible.builtin.file:
     path: /var/lib/tomcat9/webapps/
     state: absent
-  when: "'skipped' in version_results.stdout or (latest_patchversion is defined and  version_results.stdout | trim is version(latest_patchversion, '<') and dhis2_auto_upgrade | default(false) | bool ) or dhis2_war_file is defined"
+  when: "'skipped' in version_results.stdout or (latest_patchversion is defined and version_results.stdout | trim is version(latest_patchversion, '<') and dhis2_auto_upgrade | default(false) | bool ) or dhis2_war_file is defined"
 
 # Creating application directories
 - name: "Creating webapps directories"
@@ -146,7 +146,7 @@
   ignore_errors: true
   notify: Restart Tomcat
 
-# copy sever.xml config to the instances
+# copy server.xml config to the instances
 - name: "Copy server.xml to the instances"
   ansible.builtin.copy:
     src: server.xml

@@ -1,20 +1,20 @@
 # Check if dhis2.conf exists
 - name: "Create instances database role:"
-  become: yes
+  become: true
   become_user: postgres
   community.general.postgresql_user:
-    name:  "{{ item }}"
+    name: "{{ item }}"
     state: present
     password: "{{ hostvars[item]['db_password'] }}"
   loop: "{{ groups['instances'] }}"
-  when: 
+  when:
     - hostvars[item]['db_password'] is defined
-    - inventory_hostname == hostvars[item]['database_host'] 
-  notify: Reload Postgres 
+    - inventory_hostname == hostvars[item]['database_host']
+  notify: Reload Postgres
 
 # Creating instances databases
 - name: "Creating dhis2 database/databases"
-  become: yes
+  become: true
   become_user: postgres
   community.postgresql.postgresql_db:
     name: "{{ item }}"
@@ -23,22 +23,21 @@
   loop: "{{ groups['instances'] }}"
   when:
     - inventory_hostname == hostvars[item]['database_host']
-  notify: Reload Postgres 
+  notify: Reload Postgres
 
 # Creating postgresql extensions
 - name: "Creating postgis,btree_gin and pg_trgm extensions"
-  become: True
+  become: true
   become_user: postgres
   community.general.postgresql_ext:
-    db: "{{ item.0 }}" 
+    db: "{{ item.0 }}"
     name: "{{ item.1 }}"
   with_nested:
-    - "{{ groups['instances'] }}" 
+    - "{{ groups['instances'] }}"
     - "{{ postgresql_extensions }}"
-  when: 
+  when:
     - hostvars[item.0]['db_password'] is defined
-    - inventory_hostname == hostvars[item.0]['database_host'] 
+    - inventory_hostname == hostvars[item.0]['database_host']
   loop_control:
     label: "{{ item.1 }}"
-  notify: Reload Postgres 
-
+  notify: Reload Postgres

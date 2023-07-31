@@ -24,7 +24,6 @@ if [[ $UFW_STATUS == "inactive" ]]; then
 # install ansible on ubutnu 20.04 
 ansible_install_2004() {
   sudo apt -yq update
-  # sudo apt -yq  upgrade
   sudo apt install -yq  git
   sudo apt install -yq software-properties-common   
   sudo apt-add-repository --yes --update ppa:ansible/ansible
@@ -35,7 +34,6 @@ ansible_install_2004() {
   sed -i 's/#$nrconf{restart} = '"'"'i'"'"';/$nrconf{restart} = '"'"'a'"'"';/g' /etc/needrestart/needrestart.conf  
   sed -i "s/#\$nrconf{kernelhints} = -1;/\$nrconf{kernelhints} = -1;/g" /etc/needrestart/needrestart.conf  
   sudo apt -yq update
-  # sudo apt -yq  upgrade
   sudo apt install -yq  git
   sudo apt install -yq software-properties-common
   sudo apt-add-repository --yes --update ppa:ansible/ansible
@@ -76,9 +74,15 @@ if [[ -f inventory/hosts ]]; then
        su -c "ansible-playbook  dhis2.yml -kK" $ssh_user
     fi
   else
-    echo -e "\e${RED}============= ERROR =================="
+    echo "======================= ERROR ======================="
     echo "Ensure you create a hosts file in the inventory directory"
-    echo "by copying inventory/hosts.template to inventory/hosts"
+    echo "by copying inventory/hosts.template to inventory/hosts with the command below-:"
+    echo ""
     echo "cp inventory/{hosts.template,hosts}"
-    echo "jot in your email and fqdn (fully qualified domain name) in the file as well"
+    echo ""
+    echo "Please ensure to provide values for the fqdn and email variables, for example:"
+    echo ""
+    echo "fqdn='dhis.example.com'"
+    echo "email='dhis@example.com'"
+    echo ""
 fi

@@ -18,7 +18,8 @@
  # add postgres apt repository
 - name: "Adding postgres apt repository to sources list"
   ansible.builtin.apt_repository:
-    repo: "deb [arch={{ guest_os_arch|default('amd64') }} signed-by=/etc/apt/trusted.gpg.d/postgresql.asc] https://apt.postgresql.org/pub/repos/apt {{ hostvars[inventory_hostname]['ansible_facts']['distribution_release'] }}-pgdg main"
+    repo: "deb [arch={{ guest_os_arch | default('amd64') }} signed-by=/etc/apt/trusted.gpg.d/postgresql.asc]
+      https://apt.postgresql.org/pub/repos/apt {{ hostvars[inventory_hostname]['ansible_facts']['distribution_release'] }}-pgdg main"
     update_cache: true
     filename: apt_postgresql_org
     state: present
@@ -58,9 +59,9 @@
   ansible.builtin.template:
     src: dhis_pg.conf.j2
     dest: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/conf.d/dhispg.conf
-    mode: "0644"
     owner: root
     group: root
+    mode: '0644'
   notify: Restart Postgres
 
 # Adding root postgresql_user

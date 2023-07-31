@@ -23,7 +23,7 @@
       ansible.builtin.include_tasks: playbooks/unattended_upgrades.yml
       when:
         - unattended_upgrades is defined
-        - unattended_upgrades | bool == true
+        - unattended_upgrades | bool
   handlers:
     - name: "Handlers to restart unattended_upgrades etc"
       ansible.builtin.import_tasks: playbooks/handlers.yml

@@ -11,7 +11,7 @@ postgres  ansible_host=172.19.2.20
 
 # dhis2 servers/containers
 [instances]
-hmis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.39 proxy_rewrite=True
+dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.39 proxy_rewrite=True
 
 # monitoring server/container
 [monitoring]
@@ -60,8 +60,8 @@ create_db=yes
 JAVA_VERSION="11" 
 
 # NOTE: if dhis2_war_file and dhis2_version are both defined, dhis2_war_file takes precedence  
-# dhis2_war_file=/full/path/dhis2.war
 dhis2_war_file="https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war"
+# dhis2_war_file=/full/path/dhis2.war
 # dhis2_version=2.38
 
 # whether dhis2 should be upgraded automatically to the latest defined version. 

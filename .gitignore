@@ -3,6 +3,7 @@ fullchain.pem
 privkey.pem
 .stignore
 .stversions/
+.stfolder
 notes.sh
 create_containers.yml
 releases.json
@@ -14,4 +15,4 @@ notes
 deploy.log
 hosts
 deploy/inventory/host_vars/*
-!deploy/inventory/host_vars/*.teplate
+!deploy/inventory/host_vars/*.template

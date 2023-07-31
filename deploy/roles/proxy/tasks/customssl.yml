@@ -1,20 +1,23 @@
 --- 
 # Copy certificate and key to the server
 - name: "Creating TLS certificate directory"
-  file:
-    path: /etc/ssl/{{fqdn}}
+  ansible.builtin.file:
+    path: /etc/ssl/{{ fqdn }}
     state: directory
     modification_time: preserve
     access_time: preserve
-      
-# Copying over ssl certificate
-- name: "Porting TLS certificate"
-  copy:
-    src: "{{item}}" # ensure the file exists
-    dest: /etc/ssl/{{fqdn}}/{{item}}
     owner: root
     group: root
-    mode: 0644
+    mode: '0755'
+
+# Copying over ssl certificate
+- name: "Porting TLS certificate"
+  ansible.builtin.copy:
+    src: "{{ item }}" # ensure the file exists
+    dest: /etc/ssl/{{ fqdn }}/{{ item }}
+    owner: root
+    group: root
+    mode: '0644'
   loop:
     - customssl.crt
     - customssl.key

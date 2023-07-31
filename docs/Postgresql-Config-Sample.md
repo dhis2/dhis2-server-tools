@@ -1,5 +1,6 @@
- Postgresql settings for DHIS2
+#  Postgresql settings for DHIS2
 
+```
 # Adjust depending on number of DHIS2 instances and their pool size
 # By default each instance requires up to 80 connections
 # This might be different if you have set pool in dhis.conf
@@ -27,4 +28,4 @@ checkpoint_completion_target = 0.8
 synchronous_commit = off
 log_min_duration_statement = 300s
 max_locks_per_transaction = 1024
-/etc/hosts
+```

@@ -1,8 +1,12 @@
 ---
 # This is a template for proxy variables,
-# to use it, copy to ./proxy and encrypt it with ansible-vault (it contains passwords)
+# to make these varialbles available for your deployment, copy this template
+# file to proxy, that way your proxy intance will be able to read and use this
+# variables at runtime. 
+#  cp proxy.template proxy
 munin_users:
   - name: admin
     password: <put_secure_password>
+
 # if you want munic access from non default base path  
 munin_base_path: <base_path_for_munin>

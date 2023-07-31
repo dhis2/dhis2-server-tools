@@ -1,0 +1,13 @@
+# Postgresql optimization
+# Copy the file postgres.template to postgres (or generally, the name of your
+# database host ) using cp command. i.e cp postgres.template postgres
+pg_max_connections: 400 
+
+pg_shared_buffers: 8GB
+
+pg_work_mem: 20MB
+
+pg_maintenance_work_mem: 3GB
+
+pg_effective_cache_size: 10GB 
+

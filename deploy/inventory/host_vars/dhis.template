@@ -1,0 +1,7 @@
+---
+# these are variables specific to the created instance, its just an example template. 
+# NOTE: The name should correspond to the lxc container instance name you'll be creating, the same name you have on your inventory file. 
+# A few examples. 
+
+# JAVA_VERSION: 11
+# heap_memory_size: 4G 
