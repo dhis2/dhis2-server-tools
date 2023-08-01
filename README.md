@@ -1,32 +1,4 @@
-# dhis2-server-tools
-
-**Table of Contents**
-* [Introduction](#Introduction)
-* [Pre-requisites](#Requirements-before-you-begin-installation)
-* [Installing ansible](#step1-installing-ansible-configuration-tool)
-* [Download Deployment code](#step2-download-deployment-tools)
-* [Customization before install](#step3-customization-before-installation)
-  * [hosts-list-configuration](#hosts-list-configuration)
-      * [sample Host configuration](#sample-host-configuration)
-      * [hosts grouping](#hosts-grouping)
-  * [Important Variables](#important-variables)
-  * [Other variables](#other-variables)
-* [Beging installation](#step4-the-installation)
-* [Custom TLS](#using-a-custom-ssl-certificate)
-* [Database Tuning](#optimizing-postgresql)
-* [Basic lxc container management](#lxc-container-management)
-* [Monitoring](#monitoring)
-
-## Introduction 
-<style>
-    table {
-        table-layout: fixed;
-    }
-    th, td {
-        white-space: nowrap;
-    }
-</style>
-
+## Introduction
 In this repository, you'll find Ansible playbooks and roles designed to
 automate the installation and configuration of the DHIS2 application. The
 ultimate objective is to set up all the components of the DHIS2 stack,
