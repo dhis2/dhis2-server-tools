@@ -5,18 +5,17 @@
       - network
       - '!min'
 
-# acl packate is required for user switching
-- name: Ensure acl packate is installed 
+- name: Ensure acl packate is installed
   ansible.builtin.apt:
     name: acl
     state: present
-    update_cache: yes
-      
-# Allow ssh port 22. 
+    update_cache: true
+    cache_valid_time: 3600
+
 - name: Allow ssh port 22 on ufw
-  community.general.ufw: 
-    rule: limit 
-    port: "{{ ssh_port | default('22') }}" 
-    src: 0.0.0.0/0 
-    proto: tcp 
+  community.general.ufw:
+    rule: limit
+    port: "{{ ssh_port | default('22') }}"
+    src: 0.0.0.0/0
+    proto: tcp
     comment: Allow ssh access to the instance

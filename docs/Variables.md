@@ -32,42 +32,33 @@ database_host: postgres
 dhis2_version: 2.39
 ```
 
-## Variable list 
+## general variables 
 ---
-
 <table>
   <tr>
-    <th style="text-align: left; vertical-align: top;">Parameter</th>
+    <th style="text-align: left; vertical-align: top;">Variable</th>
     <th style="text-align: left; vertical-align: top;">Comments</th>
   </tr>
   <tr>
-    <td style="vertical-align: top; text-align: left;"> <code>fqdn</code></td>
-    <td> This is the domain used to access dhis2 application <br>Strictly required for Letsencrypt to work </td>
-  </tr>
-  <tr>
-    <td style="vertical-align: top; text-align: left;"><code>email</code></td>
-    <td>Strictly required if you are using Letsencrypt</td>
-  </tr>
-  <tr>
     <td style="vertical-align: top; text-align: left;"><code>timezone</code></td>
-    <td>list all available <code>timezones</code> with <code>timedatectl list-timezones</code>  <br>Examples</strong> <br> <ul><li><code>Europe/Oslo</code> </li><li><code>Africa/Nairobi</code></li></ul></td>
+    <td>list all available <code>timezones</code> with <code>timedatectl
+    list-timezones</code>  <br>Examples</strong> <br>
+    <ul><li><code>Europe/Oslo</code>
+    </li><li><code>Africa/Nairobi</code></li></ul></td>
   </tr>
 
   <tr>
      <td style="vertical-align: top; text-align: left;"><code>ansible_connection</code></td>
-    <td>Depends on the <a href="./docs/Deployment-Architectures.md">Architecture</a> you are adopting, default is <code>lxd</code> <br> <strong>Options</strong> <br> <ul><li>lxd ← (default), for single server architecture </li><li>ssh ← Distributed Architecture</li></ul> </td>
-  </tr>
- <tr>
-    <td style="vertical-align: top; text-align: left;"><code>proxy</code></td>
-    <td> Proxy software of your choice <br> <strong>Options</strong> <br> <ul><li>nginx  ← (default)</li><li>apache2</li></ul> </td>
-  </tr>
- <tr>
-    <td style="vertical-align: top; text-align: left;"><code>SSL_TYPE</code></td>
-    <td> This parameter enables to specify whether you'd want to use <code>letsencrypt</code> or your own <code>customssl</code> certificate,<br> <strong>Options</strong> <br> <ul><li>letsencrypt ← (default)</li><li>customssl</li></ul> </td>
+    <td>Depends on the <a
+    href="./docs/Deployment-Architectures.md">Architecture</a> you are
+    adopting, default is <code>lxd</code> <br> <strong>Options</strong> <br>
+    <ul><li>lxd ← (default), for single server architecture </li><li>ssh ←
+    Distributed Architecture</li></ul> </td>
   </tr>
 <tr>
      <td style="vertical-align: top; text-align: left;"><code>lxd_network</code></td>
-    <td>Here you define a network which your containers will be created into, default is <code>172.19.2.1/24</code> </td>
+    <td>Here you define a network which your containers will be created into,
+    default is <code>172.19.2.1/24</code> </td>
   </tr>
  <tr>
 <tr>
@@ -77,10 +68,10 @@ dhis2_version: 2.39
  <tr>
 </table>
 
-## instance specific variables
+## Instance Variables
 <table>
  <tr>
-    <th style="text-align: left; vertical-align: top;">Parameter</th>
+    <th style="text-align: left; vertical-align: top;">Variable</th>
     <th style="text-align: left; vertical-align: top;">Comments</th>
   </tr>
   <tr>
@@ -111,7 +102,8 @@ dhis2_version: 2.39
     <td> You can specify just the major version of dhis2 and it will get its
     latest stable iteration from  <a href="
     https://releases.dhis2.org">https://releases.dhis2.org</a>. <br>If your
-    have both <code>dhis2_war_file</code> and <code>dhis2_version</code> defined, <code>dhis2_war_file</code> wins,
+    have both <code>dhis2_war_file</code> and <code>dhis2_version</code>
+    defined, <code>dhis2_war_file</code> wins,
     <br>Examples</strong> <br> <ul><li><code>2.39</code>
     </li><li><code>2.38</code></li></ul> </td>
  <tr>
@@ -122,10 +114,10 @@ dhis2_version: 2.39
   
 </table>
 
-## PostgreSQL parameters
+## PostgreSQL Variables
 <table>
  <tr>
-    <th style="text-align: left; vertical-align: top;">Parameter</th>
+    <th style="text-align: left; vertical-align: top;">Variable</th>
     <th style="text-align: left; vertical-align: top;">Comments</th>
   </tr>
 <tr>
@@ -138,11 +130,11 @@ dhis2_version: 2.39
   </tr>
    <tr>
     <td style="vertical-align: top; text-align: left;"><code>pg_shared_buffers</code></td>
-    <td> Shared Buffers for postgresql,<br> recomedend <code>0.25 x Available_RAM</code> for PostgreSQL </td>
+    <td> Shared Buffers for postgresql,<br> recommended <code>0.25 x Available_RAM</code> for PostgreSQL </td>
   </tr>
    <tr>
     <td style="vertical-align: top; text-align: left;"><code>pg_work_mem</code></td>
-    <td> PostgreSQL work memory, <br> Recomended = <code>(0.25 x Available_RAM)/max_connections</code> </td>
+    <td> PostgreSQL work memory, <br> Recommended = <code>(0.25 x Available_RAM)/max_connections</code> </td>
   </tr>
    <tr>
     <td style="vertical-align: top; text-align: left;"><code>pg_maintenance_work_mem</code></td>
@@ -154,16 +146,93 @@ dhis2_version: 2.39
   </tr>
 </table>
 
-### proxy parameters
-
+### Proxy Variables
 <table>
  <tr>
-    <th style="text-align: left; vertical-align: top;">Parameter</th>
+    <th style="text-align: left; vertical-align: top;">Variable</th>
     <th style="text-align: left; vertical-align: top;">Comments</th>
   </tr>
 <tr>
+    <td style="vertical-align: top; text-align: left;"> <code>fqdn</code></td>
+    <td> This is the domain used to access dhis2 application <br>Strictly required for Letsencrypt to work </td>
+  </tr>
+  <tr>
+    <td style="vertical-align: top; text-align: left;"><code>email</code></td>
+    <td>Strictly required if you are using Letsencrypt</td>
+  </tr>
+<tr>
+    <td style="vertical-align: top; text-align: left;"><code>proxy</code></td>
+    <td> Proxy software of your choice <br> <strong>Options</strong> <br>
+    <ul><li>nginx  ← (default)</li><li>apache2</li></ul> </td>
+  </tr>
+ <tr>
+    <td style="vertical-align: top; text-align: left;"><code>SSL_TYPE</code></td>
+    <td> This parameter enables to specify whether you'd want to use
+    <code>letsencrypt</code> or your own <code>customssl</code>
+    certificate,<br> <strong>Options</strong> <br> <ul><li>letsencrypt ←
+    (default)</li><li>customssl</li></ul> </td>
+  </tr>
+  <tr>
     <td style="vertical-align: top; text-align: left;"><code>munin_base_path</code></td>
-    <td> Base path for accessing munin, e.g: https://domain.example.com/munin_base_path  defaults to <code>munin</code> </td>
+    <td> Base path for accessing munin, e.g:
+    https://domain.example.com/munin_base_path  defaults to <code>munin</code>
+    </td>
+</tr>
+<tr>
+    <td style="vertical-align: top; text-align: left;"><code>munin_users</code></td>
+    <td>A list of users with their corresponding passwords allowed to login to munin: 
+    Example: 
+   <pre>
+   <code>
+munin_users:
+  - name: admin
+    password: admin_password
+  - name: user2
+    password: user2_passsword
+  </code>
+  </pre>
+  Default username and password is admin and district respectively. 
  </tr>
 </table>
 
+
+### backup related Variables
+These variables pertain to the PostgreSQL database host and contain sensitive
+information. It is advisable to secure them using ansible-vault encryption. You
+have the flexibility to define these variables in different locations, but it
+is recommended to place them in the host file within the host_vars directory,
+as shown below:
+
+`dhis2-server-tools/deploy/inventory/host_vars/postgres`
+
+<table>
+  <tr>
+    <th style="text-align: left; vertical-align: top;">Variable</th>
+    <th style="text-align: left; vertical-align: top;">Comments</th>
+  </tr>
+  <tr>
+    <td style="vertical-align: top; text-align: left;"> <code>s3_access_key</code></td>
+    <td> This is a unique identifier for cloud user or programmatic entity
+    (like an application) that needs to interact with object storage.  </td>
+  </tr>
+  <tr>
+    <td style="vertical-align: top; text-align: left;"> <code>s3_secret_key</code></td>
+    <td> This is a secret piece of information that is associated with the
+    Access Key. It is used to digitally sign requests made to object storage
+    and maybe other services. This Secret Access Key must be kept confidential,
+    as it's used to authenticate and authorize requests on behalf of the Access
+    Key. </td>
+  </tr>
+  <tr>
+    <td style="vertical-align: top; text-align: left;"> <code>s3_cluster_id</code></td>
+    <td> Cluster URL for Object Storage is unique to each data center,
+    different data-centers have unique cluster IDS, refer to
+    <a href="https://www.linode.com/docs/products/storage/object-storage/guides/urls/#cluster-url-s3-endpoint">Linode Object Storage Guide</a>
+    for Linode. </td>
+  </tr>
+  <tr>
+    <td style="vertical-align: top; text-align: left;"> <code>s3_bucket</code></td>
+    <td> This is a container or storage resource for storing files in the
+    context of object storage</t>
+  </tr>
+</table>

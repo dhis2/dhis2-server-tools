@@ -1,5 +1,4 @@
 ---
-# Open port 80 to the internet.
 - name: "Open http port 80"
   community.general.ufw:
     rule: allow
@@ -8,15 +7,13 @@
     comment: http
     state: enabled
 
-# Allow https port from the internet.
 - name: "Open https port 443"
   community.general.ufw:
     rule: allow
     port: "{{ https_port | default('443') }}"
     proto: tcp
     comment: https
-  
-# apache2 tasks
+
 - name: Ensure nginx is stopped and disabled.
   ansible.builtin.service:
     name: nginx
@@ -26,27 +23,26 @@
   failed_when: "unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)"
   # ignore_errors: true
 
-# upgrading the instance
-- name: "Update and upgrade proxy."
+- name: "Updating and Upgrading proxy"
   ansible.builtin.apt:
-    upgrade: true
+    upgrade: "yes"
     update_cache: true
-    cache_valid_time: 86400  # one day
-  
-# install apache2
-- name: "Installing apache2."
+    cache_valid_time: 3600
+
+- name: "Installing apache2"
   ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
     name:
       - apache2
       - libwww-perl
     state: present
 
-# enabling apache2 modules
 - name: "Enabling apache2 modules"
   community.general.apache2_module:
     name: "{{ item }}"
     state: present
-  loop: "{{ ['ssl','cache','rewrite','proxy_http','headers'] }}"
+  loop: "{{ ['ssl', 'cache', 'rewrite', 'proxy_http', 'headers'] }}"
   notify: Reload Apache2
 
 - name: "Remove default apache2 site"
@@ -54,17 +50,15 @@
     path: /etc/apache2/sites-enabled/000-default.conf
     state: absent
 
-# include SSL/TLS tasks
-- name: "Include TLS configuration tasks, Letsencrypt | Customssl"
-  ansible.builtin.include_tasks: "{{ SSL_TYPE }}.yml"
+- name: "TLS configuration, Letsencrypt | Customssl"
+  gnsible.builtin.include_tasks: "{{ ssl_type }}.yml"
   when: fqdn is defined and fqdn and (fqdn != None)
 
-# self signed certificate.
-- name: "Include self-signed TLS Certificate tasks, when fqdn is not defined"
+- name: "Self-signed TLS configuration, fqdn is not defined"
   ansible.builtin.include_tasks: self-signed.yml
   when: fqdn is undefined or (fqdn == None)  or (not fqdn | trim != "")
 
-- name: "Copy apache2 site configuration to proxy"
+- name: "Copy apache2 main site configuration"
   ansible.builtin.template:
     src: apache2/site.j2
     dest: /etc/apache2/sites-available/{{ fqdn }}.conf
@@ -75,7 +69,7 @@
   notify: Reload Apache2
 
 - name: "Default apache2 configuration, fqdn is not defined"
-  ansible.builtin.template: 
+  ansible.builtin.template:
     src: apache2/default.j2
     dest: /etc/apache2/sites-available/default.conf
     owner: root
@@ -102,7 +96,6 @@
     creates: /etc/apache2/sites-enabled/default.conf
   when: fqdn is undefined  or (fqdn == None) or (not fqdn | trim != "")
 
-# location configs
 - name: "Create apache2 upstream directory"
   ansible.builtin.file:
     path: /etc/apache2/upstream
@@ -110,40 +103,40 @@
     owner: root
     group: root
     mode: '0755'
+  register: upstream_directory
 
-- name: "Copy dhis2 location configuration"
+- name: "Upstream directory cleanup"
+  ansible.builtin.file:
+    path: /etc/apache2/upstream/{{ item }}
+    state: absent
+  when: not upstream_directory.changed
+  loop:
+    - glowroot.conf
+    - dhis2.conf
+
+- name: "Intance location configuration"
   ansible.builtin.template:
     src: apache2/instance.j2
-    dest: /etc/apache2/upstream/dhis2.conf
+    dest: /etc/apache2/upstream/{{ item }}.conf
     owner: root
     group: root
     mode: '0644'
+  loop: "{{ groups['instances'] }}"
   notify: Reload Apache2
 
-- name: "Copy location configs | {{ app_monitoring }}"
-  ansible.builtin.template:
-    src: apache2/{{ app_monitoring }}.j2
-    dest: /etc/apache2/upstream/glowroot.conf
-    owner: root
-    group: root
-    mode: '0644'
-  when: app_monitoring is defined
-  notify: Reload Apache2
-
-# Securing Munin
-- name: "Including tasks for securing munin"
-  ansible.builtin.include_tasks: securing_munin.yml
-  when: server_monitoring is defined and server_monitoring == 'munin'
-
-- name: "Copy location configs | {{ server_monitoring }}"
+- name: "Location configs | {{ server_monitoring }}"
   ansible.builtin.template:
     src: apache2/{{ server_monitoring }}.j2
-    dest: /etc/apache2/upstream/munin.conf
+    dest: /etc/apache2/upstream/{{ server_monitoring }}.conf
     owner: root
     group: root
     mode: '0644'
-  when: server_monitorng is defined
+  when: server_monitoring is defined
   notify: Reload Apache2
+
+- name: "Securing munin"
+  ansible.builtin.include_tasks: securing_munin.yml
+  when: server_monitoring is defined and server_monitoring == 'munin'
 
 - name: "Flush Handlers"
   ansible.builtin.meta: flush_handlers

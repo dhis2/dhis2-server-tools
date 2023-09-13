@@ -1,5 +1,4 @@
 ---
-# create lxd container for postgres instance
 - name: "Creating postgres container"
   become: true
   vars:
@@ -7,8 +6,8 @@
   community.general.lxd_container:
     config:
       "boot.autostart.priority": "0"
+      "security.protection.delete": "true"
     name: "{{ inventory_hostname }}"
-    # architecture: "{{ guest_os_arch | default('amd64') }}"
     state: started
     profiles: ["default"]
     ignore_volatile_options: false
@@ -27,14 +26,12 @@
         nictype: bridged
         ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) }}"  # need more refactoring
 
-# Gather container's facts, required is  ip.address and codename
 - name: "Get facts"
   ansible.builtin.setup:
     gather_subset:
       - network
       - '!min'
 
-# compare running ip address with the one configured on inventory host.
 - name: "Ensuring container has configured static ip address"
   become: true
   vars:
@@ -45,3 +42,6 @@
     wait_for_ipv4_addresses: true
   when:
     - hostvars[inventory_hostname]['ansible_host'] != hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['address']
+
+- name: "Installing postgreSQL database"
+  ansible.builtin.include_tasks: pg_install.yaml

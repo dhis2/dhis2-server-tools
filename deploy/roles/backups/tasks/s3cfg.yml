@@ -1,0 +1,14 @@
+- name: Ensure s3cmd is installed
+  ansible.builtin.apt:
+    name: s3cmd
+    state: present
+    update-cache: true
+    cache_valid_time: 3600
+
+- name: Create s3cfg from the template
+  ansible.builtin.template:
+    src: s3cfg.j2
+    dest: /usr/local/etc/dhis/s3cfg
+    owner: root
+    group: root
+    mode: '0600'

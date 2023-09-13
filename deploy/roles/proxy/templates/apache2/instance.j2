@@ -1,7 +1,13 @@
-{% for host in groups['instances'] %}
-<Location /{{host}}>
+<Location /{{ item }}>
     Require all granted
-    ProxyPass "http://{{hostvars[host]['ansible_host']+':8080' }}/{{host}}"
-    ProxyPassReverse "http://{{hostvars[host]['ansible_host']+':8080'}}/{{host}}"
+    ProxyPass "http://{{hostvars[item]['ansible_host']+':8080' }}/{{ item }}"
+    ProxyPassReverse "http://{{hostvars[item]['ansible_host']+':8080'}}/{{ item }}"
 </Location>
-{% endfor %}
+
+{% if app_monitoring is defined and app_monitoring | trim == 'glowroot' %}
+<Location /{{ item }}-glowroot>
+    Require all granted
+    ProxyPass "http://{{hostvars[item]['ansible_host']+':4000' }}/{{ item }}-glowroot"
+    ProxyPassReverse "http://{{hostvars[item]['ansible_host']+':4000'}}/{{ item }}-glowroot"
+</Location>
+{% endif %}

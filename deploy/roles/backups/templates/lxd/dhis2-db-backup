@@ -1,0 +1,42 @@
+#!/bin/env bash
+#########################################################
+# postgres backup script v4.0
+# author: Tito Kipkurgat
+# licence: public domain 
+# For use with s3 storage
+########################################################
+
+source /usr/local/etc/dhis/dhis2-env
+
+set -e
+
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+for DB in $PLAIN_BACKUPS;
+do
+  # First backup and truncate audit table
+  lxc exec postgres -- pg_dump -a -t audit $DB | gzip - > $BACKUP_DIR/audit_"$DB"_$TIMESTAMP.sql.gz
+  echo "TRUNCATE audit" | lxc exec postgres psql $DB
+  # Now backup the main database
+  lxc exec postgres -- pg_dump -O $EXCLUDED $DB | gzip - > $BACKUP_DIR/"$DB"_$TIMESTAMP.sql.gz.incomplete
+  mv $BACKUP_DIR/"$DB"_$TIMESTAMP.sql.gz.incomplete $BACKUP_DIR/"$DB"_$TIMESTAMP.sql.gz
+done
+
+
+
+# --host "https://us-east-1.linodeobjects.com" (default: https://s3.amazonaws.com)
+# --host-bucket=%(bucket)s.ap-south-1.linodeobjects.com (default: (%(bucket)s.s3.amazonaws.com))
+{% if s3_access_key is defined and s3_cluster_id is defined and s3_secret_key is defined %}
+ s3cmd -c $S3CFG --multipart-chunk-size-mb 512 --no-check-md5 sync $BACKUP_DIR $S3_BUCKET
+{% endif %}
+
+# # sync to s3
+# if [ -e "/usr/local/etc/dhis/s3cfg" ]; then
+#     s3cmd mb -c $S3CFG $S3_BUCKET
+#     s3cmd -c $S3CFG --multipart-chunk-size-mb 512 --no-check-md5 sync $BACKUP_DIR $S3_BUCKET
+# else
+#     echo "File doesn't exist."
+# fi
+
+# Only keep last 60 backups locally
+find $BACKUP_DIR -maxdepth 1 -name "*.gz" -type f | xargs -x ls -t | awk 'NR>60' | xargs -L1 rm -f

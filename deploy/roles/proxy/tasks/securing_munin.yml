@@ -5,15 +5,14 @@
 
 - name: Add a user to a password file and ensure permissions are set
   community.general.htpasswd:
-    path: /etc/{{proxy}}/.htpasswd
+    path: /etc/{{ proxy }}/.htpasswd
     name: "{{ item.name }}"
     password: "{{ item.password }}"
     owner: root
     group: www-data
-    mode: 0640
+    mode: '0640'
     state: "{{ item.state | default(omit) }}"
   loop: "{{ munin_users }}"
   loop_control:
-    label: "{{item.name}}"
-  when: munin_users is defined and munin_users is iterable
-  notify: Reload {{proxy | capitalize }}
+    label: "{{ item.name }}"
+  notify: Reload {{ proxy | capitalize }}

@@ -1,31 +1,4 @@
-# dhis2-server-tools
-
-**Table of Contents**
-* [Introduction](#Introduction)
-* [Pre-requisites](#Requirements-before-you-begin-installation)
-* [Installing ansible](#step1-installing-ansible-configuration-tool)
-* [Download Deployment code](#step2-download-deployment-tools)
-* [Customization before install](#step3-customization-before-installation)
-  * [hosts-list-configuration](#hosts-list-configuration)
-      * [sample Host configuration](#sample-host-configuration)
-      * [hosts grouping](#hosts-grouping)
-  * [Important Variables](#important-variables)
-  * [Other variables](#other-variables)
-* [Beging installation](#step4-the-installation)
-* [Custom TLS](#using-a-custom-ssl-certificate)
-* [Database Tuning](#optimizing-postgresql)
-* [Basic lxc container management](#lxc-container-management)
-* [Monitoring](#monitoring)
-
 ## Introduction 
-<style>
-    table {
-        table-layout: fixed;
-    }
-    th, td {
-        white-space: nowrap;
-    }
-</style>
 
 In this repository, you'll find Ansible playbooks and roles designed to
 automate the installation and configuration of the DHIS2 application. The
@@ -39,13 +12,13 @@ With these tools, we strive to support various deployment architectures, i.e sin
 <!-- vim-markdown-toc GFM -->
 
 * [Requirements](#requirements)
-* [1. Install ansible version ≥ 2.11](#1-install-ansible-version--211)
-* [2: Download deployment tools for git](#2-download-deployment-tools-for-git)
-* [3: Creating an inventory file.](#3-creating-an-inventory-file)
-* [4: Customization before installation](#4-customization-before-installation)
-    * [Read more on all supported variables](#read-more-on-all-supported-variables)
-    * [hosts grouping](#hosts-grouping)
-* [5: Running ansible playbook | Installation](#5-running-ansible-playbook--installation)
+* [Install ansible version ≥ 2.11](#install-ansible-version--211)
+* [Download deployment tools for git](#download-deployment-tools-for-git)
+* [Creating an inventory file.](#creating-an-inventory-file)
+* [Customization before installation](#customization-before-installation)
+  * [Read more on  supported variables](#read-more-on--supported-variables)
+  * [Read more on hosts grouping](#read-more-on-hosts-grouping)
+* [Running ansible playbook | Installation](#running-ansible-playbook--installation)
   * [Install on single server](#install-on-single-server)
   * [Install distributed architecture](#install-distributed-architecture)
 * [Using a Custom SSL Certificate](#using-a-custom-ssl-certificate)
@@ -57,7 +30,6 @@ With these tools, we strive to support various deployment architectures, i.e sin
 * [Monitoring](#monitoring)
 
 <!-- vim-markdown-toc -->
-
 ---
 
 ## Requirements
@@ -65,7 +37,7 @@ With these tools, we strive to support various deployment architectures, i.e sin
 * ssh access to the server. 
 * non root user with sudo. 
 
-## 1. Install ansible version ≥ 2.11
+## Install ansible version ≥ 2.11
 
   _**NOTE:** For a [distributed
 architecture](./docs/Deployment-Architectures.md#distributed-architecture) ,
@@ -73,7 +45,6 @@ you'll need a separate deployment server, with working ssh access to all
 managed servers._
   If you are doing installation on Ubuntu 18.04, use pip3 to install latest for ansible version
   Run below commands to install ansible 
-
   ```
   sudo apt -y update
   sudo apt install -y  software-properties-common
@@ -86,10 +57,10 @@ managed servers._
 ansible-galaxy collection install community.general -f
 ```
 
-## 2: Download deployment tools for git
+## Download deployment tools for git
 `git clone https://github.com/dhis2/dhis2-server-tools`
 
-## 3: Creating an inventory file.
+##  Creating an inventory file.
 A before doing anything with these tools, you'll need an inventory hosts file.
 Create the file before proceeding. A good start would be from `hosts.template`
 file which we ship with the tools. 
@@ -100,14 +71,13 @@ cd dhis2-server-tools/deploy/inventory/
 cp hosts.template hosts
 ```
 
-## 4: Customization before installation
+##  Customization before installation
 You will edit `hosts` file and set `fqdn`, `email` and `timezone` you can leave other
 settings to their set defaults. 
+
 ```
 vim dhis2-server-tools/deploy/inventory/hosts
 ```
-
----
 <table>
   <tr>
     <th style="text-align: left; vertical-align: top;">Parameter</th>
@@ -123,21 +93,26 @@ vim dhis2-server-tools/deploy/inventory/hosts
   </tr>
   <tr>
     <td><code>timezone</code></td>
-    <td>list all available <code>timezones</code> with <code>timedatectl list-timezones</code>  <br>Examples</strong> <br> <ul><li><code>Europe/Oslo</code> </li><li><code>Africa/Nairobi</code></li></ul></td>
+    <td>list all available <code>timezones</code> with <code>timedatectl
+    list-timezones</code>  <br>Examples</strong> <br>
+    <ul><li><code>Europe/Oslo</code>
+    </li><li><code>Africa/Nairobi</code></li></ul></td>
   </tr>
-
   <tr>
      <td style="vertical-align: top; text-align: left;"><code>ansible_connection</code></td>
-    <td>Depends on the <a href="./docs/Deployment-Architectures.md">Architecture</a> you are adopting, default is <code>lxd</code> <br> <strong>Options</strong> <br> <ul><li>lxd ← (default), for single server architecture </li><li>ssh ← Distributed Architecture</li></ul> </td>
+    <td>Depends on the <a
+    href="./docs/Deployment-Architectures.md">Architecture</a> you are
+    adopting, default is <code>lxd</code> <br> <strong>Options</strong> <br>
+    <ul><li>lxd ← (default), for single server architecture </li><li>ssh ←
+    Distributed Architecture</li></ul> </td>
   </tr>
 </table>
 
-#### Read more on [all supported variables](./docs/Variables.md)
+### Read more on [ supported variables](./docs/Variables.md)
 
 _**NOTE**: `When the install is on a single host with lxd, ensure your
 lxd_network is unique and not overlapping with any of your host network.`_ 
 
-#### [hosts grouping](./docs/Inventory-Host-File.md#hosts-grouping)
 The host are grouped into categories below, 
 <table>
   <tr>
@@ -163,7 +138,9 @@ The host are grouped into categories below,
   </tr>
 </table>
 
-## 5: Running ansible playbook | Installation
+### Read more on [hosts grouping](./docs/Inventory-Host-File.md#hosts-grouping)
+
+##  Running ansible playbook | Installation
 ### Install on single server
 Its the default supported architecture, you'll be running the tools from the
 same single server that you'll have dhis2 setup.

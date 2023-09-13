@@ -1,6 +1,6 @@
 # create monitoring container,
 - name: "Creating monitoring container"
-  become: True
+  become: true
   vars:
     ansible_connection: local
   community.general.lxd_container:
@@ -9,7 +9,7 @@
     name: "{{ inventory_hostname }}"
     # architecture: "{{ guest_os_arch | default('amd64')}}"
     state: started
-    profiles: [ "default" ]
+    profiles: ["default"]
     ignore_volatile_options: false
     wait_for_ipv4_addresses: true
     timeout: 60
@@ -17,14 +17,14 @@
       type: image
       mode: pull
       server: "{{ lxd_source_server | default('https://cloud-images.ubuntu.com/releases') }}"
-      protocol: "{{lxd_source_protocol | default('simplestreams')}}"
-      alias: "{{guest_os }}/{{guest_os_arch | default('amd64')}}"
+      protocol: "{{ lxd_source_protocol | default('simplestreams') }}"
+      alias: "{{ guest_os }}/{{ guest_os_arch | default('amd64') }}"
     devices:
       eth0:
-        nictype:  "bridged"
-        parent:   "{{ lxd_bridge_interface | default ('lxdbr1') }}"
-        type:     "nic"
-        ipv4.address:  "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) | default(omit)}}" 
+        nictype: "bridged"
+        parent: "{{ lxd_bridge_interface | default('lxdbr1') }}"
+        type: "nic"
+        ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network) | default(omit) }}"
 
 - name: "Get facts"
   ansible.builtin.setup:
@@ -33,13 +33,12 @@
       - '!min'
 
 - name: "Ensuring container has configured static ip address"
-  become: True
+  become: true
   vars:
     ansible_connection: local
   community.general.lxd_container:
     name: "{{ inventory_hostname }}"
     state: restarted
-    wait_for_ipv4_addresses: True
+    wait_for_ipv4_addresses: true
   when:
     - hostvars[inventory_hostname]['ansible_host'] != hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['address']
-

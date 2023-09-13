@@ -1,7 +1,6 @@
 # Apache 2.4 configuration for dhis2 reverse proxy
 
 <IfModule mod_ssl.c>
-
   ServerTokens Prod
   ServerSignature Off
   SSLStaplingCache "shmcb:logs/ssl_staple_cache(512000)"
@@ -23,8 +22,6 @@
 
 
 <VirtualHost *:80>
-        {# ServerName {{fqdn}} #}
-        {# ServerAdmin {{email}} #}
         RewriteEngine On
 
         # Exception to let certbot do its authentication challenge
@@ -40,13 +37,8 @@
 
 # Main vhost configuration
   <VirtualHost *:443>
-       {# ServerName {{fqdn}} #}
-       {# ServerAdmin {{email}} #}
 
        # Throw out IP based requests
-       {# RewriteCond %{HTTP_HOST} !^{{'\\.'.join(fqdn.split('.'))}} [NC] #}
-       {# RewriteCond %{REQUEST_URI} !^/error [NC] #}
-       {# RewriteRule ^.(.*) - [L,F] #}
        RewriteEngine On
 
        KeepAlive on

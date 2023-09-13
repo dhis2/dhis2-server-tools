@@ -1,4 +1,3 @@
-# Check if dhis2.conf exists
 - name: "Create instances database role:"
   become: true
   become_user: postgres
@@ -12,7 +11,6 @@
     - inventory_hostname == hostvars[item]['database_host']
   notify: Reload Postgres
 
-# Creating instances databases
 - name: "Creating dhis2 database/databases"
   become: true
   become_user: postgres
@@ -25,7 +23,6 @@
     - inventory_hostname == hostvars[item]['database_host']
   notify: Reload Postgres
 
-# Creating postgresql extensions
 - name: "Creating postgis,btree_gin and pg_trgm extensions"
   become: true
   become_user: postgres

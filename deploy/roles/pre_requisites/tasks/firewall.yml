@@ -1,12 +1,13 @@
 ---
-# tasks file for ./roles/ufw
 - name: "Checking firewall status"
   become: true
   ansible.builtin.command: ufw status
-  changed_when: False
-  ignore_errors: True
+  changed_when: false
+  ignore_errors: true
   register: ufw_check
-- ansible.builtin.debug:
+
+- name: UFW
+  ansible.builtin.debug:
     msg:
       - UFW is disabled !!
       - Please enable it to continue with the setup
@@ -14,12 +15,12 @@
       - sudo ufw enable     # starts and enables ufw
   when: "'inactive' in ufw_check.stdout"
 
-- meta: end_play 
+- name: End play if firewall is n not enabled
+  ansible.builtin.meta: end_play
   when: "'inactive' in ufw_check.stdout"
 
-# Enabling UFW default forward police to ACCEPT
 - name: "Set UFW default forward policy to ACCEPT"
-  become: True
+  become: true
   become_user: root
   ansible.builtin.lineinfile:
     dest: /etc/default/ufw
@@ -27,15 +28,12 @@
     line: DEFAULT_FORWARD_POLICY="ACCEPT"
   notify: Reload UFW
 
-# sudo ufw allow in on lxdbr1
 - name: "Add rules for lxd bridge"
   community.general.ufw:
     rule: allow
     direction: in
     interface: "{{ lxd_bridge_interface | default('lxdbr0') }}"
-    
 
-# NAT configuration to the proxy container
 - name: "Configure host to NAT to the proxy container"
   vars:
     ansible_connection: local
@@ -52,11 +50,11 @@
       {% for host in groups['all'] %}
       {% if host == "proxy" %}
       -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport 80 -j  DNAT --to-destination {{ hostvars[host]['ansible_host'] }}:80
-      -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport 443 -j  DNAT --to-destination {{hostvars[host]['ansible_host']}}:443
+      -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport 443 -j  DNAT --to-destination {{ hostvars[host]['ansible_host'] }}:443
       {% endif %}
       {% endfor %}
       # setup routing
-      -A POSTROUTING -s {{lxd_network}} ! -d {{lxd_network}} -j MASQUERADE
+      -A POSTROUTING -s {{ lxd_network }} ! -d {{ lxd_network }} -j MASQUERADE
       COMMIT
-  notify:  Reload UFW
+  notify: Reload UFW
   when: proxy is defined

@@ -1,6 +1,6 @@
 ---
 # Include connection specific tasks
-- name: "Include tasks for {{ ansible_connection }}"
+- name: "DHIS2 instance setup with  {{ ansible_connection }}"
   ansible.builtin.include_tasks: "{{ ansible_connection }}.yml"
   when: inventory_hostname in groups['instances']
 

@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+#########################################################
+# postgres backup script v3.1
+# author: Tito Kipkurgat
+# licence: public domain 
+# using some ideas from 
+# http://wiki.postgresql.org/wiki/Automated_Backup_on_Linux
+########################################################
+
+# load variables from a file, 
+source /usr/local/etc/dhis/dhis2-env
+
+function perform_backups()
+{
+  SUFFIX=$1
+  FINAL_BACKUP_DIR=$BACKUP_DIR/backup-"$(date +%Y%m%d-%H%M%S)$SUFFIX/"
+  echo "Backupdir = $FINAL_BACKUP_DIR"
+  if ! mkdir -p $FINAL_BACKUP_DIR; then
+        echo "`date` Cannot create backup directory in $FINAL_BACKUP_DIR. Go and fix it!"
+        exit 1;
+  fi;
+  #  sudo su -c "pg_dump -O -Fp $DBNAME -T aggregated_* -T analytics_* -T completeness_*  | gzip > ./$DB_NAME.sql.gz" postgres
+  for DBNAME in $PLAIN_BACKUPS 
+    do
+      set -o pipefail
+      # First backup and truncate audit table
+      if ! pg_dump -a -t audit $DBNAME | gzip - > "$FINAL_BACKUP_DIR"audit_"$DBNAME".sql.gz.in_progress; then 
+           echo "`date` [!!ERROR!!] Failed to backup audit table of database $DBNAME"
+      else
+          mv "$FINAL_BACKUP_DIR"audit_"$DBNAME".sql.gz.in_progress "$FINAL_BACKUP_DIR"audit_"$DBNAME".sql.gz
+         echo "TRUNCATE audit" | psql $DBNAME
+      fi
+      # Perform backup of them main database
+      if ! pg_dump -O -Fp $DBNAME $EXCLUDED | gzip > $FINAL_BACKUP_DIR"$DBNAME".sql.gz.in_progress; then
+        echo "`date` [!!ERROR!!] Failed to produce plain backup of database $DBNAME"
+      else
+        mv $FINAL_BACKUP_DIR"$DBNAME".sql.gz.in_progress $FINAL_BACKUP_DIR"$DBNAME".sql.gz
+      fi
+    done
+
+for DBNAME in $ENCRYPTED_BACKUPS
+  do
+     set -o pipefail
+     if ! pg_dump -O -Fp $DBNAME $EXCLUDED | gzip | openssl $CIPHER -e -pass file:$PASSWORD_FILE -salt > $FINAL_BACKUP_DIR"$DBNAME".sql.gz.enc.in_progress; then
+        echo "`date` [!!ERROR!!] Failed to produce plain backup of database $DBNAME"
+     else
+        mv $FINAL_BACKUP_DIR"$DBNAME".sql.gz.enc.in_progress $FINAL_BACKUP_DIR"$DBNAME".sql.gz.enc
+     fi
+  done
+
+  # if a remote backup machine is defined, rsynch to it
+  if [ -n "$REMOTE" ]; then
+    rsync -avq $BACKUP_DIR/* $REMOTE
+  fi
+}
+
+# MONTHLY BACKUPS
+DAY_OF_MONTH=`date +%d`
+ 
+if [ $DAY_OF_MONTH = "01" ];
+then
+	# Delete all expired monthly directories
+	# find $BACKUP_DIR -maxdepth 1 -name "*-monthly" -exec rm -rf '{}' ';'
+	perform_backups "-monthly"
+fi
+ 
+# WEEKLY BACKUPS
+DAY_OF_WEEK=$(date +%u) #1-7 (Monday-Sunday)
+EXPIRED_DAYS=$(expr $((($WEEKS_TO_KEEP * 7) + 1)))
+ 
+if [ $DAY_OF_WEEK = $DAY_OF_WEEK_TO_KEEP ];
+then
+	# Delete all expired weekly directories
+	find $BACKUP_DIR -maxdepth 1 -mtime +$EXPIRED_DAYS -name "*-weekly" -exec rm -rf '{}' ';'
+	perform_backups "-weekly"
+fi
+
+# Delete daily backups 7 days old or more
+find $BACKUP_DIR -maxdepth 1 -mtime +$DAYS_TO_KEEP -name "*-daily" -exec rm -rf '{}' ';'
+ 
+perform_backups "-daily"
+
+{% if s3_access_key is defined and s3_cluster_id is defined and s3_secret_key is defined %}
+s3cmd -c $S3CFG --multipart-chunk-size-mb 512 --no-check-md5 sync $BACKUP_DIR $S3_BUCKET
+{% endif %}

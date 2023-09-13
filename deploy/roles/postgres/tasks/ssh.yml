@@ -13,7 +13,6 @@
     update_cache: true
   when: inventory_hostname in groups['databases']
 
-# Allow ssh port 22.
 - name: "Allow ssh on port 22"
   community.general.ufw:
     rule: limit
@@ -21,3 +20,6 @@
     src: 0.0.0.0/0
     proto: tcp
     comment: Allow ssh access to the instance
+
+- name: "Installing postgreSQL database"
+  ansible.builtin.include_tasks: pg_install.yaml

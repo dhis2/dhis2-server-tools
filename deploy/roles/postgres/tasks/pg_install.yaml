@@ -1,12 +1,10 @@
 ---
-# Adding postgresql signing key
-- name: "Update and upgrade database"
+- name: "Updating and Upgrading packages"
   ansible.builtin.apt:
-    upgrade: true
+    upgrade: "yes"
     update_cache: true
-    cache_valid_time: 86400
+    cache_valid_time: 3600
 
-# adding apt signing key
 - name: "Adding postgresql repo signing key"
   ansible.builtin.get_url:
     url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
@@ -15,7 +13,6 @@
     group: root
     mode: '0644'
 
- # add postgres apt repository
 - name: "Adding postgres apt repository to sources list"
   ansible.builtin.apt_repository:
     repo: "deb [arch={{ guest_os_arch | default('amd64') }} signed-by=/etc/apt/trusted.gpg.d/postgresql.asc]
@@ -25,9 +22,10 @@
     state: present
     mode: "0644"
 
-# Install postgresql and python module for Postgres
 - name: "Installing postgres version {{ postgresql_version }}"
   ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
     name:
       - ca-certificates
       - postgresql-{{ postgresql_version }}
@@ -36,7 +34,6 @@
       - python3-psycopg2
       - libdbd-pg-perl
 
-# sometimes postgres is installed but not started
 - name: "Ensure postgresql is running"
   become: true
   ansible.builtin.service:
@@ -44,8 +41,14 @@
     state: started
     enabled: true
 
+- name: "Adding root postgresql role"
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    db: postgres
+    name: root
+    role_attr_flags: "SUPERUSER"
 
-# Check postgresql Version, reguired for pg_hba path determination
 - name: "Checking postgresql Version"
   become: true
   # become_method: sudo
@@ -54,7 +57,6 @@
     filter: ver*
   register: postgresql_version_info
 
-# Deploying custom postgresql configuration
 - name: "Custom postgresql conf"
   ansible.builtin.template:
     src: dhis_pg.conf.j2
@@ -64,15 +66,6 @@
     mode: '0644'
   notify: Restart Postgres
 
-# Adding root postgresql_user
-- name: "Adding root postgresql role"
-  become: true
-  become_user: postgres
-  community.postgresql.postgresql_user:
-    db: postgres
-    name: root
-    role_attr_flags: "SUPERUSER"
-
 - name: "Postgresql | listen_addresses '*'"
   ansible.builtin.lineinfile:
     dest: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/postgresql.conf
@@ -80,7 +73,6 @@
     line: "listen_addresses '*'"
   notify: Restart Postgres
 
-# Fixing pg_hba.conf permissions
 - name: "Edit pg_hba.conf permissions, allowing instances to connect"
   become: true
   ansible.builtin.lineinfile:
@@ -93,7 +85,6 @@
     - db_gateway_address is undefined
   notify: Restart Postgres
 
-# Allow access from dhis2 instances to postgresql port 5432
 - name: "Firewall | Open port 5432 from dhis2 instances"
   community.general.ufw:
     rule: allow

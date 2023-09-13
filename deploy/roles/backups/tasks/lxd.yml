@@ -1,0 +1,46 @@
+- name: "Change connection to local"
+  ansible.builtin.set_fact:
+    ansible_connection: local
+- name: Create a list of dhis2 databases to backup
+  ansible.builtin.set_fact:
+    dhis2_databases: "{{ groups['instances'] | join(' ') }}"
+
+- name: Ensure /usr/local/etc/dhis directory exists
+  ansible.builtin.file:
+    path: /usr/local/etc/dhis/
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: "Configuring s3"
+  ansible.builtin.include_tasks: s3cfg.yml
+  when:
+    - s3_access_key is defined and (s3_access_key != None) and s3_access_key | trim != ""
+    - s3_secret_key is defined and (s3_secret_key != None) and s3_secret_key | trim != ""
+    - s3_cluster_id is defined and (s3_cluster_id != None) and s3_cluster_id | trim != ""
+
+- name: Create dhis2-env from template
+  ansible.builtin.template:
+    src: dhis2-env.j2
+    dest: /usr/local/etc/dhis/dhis2-env
+    mode: '0600'
+    owner: root
+    group: root
+
+- name: Create backup script from the template
+  ansible.builtin.template:
+    src: lxd/dhis2-backup
+    dest: /usr/local/bin/dhis2-backup
+    owner: root
+    group: root
+    mode: '0701'
+
+- name: Add backup script to crontab
+  ansible.builtin.cron:
+    name: "dhis2 backup Script"
+    minute: "0"
+    hour: "3"
+    user: "root"
+    job: "/usr/local/bin/dhis2-backup"
+    state: present

@@ -1,0 +1,30 @@
+config: {}
+networks:
+- config:
+    ipv4.address: 172.19.2.1/24
+    ipv4.nat: "true"
+    ipv6.address: none
+  description: "lxdbr1"
+  name: "lxdbr1"
+  type: "bridge"
+storage_pools:
+- config: {}
+  description: ""
+  name: default
+  driver: dir
+profiles:
+- config:
+    environment.TZ: Africa/Nairobi
+  description: "Default LXD profile"
+  devices:
+    eth0:
+      name: eth0
+      nictype: bridged
+      parent: lxdbr1
+      type: nic
+    root:
+      path: /
+      pool: default
+      type: disk
+  name: default
+cluster: null

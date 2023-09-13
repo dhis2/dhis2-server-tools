@@ -2,4 +2,8 @@
 # defaults variables for the proxy
 ansible_connection: lxd
 proxy: nginx
-SSL_TYPE: letsencrypt
+ssl_type: letsencrypt
+
+munin_users:
+  - name: admin
+    password: district

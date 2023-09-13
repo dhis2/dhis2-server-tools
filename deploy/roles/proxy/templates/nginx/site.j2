@@ -10,13 +10,13 @@ server {
   listen 443 ssl;
   ssl_stapling on;
   ssl_stapling_verify  on;
-  server_name {{fqdn}};
-{%if SSL_TYPE == 'letsencrypt'%} 
-  ssl_certificate /etc/letsencrypt/live/{{fqdn}}/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/{{fqdn}}/privkey.pem;
-{%elif SSL_TYPE == 'customssl'%}
-  ssl_certificate /etc/ssl/{{fqdn}}/customssl.crt;
-  ssl_certificate_key /etc/ssl/{{fqdn}}/customssl.key;
+  server_name {{ fqdn }};
+{%if ssl_type == 'letsencrypt'%} 
+  ssl_certificate /etc/letsencrypt/live/{{ fqdn }}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/{{ fqdn }}/privkey.pem;
+{%elif ssl_type == 'customssl'%}
+  ssl_certificate /etc/ssl/{{ fqdn }}/customssl.crt;
+  ssl_certificate_key /etc/ssl/{{ fqdn }}/customssl.key;
 {%endif%}
   ssl_protocols TLSv1.2 TLSv1.3;
   #ssl_session_cache shared:SSL:20m;

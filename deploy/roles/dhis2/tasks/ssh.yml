@@ -5,7 +5,6 @@
       - network
       - '!min'
 
-# Allow ssh port 22. 
 - name: Allow ssh on port 22
   community.general.ufw:
     rule: limit

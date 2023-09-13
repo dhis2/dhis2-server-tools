@@ -1,12 +1,15 @@
 ---
 # Adding postgresql signing key
-- name: "Adding postgresql repo signing key" 
+- name: "Adding postgresql repo signing key"
   ansible.builtin.get_url:
     url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
     dest: /etc/apt/keyrings/postgresql.asc
+    owner: root
+    group: root
+    mode: '0644'
   register: postgres_key
 
- # add postgres apt repository 
+ # add postgres apt repository
 - name: "Adding postgres apt repository to sources list"
   ansible.builtin.apt_repository:
     repo: "deb [arch={{guest_os_arch|default('amd64')}} signed-by={{postgres_key['dest']}}] https://apt.postgresql.org/pub/repos/apt {{ hostvars[inventory_hostname]['ansible_facts']['distribution_release'] }}-pgdg main"
@@ -15,37 +18,37 @@
 
 # Install postgresql and python module for Postgres
 - name: "Installing postgres version {{ zabbix_server_postgresql_version }}"
-  ansible.builtin.apt: 
-    name: 
+  ansible.builtin.apt:
+    name:
       - ca-certificates
       - postgresql-{{ zabbix_server_postgresql_version }}
       - postgresql-client-{{ zabbix_server_postgresql_version }}
-      - python3-psycopg2 
+      - python3-psycopg2
       - libdbd-pg-perl
 
 # sometimes postgres is installed but not started
 - name: "Ensure postgresql is running"
-  become: True
+  become: true
   ansible.builtin.service:
     name: postgresql
     state: started
-    enabled: yes
+    enabled: true
 - name: Generate zabbix user  password
-  set_fact:
-    zabbix_db_password: "{{lookup('password','/tmp/'+inventory_hostname,seed=inventory_hostname)}}"
+  ansible.builtin.set_fact:
+    zabbix_db_password: "{{ lookup('password', '/tmp/' + inventory_hostname, seed=inventory_hostname) }}"
   # when:
     # - create_db is defined and  create_db | bool
 
 - name: "Creating zabbix role"
-  become: yes
+  become: true
   become_user: postgres
   community.general.postgresql_user:
     name: zabbix
     state: present
-    password: "{{zabbix_db_password}}"
+    password: "{{ zabbix_db_password }}"
 
 - name: "Creating zabbix database"
-  become: yes
+  become: true
   become_user: postgres
   community.general.postgresql_db:
     name: zabbix
@@ -56,4 +59,4 @@
   ansible.builtin.lineinfile:
     path: /etc/zabbix/zabbix_server.conf
     regex: "^#?DBPassword"
-    line: "DBPassword {{zabbix_db_password}}"
+    line: "DBPassword {{ zabbix_db_password }}"

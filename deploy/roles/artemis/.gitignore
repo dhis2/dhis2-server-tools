@@ -1,4 +1,0 @@
-.venv
-molecule/default/.cache
-molecule/**/.molecule
-molecule/**/__pycache__

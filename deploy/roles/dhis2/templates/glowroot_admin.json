@@ -1,7 +1,8 @@
 {
   "users": [
     {
-      "username": "anonymous",
+      "username": "admin",
+       "passwordHash": "oJkLGBWRagJFtk+09ycMXg:IsDKTqnNNTGfDHVHwG9j7Q:500000",
       "roles": [
         "Administrator"
       ]
@@ -23,7 +24,7 @@
   "web": {
     "port": 4000,
     "bindAddress": "0.0.0.0",
-    "contextPath": "/{{inventory_hostname}}-glowroot",
+    "contextPath": "/{{ inventory_hostname }}-glowroot",
     "sessionTimeoutMinutes": 30,
     "sessionCookieName": "GLOWROOT_SESSION_ID"
   },

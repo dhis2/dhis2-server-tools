@@ -23,8 +23,8 @@
 
 
 <VirtualHost *:80>
-        ServerName {{fqdn}}
-        ServerAdmin {{email}}
+        ServerName {{ fqdn }}
+        ServerAdmin {{ email }}
 
         RewriteEngine On
 
@@ -41,11 +41,11 @@
 
 # Main vhost configuration
   <VirtualHost *:443>
-       ServerName {{fqdn}}
-       ServerAdmin {{email}}
+       ServerName {{ fqdn }}
+       ServerAdmin {{ email }}
 
        # Throw out IP based requests
-       RewriteCond %{HTTP_HOST} !^{{'\\.'.join(fqdn.split('.'))}} [NC]
+       RewriteCond %{HTTP_HOST} !^{{ '\\.'.join(fqdn.split('.')) }} [NC]
        RewriteCond %{REQUEST_URI} !^/error [NC]
        RewriteRule ^.(.*) - [L,F]
 
@@ -86,7 +86,7 @@
 {% for host in groups['instances']  if hostvars[host]['proxy_rewrite'] is defined and 
 (hostvars[host]['proxy_rewrite'] == true or hostvars[host]['proxy_rewrite'] == "true") %}
 {% if loop.first %}
-        RewriteRule   ^/$  /{{host}}/  [R]
+        RewriteRule   ^/$  /{{ host }}/  [R]
 {%endif%}
 {%endfor%}
         #===========================================================
@@ -147,12 +147,12 @@
        #===========================================================
        SSLEngine on
        # set these to match your server certificate and key
-{% if SSL_TYPE == 'letsencrypt' %}
-       SSLCertificateFile      /etc/letsencrypt/live/{{fqdn}}/fullchain.pem
-       SSLCertificateKeyFile /etc/letsencrypt/live/{{fqdn}}/privkey.pem
-{% elif SSL_TYPE == 'customssl' %}
-       SSLCertificateFile /etc/ssl/{{fqdn}}/customssl.crt
-       SSLCertificateKeyFile /etc/ssl/{{fqdn}}/customssl.key
+{% if ssl_type == 'letsencrypt' %}
+       SSLCertificateFile      /etc/letsencrypt/live/{{ fqdn }}/fullchain.pem
+       SSLCertificateKeyFile /etc/letsencrypt/live/{{ fqdn }}/privkey.pem
+{% elif ssl_type == 'customssl' %}
+       SSLCertificateFile /etc/ssl/{{ fqdn }}/customssl.crt
+       SSLCertificateKeyFile /etc/ssl/{{ fqdn }}/customssl.key
 {%endif%}
 
        SSLProtocol TLSv1.1 TLSv1.2

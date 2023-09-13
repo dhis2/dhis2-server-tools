@@ -9,10 +9,12 @@ create_containers.yml
 releases.json
 notes
 *test*
+*artemis*
 *dev*
 *.vim
 *.war
 deploy.log
 hosts
+vars_backup.yml
 deploy/inventory/host_vars/*
 !deploy/inventory/host_vars/*.template

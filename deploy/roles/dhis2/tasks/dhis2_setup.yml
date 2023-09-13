@@ -1,11 +1,4 @@
 ---
-- name: "Update and upgrade dhis2 server/container"
-  ansible.builtin.apt:
-    upgrade: true
-    update_cache: true
-    cache_valid_time: 86400
-
-# Download releases.json file
 - name: "Download dhis2 releases.json file"
   vars:
     ansible_connection: local
@@ -14,7 +7,7 @@
     url: https://releases.dhis2.org/v1/versions/stable.json
     dest: vars/releases.json
     force: true
-    mode: '0644'
+    mode: '0666'
   when: dhis2_war_file is undefined and dhis2_version is defined and dhis2_version | type_debug == "float"
   changed_when: false
 
@@ -46,12 +39,23 @@
     dhis2_url: "{{ dhis2_release_version['latestStableUrl'] }}"
   when: dhis2_release_version is defined
 
-# tomcat setup
+- name: "Updating and Upgrading packages"
+  ansible.builtin.apt:
+    upgrade: "yes"
+    update_cache: true
+    cache_valid_time: 3600
+
 - name: "Installing java and tomcat and zip"
   ansible.builtin.apt:
-    name: openjdk-{{ JAVA_VERSION }}-jre-headless,unzip,tomcat9,tomcat9-admin,ufw
+    update_cache: true
+    cache_valid_time: 3600
+    name:
+      - unzip
+      - tomcat9
+      - tomcat9-admin
+      - openjdk-{{ java_version }}-jre-headless
+      - ufw
 
-# creating /opt/dhis2 directory
 - name: "Creating /opt/dhis2 directory"
   ansible.builtin.file:
     path: /opt/dhis2
@@ -65,8 +69,6 @@
   ansible.builtin.stat:
     path: /opt/dhis2/dhis2.war
     checksum_algorithm: sha256
-    # get_checksum: yes
-  # when: sha256 is defined
   register: dhis2_war_stat
 
 - name: "Check running dhis2 version"
@@ -88,7 +90,6 @@
     - "'skipped' not in  version_results.stdout"
     - version_results.stdout | trim is version(latest_patchversion, '<')
 
-# Downaload dhis2.war file
 - name: "Download dhis2 war file"
   ansible.builtin.get_url:
     url: "{{ dhis2_url }}"
@@ -102,16 +103,15 @@
     - "'skipped' in version_results.stdout or (version_results.stdout | trim is version(latest_patchversion, '<') and dhis2_auto_upgrade | default(false) | bool)"
     - sha256 is defined
 
-# Download dhis2 from hard-coarded url
 - name: "Download dhis2.war with hard coded url"
   ansible.builtin.get_url:
     url: "{{ dhis2_war_file }}"
-    timeout: 30
+    timeout: 120
     dest: /opt/dhis2/dhis2.war
     force: true
     mode: '0644'
   when: dhis2_war_file is defined and dhis2_war_file | regex_search('(https:\/\/)')
-#
+
 - name: "Copy dhis2.war file from ansible controller"
   ansible.builtin.copy:
     src: "{{ dhis2_war_file }}"
@@ -119,14 +119,12 @@
     mode: '0644'
   when: dhis2_war_file is defined and dhis2_war_file | regex_search('^(?!.*?https:\/\/).*$')
 
-# Cleaning up webapps directory
 - name: "Clean /var/lib/tomcat9/webapps"
   ansible.builtin.file:
     path: /var/lib/tomcat9/webapps/
     state: absent
   when: "'skipped' in version_results.stdout or (latest_patchversion is defined and version_results.stdout | trim is version(latest_patchversion, '<') and dhis2_auto_upgrade | default(false) | bool ) or dhis2_war_file is defined"
 
-# Creating application directories
 - name: "Creating webapps directories"
   ansible.builtin.file:
     path: /var/lib/tomcat9/webapps/{{ inventory_hostname }}
@@ -134,7 +132,6 @@
     state: directory
   notify: Restart Tomcat
 
-# Copy dhis2.conf to the instances
 - name: "Copy dhis2.conf to the instances"
   ansible.builtin.template:
     src: dhis.conf.j2
@@ -146,7 +143,6 @@
   ignore_errors: true
   notify: Restart Tomcat
 
-# copy server.xml config to the instances
 - name: "Copy server.xml to the instances"
   ansible.builtin.copy:
     src: server.xml
@@ -165,7 +161,6 @@
     state: directory
   notify: Restart Tomcat
 
-# Tomcat9 override file
 - name: "Create systemd override file for tomcat9"
   ansible.builtin.template:
     src: tomcat_overrides.j2
@@ -195,7 +190,6 @@
     create: true
     mode: '0600'
 
-# Copy dhis2 default configuration to the instances
 - name: "Copy tomcat default configuration"
   ansible.builtin.template:
     src: tomcat_default.j2
@@ -205,21 +199,17 @@
     group: root
   notify: Restart Tomcat
 
-# Extract dhis2 into the instances
-- name: "Extract dhis2.war file"
+- name: "Extracting dhis2.war file"
   ansible.builtin.unarchive:
     src: /opt/dhis2/dhis2.war
     dest: /var/lib/tomcat9/webapps/{{ inventory_hostname }}
     remote_src: true
   notify: Restart Tomcat
 
-# including glowroot monitoring tasks
 - name: "Glowroot app monitoring"
   ansible.builtin.include_tasks: "{{ app_monitoring }}.yml"
   when: app_monitoring is defined
 
-##### Firewall Configuration ####
-# Allow access from proxy  to tomcat port 8080
 - name: "Open port 8080 (tomcat) access from from proxy"
   community.general.ufw:
     rule: allow
@@ -230,7 +220,6 @@
     comment: "tomcat access from the proxy"
   loop: "{{ groups['web'] }}"
 
-# Allow port 4000 glowroot monitoring
 - name: "Open port 4000 (glowroot) access from proxy"
   community.general.ufw:
     rule: allow

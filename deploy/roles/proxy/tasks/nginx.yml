@@ -1,5 +1,4 @@
 ---
-# Open port 80 from the internet.
 - name: "Allow http port 80"
   community.general.ufw:
     rule: allow
@@ -8,15 +7,14 @@
     comment: http
     state: enabled
 
-# Allow https port from the internet
 - name: "Allow https port 443"
   community.general.ufw:
     rule: allow
     port: "{{ https_port | default('443') }}"
     proto: tcp
     comment: https
-# stopping apache2, we do not  need it running.
-- name: "Ensure apache2 is stopped and disabled."
+
+- name: "Ensure apache2 is stopped and disabled"
   ansible.builtin.service:
     name: apache2
     enabled: false
@@ -25,19 +23,19 @@
   failed_when: "unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)"
   # ignore_errors: true
 
-- name: "Updating and Upgrading proxy"
+- name: "Updating and Upgrading"
   ansible.builtin.apt:
-    upgrade: true
+    upgrade: "yes"
     update_cache: true
-    cache_valid_time: 86400
+    cache_valid_time: 3600
 
-## install nginx
 - name: "Installing Nginx"
   ansible.builtin.apt:
     name: nginx
     state: present
+    update_cache: true
+    cache_valid_time: 3600
 
-# Disabling nginx version
 - name: "Disabling nginx version show"
   ansible.builtin.lineinfile:
     dest: /etc/nginx/nginx.conf
@@ -46,17 +44,13 @@
     insertafter: "types_hash_max_size"
   notify: Reload Nginx
 
-# Remove default nginx config
 - name: "Remove default nginx site"
   ansible.builtin.file:
     name: /etc/nginx/sites-enabled/default
     state: absent
 
-# include SSL/TLS tasks
 - name: "Include TLS configurarion tasks"
-  ansible.builtin.include_tasks: "{{ SSL_TYPE }}.yml"
-  loop: "{{ groups['instances'] }}"
-  # when: fqdn is defined and (fqdn != None) and fqdn | trim != ""
+  ansible.builtin.include_tasks: "{{ ssl_type }}.yml"
   when:
     - fqdn is defined
     - (fqdn != None)
@@ -64,10 +58,8 @@
 
 - name: "Include self-signed TLS Certificate tasks, fqdn is not defined"
   ansible.builtin.include_tasks: self-signed.yml
-  loop: "{{ groups['instances'] }}"
   when: fqdn is undefined or (fqdn == None) or (not fqdn | trim != "")
 
-# Coping nginx configuration to the proxy
 - name: "Copy nginx site configuration"
   ansible.builtin.template:
     src: nginx/site.j2
@@ -88,20 +80,17 @@
   when: fqdn is undefined or (fqdn == None) or (not fqdn | trim != "")
   notify: Reload Nginx
 
-# Generate dhparams
 - name: "Generating Diffie–Hellman key parameters, takes a while, you may grab some coffee"
   ansible.builtin.command: openssl dhparam -out /etc/nginx/dhparams.pem 2048
   args:
     creates: /etc/nginx/dhparams.pem
   notify: Reload Nginx
 
-# Ensure nginx service is started
 - name: "Start nginx service"
   ansible.builtin.service:
     name: nginx
     state: started
 
-# Creating upstream directory
 - name: "Creating nginx upstream directory"
   ansible.builtin.file:
     path: /etc/nginx/conf.d/upstream
@@ -109,33 +98,28 @@
     owner: root
     group: root
     mode: '0755'
+  register: upstream_directory
 
-# Instance location configuration
-- name: "Copy dhis2 location configs"
+- name: "Upstream directory upstream cleanup"
+  ansible.builtin.file:
+    path: /etc/nginx/conf.d/upstream/{{ item }}
+    state: absent
+  when: not upstream_directory.changed
+  loop:
+    - glowroot.conf
+    - dhis2.conf
+
+- name: "Instance location configuration"
   ansible.builtin.template:
     src: nginx/instance.j2
-    dest: /etc/nginx/conf.d/upstream/dhis2.conf
+    dest: /etc/nginx/conf.d/upstream/{{ item }}.conf
     owner: root
     group: root
     mode: '0644'
+  loop: "{{ groups['instances'] }}"
   notify: Reload Nginx
 
-# glowroot location configurarion
-- name: "Copy nginx location configs for {{ app_monitoring }}"
-  ansible.builtin.template:
-    src: nginx/{{ app_monitoring }}.j2
-    dest: /etc/nginx/conf.d/upstream/{{ app_monitoring }}.conf
-    owner: root
-    group: root
-    mode: '0644'
-  when: app_monitoring is defined and app_monitoring | trim == 'glowroot'
-  notify: Reload Nginx
-
-- name: "Including tasks for securing munin"
-  ansible.builtin.include_tasks: securing_munin.yml
-  when: server_monitoring is defined and server_monitoring | trim == 'munin'
-
-- name: "Copy nginx location configs for {{ server_monitoring }}"
+- name: "Location configs | {{ server_monitoring }}"
   ansible.builtin.template:
     src: nginx/{{ server_monitoring }}.j2
     dest: /etc/nginx/conf.d/upstream/{{ server_monitoring }}.conf
@@ -144,6 +128,12 @@
     mode: '0644'
   when: server_monitoring is defined
   notify: Reload Nginx
+
+- name: "Securing munin"
+  ansible.builtin.include_tasks: securing_munin.yml
+  when:
+    - server_monitoring is defined and server_monitoring | trim == 'munin'
+    - munin_users is defined and munin_users is iterable
 
 - name: "Flush Handlers"
   ansible.builtin.meta: flush_handlers

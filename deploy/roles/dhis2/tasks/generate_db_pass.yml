@@ -1,7 +1,5 @@
-
 - name: Generate database password
-  set_fact:
-    db_password: "{{ lookup('password','/tmp/' + inventory_hostname,seed=inventory_hostname) }}"
+  ansible.builtin.set_fact:
+    db_password: "{{ lookup('password', '/tmp/' + inventory_hostname, seed=inventory_hostname) }}"
   when:
     - create_db is defined and  create_db | bool
-    - inventory_hostname in groups['instances']

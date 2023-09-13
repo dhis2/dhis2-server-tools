@@ -1,6 +1,6 @@
-{% for host in groups['instances'] %}
-location /{{host}} {
-   proxy_pass http://{{hostvars[host]['ansible_host']+':8080' }}/{{host}};
+location /{{ item }} {
+   # {{ item }} location block configs 
+   proxy_pass http://{{hostvars[item]['ansible_host']+':8080' }}/{{ item }};
    include /etc/nginx/proxy_params;
    proxy_redirect off;
    proxy_hide_header X-Powered-By;
@@ -10,5 +10,17 @@ location /{{host}} {
    proxy_set_header X-Xss-Protection "1; mode=block"; #browser-based protections against cross-site scripting
    proxy_hide_header Server;
    }
-{% endfor %}
-
+{% if app_monitoring is defined and app_monitoring | trim == 'glowroot' %}
+# {{ item }} glowroot location block configs 
+location /{{ item }}-glowroot {
+   proxy_pass http://{{ hostvars[item]['ansible_host']+':4000' }}/{{ item }}-glowroot;
+   include /etc/nginx/proxy_params;
+   proxy_redirect off;
+   proxy_hide_header X-Powered-By;
+   proxy_set_header X-Frame-Options "SAMEORIGIN";  # To mitigate the risk of clickjacking attacks
+   proxy_set_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload";
+   proxy_set_header X-Content-Type-Options "nosniff"; # drive-by download attacks
+   proxy_set_header X-Xss-Protection "1; mode=block"; #To leverage browser-based protections against cross-site scripting
+   proxy_hide_header Server;
+   }
+{% endif %}

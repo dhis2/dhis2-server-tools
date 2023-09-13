@@ -15,7 +15,7 @@ GLOWROOT_SETUP=/usr/local/etc/dhis/glowroot-admin.json
 APM=$(cat /usr/local/etc/dhis/containers.json| jq -r .apm)
 PROXY=$(cat /usr/local/etc/dhis/containers.json| jq -r .proxy)
 PROXY_IP=$(cat /usr/local/etc/dhis/containers.json| jq -r '.containers[] | select(.name=="proxy") | .ip')
-JAVA_VERSION="11"
+java_version="11"
 
 GUESTOS=20.04
 
@@ -38,8 +38,8 @@ while getopts p:nhj: opt
 do
   case $opt in
     n) CREATEDB=false ;;
-    j) JAVA_VERSION="${OPTARG}"
-       [[ $JAVA_VERSION == "8" || $JAVA_VERSION == "11" ]] || usage
+    j) java_version="${OPTARG}"
+       [[ $java_version == "8" || $java_version == "11" ]] || usage
        ;;
     h) usage;;
     *) echo "Error: Unknown parameter '$OPTARG'."
@@ -153,7 +153,7 @@ done
 
 # Added PROXY_IP to tomcat_setup
 sed "s/PROXY_IP/${PROXY_IP}/" $TOMCAT_SETUP > /tmp/tomcat_setup
-sed -i "s/JAVA_VERSION/${JAVA_VERSION}/" /tmp/tomcat_setup
+sed -i "s/java_version/${java_version}/" /tmp/tomcat_setup
 cat /tmp/tomcat_setup | lxc exec $NAME -- bash
 rm /tmp/tomcat_setup
 

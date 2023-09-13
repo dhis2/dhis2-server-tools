@@ -1,12 +1,13 @@
-# apt install apache2 libcgi-fast-perl libapache2-mod-fcgid
-- name: "Updating and Upgrading monitoring server"
+- name: Update and upgrade packages  
   ansible.builtin.apt:
+    upgrade: "yes"
+    cache_valid_time: 3600
     update_cache: true
-    cache_valid_time: 7200 # 2 hours
-    upgrade: true
 
 - name: Install munin tool
   ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
     name:
       - apache2
       - libcgi-fast-perl
@@ -14,7 +15,6 @@
       - munin # this install munin munin node and munin plugins extra
       - python3-passlib
 
-# Copy munin configuration from the template
 - name: "Copy munin configurations."
   ansible.builtin.template:
     src: "{{ item.src }}"
@@ -28,7 +28,6 @@
     - src: hosts.conf.j2
       dest: "{{ munin_conf_d_directory }}/hosts.conf"
 
-#  If you want to access the Munin Web interface outside your localhost,
 - name: "Copy munin configuration for its access via apache2 proxy "
   ansible.builtin.template:
     dest: /etc/apache2/sites-available/munin.conf
@@ -39,7 +38,6 @@
 
 - name: "Enable apache2 configuration for munin access from the web."
   ansible.builtin.file:
-    # src: /etc/munin/apache24.conf
     src: /etc/apache2/sites-available/munin.conf
     dest: /etc/apache2/sites-enabled/munin.conf
     state: link
@@ -57,7 +55,6 @@
     state: enabled
   loop: "{{ groups['web'] }}"
 
-# Setup Node to monitor multiple systems
 - name: "Enable or disable the munin cron job."
   ansible.builtin.lineinfile:
     dest: /etc/cron.d/munin
