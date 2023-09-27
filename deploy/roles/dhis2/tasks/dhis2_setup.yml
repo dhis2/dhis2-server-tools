@@ -21,7 +21,8 @@
 
 - name: "Set DHIS2 release version"
   ansible.builtin.set_fact:
-    dhis2_release_version: "{{ dhis2_releases.versions | selectattr('name', 'eq', dhis2_version | string) | first }}"
+    # dhis2_release_version: "{{ dhis2_releases.versions | selectattr('name', 'eq', dhis2_version | string) | first }}"
+    dhis2_release_version: "{{ dhis2_releases.versions | selectattr('name', 'eq', ('%.2f' | format(dhis2_version))) | first }}"
   when: dhis2_releases is defined
 
 - name: "Set dhis2_latest_patchversion and sha256"
@@ -73,7 +74,7 @@
 
 - name: "Check running dhis2 version"
   ansible.builtin.shell:
-    cmd: unzip -q -p  /var/lib/tomcat9/webapps/{{ inventory_hostname }}/WEB-INF/lib/dhis-service-core-*.jar | grep -a -oP '(?<=build.version =)[ 0-9.]*'
+    cmd: unzip -q -p  /var/lib/tomcat9/webapps/{{ inventory_hostname }}/WEB-INF/lib/dhis-service-core-*.jar build.properties | awk -F' *= *' '$1=="build.version"{print $2}'
     removes: /var/lib/tomcat9/webapps/{{ inventory_hostname }}/WEB-INF/lib/dhis-service-core-*.jar
   register: version_results
   changed_when: false

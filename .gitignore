@@ -13,6 +13,7 @@ notes
 *dev*
 *.vim
 *.war
+*scripts*
 deploy.log
 hosts
 vars_backup.yml

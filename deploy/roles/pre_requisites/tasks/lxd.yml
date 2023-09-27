@@ -85,21 +85,5 @@
         # - dhis2-delete-instance
         # - dhis2-create-instance
 
-    - name: Ensure /usr/local/etc/dhis directory exists
-      ansible.builtin.file:
-        path: /usr/local/etc/dhis/
-        state: directory
-        owner: root
-        group: root
-        mode: '0755'
-
-    - name: "Copy env file for backup "
-      ansible.builtin.copy:
-        src: dhis2-env
-        dest: /usr/local/etc/dhis/dhis2-env
-        owner: root
-        group: root
-        mode: '0600'
-
     - name: "Including firewall configuration tasks on the host"
       ansible.builtin.include_tasks: firewall.yml
