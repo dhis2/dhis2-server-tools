@@ -1,0 +1,48 @@
+--- 
+- hosts: all
+  gather_facts: false
+  vars_files:
+    - ../vars/vars.yml
+  vars:
+    instance_name: "hmis"
+  tasks:
+    - name: "Delete instance containers"
+      vars:
+        ansible_connection: local
+      community.general.lxd_container:
+        name: "{{ instance_name }}"
+        state: absent
+      when: inventory_hostname == instance_name
+
+    - name: "Delete nginx location configuration"
+      ansible.builtin.file:
+        path: /etc/nginx/conf.d/upstream/{{ instance_name }}.conf
+        state: absent
+      when: inventory_hostname in groups['web'] and proxy is defined
+      notify: Reload Nginx
+
+    - name: "Delete database"
+      become: true
+      become_user: postgres
+      community.postgresql.postgresql_db:
+        name: "{{ instance_name }}"
+        state: absent
+      when:
+        - inventory_hostname in groups['databases']
+        - inventory_hostname == hostvars[instance_name]['database_host']
+    # Delete entries on pg_hba.conf file
+    - name: "Delete database role"
+      become: true
+      become_user: postgres
+      community.general.postgresql_user:
+        name: "{{ instance_name }}"
+        state: absent
+      when:
+        - inventory_hostname in groups['databases']
+        - inventory_hostname == hostvars[instance_name]['database_host']
+
+  handlers:
+    - name: Reload Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded

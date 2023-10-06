@@ -1,7 +1,9 @@
 ---
-# defaults 
-ansible_connection: lxd 
+# defaults varibles for postgreSQL setup
+pnsible_connection: lxd
+
 postgresql_version: 13
+
 postgresql_extensions:
   - postgis
   - btree_gin

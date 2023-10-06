@@ -1,69 +1,77 @@
 ---
-# Creating integration container 
+# Creating integration container
 - name: "Create integration container"
-  become: True
+  become: true
   vars:
     ansible_connection: local
   community.general.lxd_container:
     name: "{{ container_name }}"
-    state: stopped 
-    profiles: [ "default" ]
-    ignore_volatile_options: False
+    state: stopped
+    profiles: ["default"]
+    ignore_volatile_options: false
     config:
-      "security.nesting": "True"
+      "security.nesting": "true"
     timeout: 600
     source:
       type: image
       mode: pull
       server: https://cloud-images.ubuntu.com/releases
       protocol: simplestreams
-      alias: "{{ guest_os }}/{{guest_os_arch | default('amd64')}}"
+      alias: "{{ guest_os }}/{{ guest_os_arch | default('amd64') }}"
     devices:
       eth0:
         type: 'nic'
-        parent: "{{ lxd_bridge_interface | default ('lxdbr0') }}"
+        parent: "{{ lxd_bridge_interface | default('lxdbr0') }}"
         nictype: bridged
-        ipv4.address: "{{ ip_address | ansible.utils.ipaddr(lxd_network) }}" 
+        ipv4.address: "{{ ip_address | ansible.utils.ipaddr(lxd_network) }}"
 
-- name: "Starting integration container" 
-  become: True
+- name: "Starting integration container"
+  become: true
   vars:
     ansible_connection: local
   community.general.lxd_container:
     name: "{{ container_name }}"
     state: started
-    wait_for_ipv4_addresses: True
+    wait_for_ipv4_addresses: true
 - name: "Update and upgrade"
   ansible.builtin.apt:
-    upgrade: yes
-    update_cache: yes
+    upgrade: true
+    update_cache: true
     cache_valid_time: 86400
-    
+
 # installing jre
-- name: "Install java-11-jre-headless" 
+- name: "Install java-11-jre-headless"
   ansible.builtin.apt:
     name: openjdk-11-jre-headless
-  delegate_to: "{{ container_name }}" 
+  delegate_to: "{{ container_name }}"
 
 - name: "Creating integration user"
   ansible.builtin.user:
     name: integration
     shell: /sbin/nologin
-    home: /opt/integration 
-    system: True
+    home: /opt/integration
+    system: true
 # install jar under /usr/local/bin
-#dd https://github.com/dhis2/integration-dhis-rapidpro/releases/download/v2.0.1/dhis2rapidpro.jar 
+# dd https://github.com/dhis2/integration-dhis-rapidpro/releases/download/v2.0.1/dhis2rapidpro.jar
 
-# install properties under /usr/local/etc 
+# install properties under /usr/local/etc
 
 - name: "Creating application diretory"
-  file:
+  ansible.builtin.file:
     dest: /opt/<application_name>
-    type: diretory
+    state: directory
+    modification_time: preserve
+    access_time: preserve
+    owner: root
+    group: root
+    mode: '0755'
 
-# Creating systemd service 
-- name: "Copy systemd file to the server" 
-  template: 
+# Creating systemd service
+- name: "Copy systemd file to the server"
+  ansible.builtin.template:
     src:
     dest:
+    owner: root
+    group: root
+    mode: '0600'
   notify: Reload Systemd

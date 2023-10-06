@@ -1,6 +1,6 @@
-- gather_facts: False
+- gather_facts: false
   hosts: all
-  force_handlers: True
+  force_handlers: true
   become: True
   vars_files:
     - ../vars/vars.yml

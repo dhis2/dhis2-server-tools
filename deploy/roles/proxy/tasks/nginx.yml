@@ -50,7 +50,7 @@
     state: absent
 
 - name: "Include TLS configurarion tasks"
-  ansible.builtin.include_tasks: "{{ ssl_type }}.yml"
+  ansible.builtin.include_tasks: "{{ SSL_TYPE }}.yml"
   when:
     - fqdn is defined
     - (fqdn != None)

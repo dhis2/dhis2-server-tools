@@ -51,7 +51,7 @@
     state: absent
 
 - name: "TLS configuration, Letsencrypt | Customssl"
-  gnsible.builtin.include_tasks: "{{ ssl_type }}.yml"
+  gnsible.builtin.include_tasks: "{{ SSL_TYPE }}.yml"
   when: fqdn is defined and fqdn and (fqdn != None)
 
 - name: "Self-signed TLS configuration, fqdn is not defined"

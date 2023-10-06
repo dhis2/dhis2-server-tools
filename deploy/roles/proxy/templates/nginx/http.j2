@@ -1,7 +1,7 @@
 server {
     listen 80 default_server;
     server_name {{ fqdn }};
-    {%- if ssl_type == 'letsencrypt' %} 
+    {%- if SSL_TYPE == 'letsencrypt' %} 
     location /.well-known/acme-challenge {
         root /var/www/letsencrypt;
         try_files $uri $uri/ =404;

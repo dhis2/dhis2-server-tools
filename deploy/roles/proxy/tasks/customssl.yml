@@ -1,5 +1,4 @@
---- 
-# Copy certificate and key to the server
+---
 - name: "Creating TLS certificate directory"
   ansible.builtin.file:
     path: /etc/ssl/{{ fqdn }}
@@ -10,8 +9,7 @@
     group: root
     mode: '0755'
 
-# Copying over ssl certificate
-- name: "Porting TLS certificate"
+- name: "Copying TLS certificate to the proxy"
   ansible.builtin.copy:
     src: "{{ item }}" # ensure the file exists
     dest: /etc/ssl/{{ fqdn }}/{{ item }}

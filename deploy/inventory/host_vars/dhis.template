@@ -3,5 +3,5 @@
 # NOTE: The name should correspond to the lxc container instance name you'll be creating, the same name you have on your inventory file. 
 # A few examples. 
 
-# java_version: 11
+# JAVA_VERSION: 11
 # heap_memory_size: 4G 

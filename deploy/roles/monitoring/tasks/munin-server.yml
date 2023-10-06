@@ -1,4 +1,4 @@
-- name: Update and upgrade packages  
+- name: Update and upgrade packages
   ansible.builtin.apt:
     upgrade: "yes"
     cache_valid_time: 3600
@@ -12,7 +12,7 @@
       - apache2
       - libcgi-fast-perl
       - libapache2-mod-fcgid
-      - munin # this install munin munin node and munin plugins extra
+      - munin
       - python3-passlib
 
 - name: "Copy munin configurations."

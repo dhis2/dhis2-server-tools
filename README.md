@@ -12,9 +12,9 @@ With these tools, we strive to support various deployment architectures, i.e sin
 <!-- vim-markdown-toc GFM -->
 
 * [Requirements](#requirements)
-* [Install ansible version ≥ 2.11](#install-ansible-version--211)
-* [Download deployment tools for git](#download-deployment-tools-for-git)
-* [Creating an inventory file.](#creating-an-inventory-file)
+* [Install ansible version 2.11 or newer](#install-ansible-version-211-or-newer)
+* [Grab deployment tools for git](#grab-deployment-tools-for-git)
+* [Create an inventory file from hosts.template file](#create-an-inventory-file-from-hoststemplate-file)
 * [Customization before installation](#customization-before-installation)
   * [Read more on  supported variables](#read-more-on--supported-variables)
   * [Read more on hosts grouping](#read-more-on-hosts-grouping)
@@ -37,7 +37,7 @@ With these tools, we strive to support various deployment architectures, i.e sin
 * ssh access to the server. 
 * non root user with sudo. 
 
-## Install ansible version ≥ 2.11
+## Install ansible version 2.11 or newer
 
   _**NOTE:** For a [distributed
 architecture](./docs/Deployment-Architectures.md#distributed-architecture) ,
@@ -57,21 +57,22 @@ managed servers._
 ansible-galaxy collection install community.general -f
 ```
 
-## Download deployment tools for git
+## Grab deployment tools for git
 `git clone https://github.com/dhis2/dhis2-server-tools`
 
-##  Creating an inventory file.
+## Create an inventory file from hosts.template file
 A before doing anything with these tools, you'll need an inventory hosts file.
-Create the file before proceeding. A good start would be from `hosts.template`
-file which we ship with the tools. 
+A good start would be from `hosts.template` file which we ship with the tools. 
 
 Create it by copying`hosts.template` to `hosts`
+
 ```
 cd dhis2-server-tools/deploy/inventory/
 cp hosts.template hosts
 ```
 
 ##  Customization before installation
+
 You will edit `hosts` file and set `fqdn`, `email` and `timezone` you can leave other
 settings to their set defaults. 
 

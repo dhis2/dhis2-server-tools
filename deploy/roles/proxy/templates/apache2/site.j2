@@ -147,10 +147,10 @@
        #===========================================================
        SSLEngine on
        # set these to match your server certificate and key
-{% if ssl_type == 'letsencrypt' %}
+{% if SSL_TYPE == 'letsencrypt' %}
        SSLCertificateFile      /etc/letsencrypt/live/{{ fqdn }}/fullchain.pem
        SSLCertificateKeyFile /etc/letsencrypt/live/{{ fqdn }}/privkey.pem
-{% elif ssl_type == 'customssl' %}
+{% elif SSL_TYPE == 'customssl' %}
        SSLCertificateFile /etc/ssl/{{ fqdn }}/customssl.crt
        SSLCertificateKeyFile /etc/ssl/{{ fqdn }}/customssl.key
 {%endif%}

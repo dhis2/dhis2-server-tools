@@ -51,13 +51,13 @@ guest_os_arch='amd64'
 proxy="nginx"
 
 # Options: letsencrypt, customssl, default(letsencrypt)
-ssl_type=letsencrypt
+SSL_TYPE=letsencrypt
 
 # instances group variables,
 [instances:vars]
 database_host=postgres
 create_db=yes  
-java_version="11" 
+JAVA_VERSION="11" 
 
 # NOTE: if dhis2_war_file and dhis2_version are both defined, dhis2_war_file takes precedence  
 dhis2_war_file="https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war"

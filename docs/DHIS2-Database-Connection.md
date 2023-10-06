@@ -55,13 +55,19 @@ application, allowing for a smooth deployment process.
 
 #### pg_hba.conf 
 
-* PostgreSQL Access Control configuration`,pg_hba.conf`  has access control settings. These settings restrict  unwanted access to the database. It has five parts, 
+* PostgreSQL Access Control configuration, `pg_hba.conf`  has access control
+  settings. These settings restrict  unwanted access to the database. It has
+  five parts, 
 
     **TYPE, DATABASE,USER, ADDRESS **and** METHOD.**
 
-    The "postgresql.conf" file also allows you to specify the location of the "pg_hba.conf" file. It is usually in <code>[/etc/postgresql/13/main](https://github.com/dhis2/dhis2-server-tools/blob/main/deploy/roles/postgres/files/dhispg.conf)</code>/pg_hba.conf by default if you install pg_version 13, for example. 
+    The "postgresql.conf" file also allows you to specify the location of the
+    "pg_hba.conf" file. It is usually in
+    <code>[/etc/postgresql/13/main](https://github.com/dhis2/dhis2-server-tools/blob/main/deploy/roles/postgres/files/dhispg.conf)</code>/pg_hba.conf
+    by default if you install pg_version 13, for example. 
 
-    <code>vim [/etc/postgresql/13/main](https://github.com/dhis2/dhis2-server-tools/blob/main/deploy/roles/postgres/files/dhispg.conf)</code>/pg_hba.conf 
+    <code>vim
+    [/etc/postgresql/13/main](https://github.com/dhis2/dhis2-server-tools/blob/main/deploy/roles/postgres/files/dhispg.conf)</code>/pg_hba.conf 
 
     You’ll add lines below the file, they’ll look like below two entries. 
 
@@ -115,7 +121,7 @@ sudo ufw enable
 After your database configuration, you should be able to connect to the
 database with psql on the localhost (127.0.0.1). Check your firewall settings
 and hba settings and ensure your application server is allowed to connect to
-the database, i.e it ip address is whitelisted on pg_hba.conf file. If it's
+the database, i.e it ip address is white-listed on pg_hba.conf file. If it's
 not, you’ll need to add a line that looks like the line below and restart your
 database. 
 

@@ -19,3 +19,4 @@ hosts
 vars_backup.yml
 deploy/inventory/host_vars/*
 !deploy/inventory/host_vars/*.template
+.ansible-lint

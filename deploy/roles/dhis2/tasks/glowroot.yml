@@ -1,14 +1,3 @@
-- name: Creating /opt/glowroot directory
-  ansible.builtin.file:
-    path: /opt/glowroot
-    owner: tomcat
-    group: tomcat
-    state: directory
-    modification_time: preserve
-    access_time: preserve
-    mode: '0755'
-  tags: [never]
-
 - name: "Download and extract glowroot"
   ansible.builtin.unarchive:
     src: https://github.com/glowroot/glowroot/releases/download/v0.13.6/glowroot-0.13.6-dist.zip
@@ -18,6 +7,11 @@
     remote_src: true
     mode: '0755'
 
+- name: Check if /opt/glowroot/admin.json file exists
+  ansible.builtin.stat:
+    path: /opt/glowroot/admin.json
+  register: glowroot_admin_file_status
+
 - name: "Copy glowroot configs to the instances"
   ansible.builtin.template:
     src: glowroot_admin.json
@@ -25,4 +19,5 @@
     group: tomcat
     owner: tomcat
     mode: '0640'
-  changed_when: false
+  when: not glowroot_admin_file_status.stat.exists
+  notify: Restart Tomcat

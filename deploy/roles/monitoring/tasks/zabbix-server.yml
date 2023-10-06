@@ -1,5 +1,6 @@
 ---
-- include_vars: "{{server_monitoring}}.yml"
+- mame: "Include {{ server_monitoring }} tasks"
+  ansible.builtin.include_tasks: "{{server_monitoring}}.yml"
 
 - name: "Update and Upgrade monitoring server"
   ansible.builtin.apt:
@@ -24,7 +25,6 @@
     mode: '0644'
   register: zabbix_key
 
-# Installing zabbix repository
 - name: "Installing zabbix repository for {{ ansible_distribution }}"
   ansible.builtin.apt_repository:
     repo: "{{ item }} [signed-by={{ zabbix_key['dest'] }}] {{ zabbix_server_apt_repository | join(' ') }}"
@@ -34,8 +34,7 @@
     - deb-src
     - deb
 
-# apt install zabbix-server-pgsql zabbix-frontend-php php8.1-pgsql zabbix-nginx-conf zabbix-sql-scripts zabbix-agent
-- name: "Installing zabbix-server-{{ zabbix_server_database }}"
+- name: "Installing zabbix-server and its dependencies"
   ansible.builtin.apt:
     pkg:
       - zabbix-server-{{ zabbix_server_database }}

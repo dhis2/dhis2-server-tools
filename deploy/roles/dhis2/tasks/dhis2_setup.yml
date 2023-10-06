@@ -54,7 +54,7 @@
       - unzip
       - tomcat9
       - tomcat9-admin
-      - openjdk-{{ java_version }}-jre-headless
+      - openjdk-{{ JAVA_VERSION }}-jre-headless
       - ufw
 
 - name: "Creating /opt/dhis2 directory"

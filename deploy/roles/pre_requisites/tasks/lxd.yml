@@ -15,7 +15,7 @@
         upgrade: "yes"
         update_cache: true
         cache_valid_time: 3600
-          
+
     - name: "Ensure python's netaddr is installed"
       ansible.builtin.apt:
         update_cache: true
