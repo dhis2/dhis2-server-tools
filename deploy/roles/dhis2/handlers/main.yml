@@ -5,30 +5,30 @@
     name: postgresql
     state: reloaded
   when:
-    - database_host is defined 
+    - database_host is defined
 
 # stopping tomcat9
 - name: Stop Tomcat
   ansible.builtin.systemd:
     name: tomcat9
     state: stopped
-    daemon_reload: yes
+    daemon_reload: true
   when: inventory_hostname in groups['instances']
 
-# starting tomcat9 
+# starting tomcat9
 - name: Start Tomcat
   ansible.builtin.systemd:
     name: tomcat9
     state: started
-    daemon_reload: yes
+    daemon_reload: true
   when: inventory_hostname in groups['instances']
 
-# restarting tomcat 9 
+# restarting tomcat 9
 - name: Restart Tomcat
   ansible.builtin.systemd:
     name: tomcat9
     state: restarted
-    daemon_reload: yes
+    daemon_reload: true
   when: inventory_hostname in groups['instances']
 
 - name: Reload Nginx
@@ -37,4 +37,3 @@
     name: nginx
     state: reloaded
   when: inventory_hostname in 'proxy'
-

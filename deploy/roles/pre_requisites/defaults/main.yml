@@ -2,8 +2,8 @@
 # defaults file for ./roles/lxd-init
 lxd_noreboot: true
 lxd_cluster: false
-lxd_cluster_secret: "your_secret_here"
-timezone: "Africa/Nairobi"
+lxd_cluster_secret: your_secret_here
+timezone: Africa/Nairobi
 lxd_with_zfs_backend: true
 lxd_zfs_size: 16GB
 lxd_storage_name: myzfspool
@@ -14,25 +14,24 @@ lxd_init_file_test: /var/lib/lxd/networks/lxdfan0
 # lxd_init_file_test: "/var/lib/lxd/disks/{{ lxd_storage_name }}.img"
 
 lxd_fanconf_use_fan: "true"
-lxd_fanconf_fan: "lxdfan0"
-lxd_fanconf_underlay_subnet: "auto"
+lxd_fanconf_fan: lxdfan0
+lxd_fanconf_underlay_subnet: auto
 
 lxd_bridgeconf_use_bridge: "true"
-lxd_bridge_interface: "lxdbr0"
-lxd_bridgeconf_ipv4_addr: "172.19.2.1"
-lxd_bridgeconf_ipv4_netmask: "255.255.255.0"
-lxd_bridgeconf_ipv4_network: "172.19.2.1/24"
-lxd_bridgeconf_ipv4_dhcp_range: "172.19.2.100-172.19.2.200"
+lxd_bridge_interface: lxdbr0
+lxd_bridgeconf_ipv4_addr: 172.19.2.1
+lxd_bridgeconf_ipv4_netmask: 255.255.255.0
+lxd_bridgeconf_ipv4_network: 172.19.2.1/24
+lxd_bridgeconf_ipv4_dhcp_range: 172.19.2.100-172.19.2.200
 lxd_bridgeconf_ipv4_dhcp_max: 199
-lxd_bridgeconf_ipv4_nat: True
-lxd_bridgeconf_ipv6_addr: "auto"
+lxd_bridgeconf_ipv4_nat: true
+lxd_bridgeconf_ipv6_addr: auto
 lxd_bridgeconf_ipv6_dhcp: "true"
 lxd_bridgeconf_ipv6_dhcp_range: ""
 lxd_bridgeconf_ipv6_proxy: false
 
 lxd_dnsmasq_conf: false
 lxd_dnsmasq_staticips: []
-
 lxd_force_ubuntu_backports: false
 
 ## https://github.com/lxc/lxd/issues/1229, increase required if using nesting
@@ -40,7 +39,7 @@ lxd_subid_start: 100000
 lxd_subid_range: 65536
 
 ufw_inactive_msg:
-      - "    UFW in disabled !"
-      - "    Please enable it to continue with the setup"
-      - "    sudo ufw limit 22   # allows ssh connections to the server"
-      - "    sudo ufw enable     # starts and enables ufw"
+  - "    UFW in disabled !"
+  - "    Please enable it to continue with the setup"
+  - "    sudo ufw limit 22   # allows ssh connections to the server"
+  - "    sudo ufw enable     # starts and enables ufw"

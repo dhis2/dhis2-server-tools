@@ -1,0 +1,7 @@
+# site-packages/ansible_collections/community/general/plugins/module_utils/lxd.py
+#  # ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH) to, ctx = ssl._create_unverified_context(purpose=ssl.Purpose.SERVER_AUTH)
+plugin: community.general.lxd
+# state: RUNNING
+# url: 
+# key_file: 
+# cert_file: 

@@ -1,6 +1,7 @@
 ---
-- gather_facts: False
-  become: True
+- name: Installing postgresql
+  gather_facts: false
+  become: true
   hosts: databases
   vars_files:
     - ../vars/vars.yml

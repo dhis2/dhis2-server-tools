@@ -1,18 +1,18 @@
 ---
 # tasks file for roles/monitoring
-- name: "Include tasks for {{ ansible_connection }}"
+- name: Include tasks for {{ ansible_connection }}
   ansible.builtin.include_tasks: "{{ ansible_connection }}.yml"
   when:
     - inventory_hostname in groups['monitoring']
     - server_monitoring is defined
 
-- name: "Include  server tasks for {{ server_monitoring }}"
+- name: Include  server tasks for {{ server_monitoring }}
   ansible.builtin.include_tasks: "{{ server_monitoring }}-server.yml"
   when:
     - inventory_hostname in groups['monitoring']
     - server_monitoring is defined
 
-- name: "Include client tasks for {{ server_monitoring }}"
+- name: Include client tasks for {{ server_monitoring }}
   ansible.builtin.include_tasks: "{{ server_monitoring }}-client.yml"
   when:
     - server_monitoring is defined

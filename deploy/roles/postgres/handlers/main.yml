@@ -6,10 +6,13 @@
     name: postgresql
     state: restarted
 
-# Reload postgresql service 
+# Reload postgresql service
 - name: Reload Postgres
   ansible.builtin.service:
     name: postgresql
     state: reloaded
-- name: restart munin-node
-  service: name=munin-node state=restarted
+
+- name: Restart Munin-node
+  ansible.builtin.service:
+    name: munin-node
+    state: restarted

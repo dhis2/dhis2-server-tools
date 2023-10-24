@@ -1,4 +1,4 @@
 ---
-- name: "Including tasks | {{ ansible_connection }}"
+- name: Including tasks | {{ ansible_connection }}
   ansible.builtin.include_tasks: "{{ ansible_connection }}.yml"
   when: inventory_hostname in groups['databases']

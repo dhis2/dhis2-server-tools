@@ -9,7 +9,7 @@
     state: reloaded
 
 # Restarting unattended-upgrades
-- name: restart unattended-upgrades
+- name: Restart Unattended-upgrades
   vars:
     ansible_connection: local
   ansible.builtin.service:

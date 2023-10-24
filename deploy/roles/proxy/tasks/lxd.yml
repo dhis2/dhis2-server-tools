@@ -1,44 +1,46 @@
-# creating proxy container 
-- name: "Create proxy container"
-  become: True
+---
+- name: Create proxy container
+  become: true
   vars:
     ansible_connection: local
   community.general.lxd_container:
+    config:
+      boot.autostart.priority: "4"
+      user.type: web
     name: "{{ inventory_hostname }}"
     # architecture: "{{ guest_os_arch}}"
     state: started
-    profiles: ["default"]
+    profiles: [default]
     ignore_volatile_options: false
     wait_for_ipv4_addresses: true
     timeout: 60
     source:
       type: image
       mode: pull
-      #server: https://images.linuxcontainers.org
+      # server: https://images.linuxcontainers.org
       server: "{{ lxd_source_server | default('https://cloud-images.ubuntu.com/releases') }}"
-      protocol: "{{lxd_source_protocol | default('simplestreams')}}"
-      alias: "{{guest_os }}/{{guest_os_arch | default('amd64')}}"
+      protocol: "{{ lxd_source_protocol | default('simplestreams') }}"
+      alias: "{{ guest_os }}/{{ guest_os_arch | default('amd64') }}"
     devices:
       eth0:
-        nictype: "bridged"
-        parent: "{{ lxd_bridge_interface | default ('lxdbr1') }}"
-        type: "nic"
-        ipv4.address: "{{ hostvars[inventory_hostname]['ansible_host'] | ansible.utils.ipaddr(lxd_network)}}" 
+        nictype: bridged
+        parent: "{{ lxd_bridge_interface | default('lxdbr1') }}"
+        type: nic
+        ipv4.address: "{{ ansible_host | ansible.utils.ipaddr(lxd_network) }}"
 
-- name: "Get facts"
+- name: Get facts
   ansible.builtin.setup:
     gather_subset:
       - network
-      - '!min'
+      - "!min"
 
-- name: "Applying container static ip address"
-  become: True
+- name: Applying container static ip address
+  become: true
   vars:
     ansible_connection: local
   community.general.lxd_container:
     name: "{{ inventory_hostname }}"
     state: restarted
-    wait_for_ipv4_addresses: True
+    wait_for_ipv4_addresses: true
   when:
     - hostvars[inventory_hostname]['ansible_host'] != hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['address']
-

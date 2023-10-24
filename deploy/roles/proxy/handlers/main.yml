@@ -1,23 +1,19 @@
 ---
-# handlers file for ./roles/proxy
-- name: reload ufw
+- name: Reload ufw
   connection: local
   become: true
   become_user: root
   community.general.ufw:
     state: reloaded
-    enabled: true
 
 - name: Reload Nginx
   ansible.builtin.service:
     name: nginx
     state: reloaded
-    enabled: true 
+    enabled: true
 
 - name: Reload Apache2
   ansible.builtin.service:
     name: apache2
     state: reloaded
     enabled: true
-
-

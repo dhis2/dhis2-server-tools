@@ -1,19 +1,19 @@
 ---
-- name: "Install certbot"
+- name: Install certbot
   ansible.builtin.apt:
     name: certbot
     state: present
 
-- name: "Generate TLS/SSL Certificate with certbot"
+- name: Generate TLS/SSL Certificate with certbot
   become: true
   ansible.builtin.shell: |
     systemctl stop {{ proxy }}
-    certbot certonly -n -m {{ email }} --agree-tos -d {{ fqdn }} --standalone --no-eff-email
+    certbot certonly -n -m {{ email if email is match('^(?!.*\\.example\\.com$)[\\w\\.-]+@[\\w\\.-]+\\.\\w+$') else 'admin@' + fqdn.split('.')[-2:] | join('.') }} --agree-tos -d {{ fqdn }} --standalone --no-eff-email
   args:
     creates: /etc/letsencrypt/live/{{ fqdn }}
 
 #  daily is identical with  0 0 * * *
-- name: "Add letsencrypt cronjob for cert renewal"
+- name: Add letsencrypt cronjob for cert renewal
   ansible.builtin.cron:
     cron_file: /etc/cron.d/certbot
     name: letsencrypt_renewal

@@ -3,7 +3,7 @@
   ansible.builtin.setup:
     gather_subset:
       - network
-      - '!min'
+      - "!min"
 
 - name: Ensure acl packate is installed
   ansible.builtin.apt:
@@ -16,6 +16,6 @@
   community.general.ufw:
     rule: limit
     port: "{{ ssh_port | default('22') }}"
-    src: 0.0.0.0/0
+    src: "0.0.0.0/0"
     proto: tcp
     comment: Allow ssh access to the instance

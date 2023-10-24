@@ -1,22 +1,22 @@
 ---
 # install lxd with snap
-- name: "Initiate lxd"
+- name: Initiate lxd
   vars:
     ansible_connection: local
   block:
-    - name: "Gathering facts"
+    - name: Gathering facts
       ansible.builtin.setup:
         gather_subset:
           - network
-          - '!min'
+          - "!min"
 
-    - name: "Update and upgrade system packages"
+    - name: Update and upgrade system packages
       ansible.builtin.apt:
         upgrade: "yes"
         update_cache: true
         cache_valid_time: 3600
 
-    - name: "Ensure python's netaddr is installed"
+    - name: Ensure python's netaddr is installed
       ansible.builtin.apt:
         update_cache: true
         cache_valid_time: 3600
@@ -25,27 +25,33 @@
           - unzip
         state: present
 
-    - name: "Ensure lxd is installed"
+    - name: Ensure snapd is installed
+      ansible.builtin.apt:
+        name: snapd
+        state: present
+        update_cache: true
+
+    - name: Ensure lxd is installed
       community.general.snap:
         name: lxd
 
-    - name: "Getting lxc info"
+    - name: Getting lxc info
       ansible.builtin.command: lxc info
       register: lxc_info_src0
       run_once: true
       changed_when: false
 
-    - name: "Creating lxd-preseed.yml"
+    - name: Creating lxd-preseed.yml
       ansible.builtin.set_fact:
         master: "{{ lookup('template', 'lxd-preseed.yml.j2') }}"
 
-    - name: "Backup lxd-preseed configuration to /etc directory"
+    - name: Backup lxd-preseed configuration to /etc directory
       ansible.builtin.copy:
         dest: /etc/lxd-preseed.yml
         content: "{{ master }}"
-        mode: '0644'
+        mode: "0644"
 
-    - name: "Initiating lxd with lxd-preseed.yml"
+    - name: Initiating lxd with lxd-preseed.yml
       ansible.builtin.command: lxd init --preseed <
       args:
         stdin: "{{ master }}"
@@ -54,13 +60,13 @@
         (not lxd_cluster or inventory_hostname == groups.all[0])
         and lxc_info_src0.stdout.find('storage: \"\"') != -1
 
-    - name: "Restarting LXD service"
+    - name: Restarting LXD service
       ansible.builtin.command: snap restart lxd.daemon
       args:
         creates: /snap/lxd/.lxd-restart
       changed_when: false
 
-    - name: "Making lxd restart idempotent"
+    - name: Making lxd restart idempotent
       ansible.builtin.file:
         path: /snap/lxd/.lxd-restart
         state: touch
@@ -68,7 +74,7 @@
         modification_time: preserve
         access_time: preserve
 
-    - name: "Copy service sripts to /usr/local/bin/"
+    - name: Copy service sripts to /usr/local/bin/
       ansible.builtin.copy:
         src: "{{ item }}"
         dest: /usr/local/bin/
@@ -85,5 +91,5 @@
         # - dhis2-delete-instance
         # - dhis2-create-instance
 
-    - name: "Including firewall configuration tasks on the host"
+    - name: Including firewall configuration tasks on the host
       ansible.builtin.include_tasks: firewall.yml

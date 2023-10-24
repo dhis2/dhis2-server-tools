@@ -11,7 +11,7 @@ With these tools, we strive to support various deployment architectures, i.e sin
 ---
 <!-- vim-markdown-toc GFM -->
 
-* [Requirements](#requirements)
+* [Requirements before you start](#requirements-before-you-start)
 * [Install ansible version 2.11 or newer](#install-ansible-version-211-or-newer)
 * [Grab deployment tools for git](#grab-deployment-tools-for-git)
 * [Create an inventory file from hosts.template file](#create-an-inventory-file-from-hoststemplate-file)
@@ -32,7 +32,7 @@ With these tools, we strive to support various deployment architectures, i.e sin
 <!-- vim-markdown-toc -->
 ---
 
-## Requirements
+## Requirements before you start
 * Ubuntu server running 20.04 or 22.04. 
 * ssh access to the server. 
 * non root user with sudo. 

@@ -24,7 +24,7 @@
 
 <VirtualHost *:80>
         ServerName {{ fqdn }}
-        ServerAdmin {{ email }}
+        ServerAdmin {{ email if email is match('^(?!.*\\.example\\.com$)[\\w\\.-]+@[\\w\\.-]+\\.\\w+$') else 'admin@' + fqdn.split('.')[-2:] | join('.') }}
 
         RewriteEngine On
 
@@ -42,7 +42,7 @@
 # Main vhost configuration
   <VirtualHost *:443>
        ServerName {{ fqdn }}
-       ServerAdmin {{ email }}
+       ServerAdmin {{ email if email is match('^(?!.*\\.example\\.com$)[\\w\\.-]+@[\\w\\.-]+\\.\\w+$') else 'admin@' + fqdn.split('.')[-2:] | join('.') }}
 
        # Throw out IP based requests
        RewriteCond %{HTTP_HOST} !^{{ '\\.'.join(fqdn.split('.')) }} [NC]
