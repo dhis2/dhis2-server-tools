@@ -1,3 +1,4 @@
+---
 - name: "Create instances database role:"
   become: true
   become_user: postgres
@@ -11,7 +12,7 @@
     - inventory_hostname == hostvars[item]['database_host']
   notify: Reload Postgres
 
-- name: "Creating dhis2 database/databases"
+- name: Creating dhis2 database/databases
   become: true
   become_user: postgres
   community.postgresql.postgresql_db:
@@ -23,7 +24,7 @@
     - inventory_hostname == hostvars[item]['database_host']
   notify: Reload Postgres
 
-- name: "Creating postgis,btree_gin and pg_trgm extensions"
+- name: Creating postgis,btree_gin and pg_trgm extensions
   become: true
   become_user: postgres
   community.general.postgresql_ext:

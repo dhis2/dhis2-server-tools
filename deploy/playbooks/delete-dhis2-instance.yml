@@ -1,12 +1,12 @@
---- 
+---
 - hosts: all
   gather_facts: false
   vars_files:
     - ../vars/vars.yml
   vars:
-    instance_name: "hmis"
+    instance_name: hmis
   tasks:
-    - name: "Delete instance containers"
+    - name: Delete instance containers
       vars:
         ansible_connection: local
       community.general.lxd_container:
@@ -14,14 +14,15 @@
         state: absent
       when: inventory_hostname == instance_name
 
-    - name: "Delete nginx location configuration"
+    # need to incoporate apache2 as well
+    - name: Delete nginx location configuration on nginx
       ansible.builtin.file:
         path: /etc/nginx/conf.d/upstream/{{ instance_name }}.conf
         state: absent
       when: inventory_hostname in groups['web'] and proxy is defined
       notify: Reload Nginx
 
-    - name: "Delete database"
+    - name: Delete database
       become: true
       become_user: postgres
       community.postgresql.postgresql_db:
@@ -30,8 +31,8 @@
       when:
         - inventory_hostname in groups['databases']
         - inventory_hostname == hostvars[instance_name]['database_host']
-    # Delete entries on pg_hba.conf file
-    - name: "Delete database role"
+
+    - name: Delete database role
       become: true
       become_user: postgres
       community.general.postgresql_user:
@@ -41,8 +42,48 @@
         - inventory_hostname in groups['databases']
         - inventory_hostname == hostvars[instance_name]['database_host']
 
+    - name: Checking postgresql Version, needed when editing postgres config files
+      become: true
+      # become_method: sudo
+      become_user: postgres
+      community.general.postgresql_info:
+        filter: ver*
+      register: postgresql_version_info
+      when:
+        - inventory_hostname in groups['databases']
+        - inventory_hostname == hostvars[instance_name]['database_host']
+
+    # Delete entries on pg_hba.conf file
+    - name: Delete {{ instance_name }} entry in pg_hba.conf config
+      become: true
+      ansible.builtin.lineinfile:
+        path: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf
+        regex: host .* {{ instance_name }} .*
+        state: absent
+      when:
+        - inventory_hostname == hostvars[instance_name]['database_host']
+        - inventory_hostname in groups['databases']
+      notify: Reload Postgres
+
+    # delete ufw rule
+    - name: Firewall | Open port 5432 from dhis2 instances
+      community.general.ufw:
+        rule: deny
+        port: "{{ postgresql_port | default('5432') }}"
+        src: "{{ hostvars[instance_name]['ansible_host'] }}"
+        proto: tcp
+        comment: "Allow access from {{ instance_name }} instance "
+      when:
+        - inventory_hostname == hostvars[instance_name]['database_host']
+        - inventory_hostname in groups['databases']
+
   handlers:
     - name: Reload Nginx
       ansible.builtin.service:
         name: nginx
+        state: reloaded
+
+    - name: Reload Postgres
+      ansible.builtin.service:
+        name: postgresql
         state: reloaded

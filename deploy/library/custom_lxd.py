@@ -16,7 +16,7 @@ __metaclass__ = type
 
 import os
 from subprocess import Popen, PIPE
-import distutils.spawn
+import shutil
 import sys
 import json
 
@@ -30,7 +30,7 @@ hosts = {}
 result = {}
 
 # Read the settings from the lxd.ini file
-config = configparser.SafeConfigParser()
+config = configparser.ConfigParser()
 config.read(os.path.dirname(os.path.realpath(__file__)) + '/lxd.ini')
 if config.has_option('lxd', 'resource'):
     resource = config.get('lxd', 'resource')
@@ -40,14 +40,17 @@ if config.has_option('lxd', 'connection'):
     connection = config.get('lxd', 'connection')
 
 # Ensure executable exists
-if distutils.spawn.find_executable('lxc'):
+# if distutils.spawn.find_executable('lxc'):
+if shutil.which('lxc'):
 
     # Set up containers result and hosts array
     result[group] = {}
     result[group]['hosts'] = []
+    result[group]['vars'] = {}
+    user_type_groups = {}
 
     # Run the command and load json result
-    pipe = Popen(['lxc', 'list', resource, '--format', 'json'], stdout=PIPE, universal_newlines=True)
+    pipe = Popen(['lxc', 'list', '--format', 'json'], stdout=PIPE, universal_newlines=True)
     lxdjson = json.load(pipe.stdout)
 
     # Iterate the json lxd output
@@ -56,10 +59,11 @@ if distutils.spawn.find_executable('lxc'):
         # Check state and network
         if 'state' in item and item['state'] is not None and 'network' in item['state']:
             network = item['state']['network']
-
+            new_group = item['config']['user.type']
             # Check for eth0 and addresses
             if 'eth0' in network and 'addresses' in network['eth0']:
                 addresses = network['eth0']['addresses']
+                            
 
                 # Iterate addresses
                 for address in addresses:
@@ -69,16 +73,15 @@ if distutils.spawn.find_executable('lxc'):
                         if 'address' in address:
                             ip = address['address']
                             name = item['name']
+                            if new_group not in result:
+                                    # if new_group not in results:
+                                result[new_group] = {}
+                                result[new_group]['hosts'] = []
+                            result[new_group]['hosts'].append(name)
+                            result[new_group]['vars'] = {}
+                            result[new_group]['vars']['ansible_connection'] = connection
+                            result[new_group]['vars']['ansible_host'] = ip
 
-                            # Add the host to the results and the host array
-                            result[group]['hosts'].append(name)
-                            hosts[name] = ip
-
-    # Set the other containers result values
-    result[group]['vars'] = {}
-    result[group]['vars']['ansible_connection'] = connection
-
-# Process arguments
 if len(sys.argv) == 2 and sys.argv[1] == '--list':
     print(json.dumps(result))
 elif len(sys.argv) == 3 and sys.argv[1] == '--host':

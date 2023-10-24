@@ -1,13 +1,13 @@
 ---
 ansible_connection: lxd
 
-# default java version 
+# default java version
 JAVA_VERSION: 11
 
 # default app monitoring
 app_monitoring: glowroot
 
-# default database_host 
+# default database_host
 database_host: postgres
 
 # default dhis2_version

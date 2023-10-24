@@ -1,5 +1,5 @@
 ---
-- name: "Allow http port 80"
+- name: Allow http port 80
   community.general.ufw:
     rule: allow
     port: "{{ http_port | default('80') }}"
@@ -7,100 +7,100 @@
     comment: http
     state: enabled
 
-- name: "Allow https port 443"
+- name: Allow https port 443
   community.general.ufw:
     rule: allow
     port: "{{ https_port | default('443') }}"
     proto: tcp
     comment: https
 
-- name: "Ensure apache2 is stopped and disabled"
+- name: Ensure apache2 is stopped and disabled
   ansible.builtin.service:
     name: apache2
     enabled: false
     state: stopped
   register: unused_disable
-  failed_when: "unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)"
+  failed_when: unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)
   # ignore_errors: true
 
-- name: "Updating and Upgrading"
+- name: Updating and Upgrading
   ansible.builtin.apt:
     upgrade: "yes"
     update_cache: true
     cache_valid_time: 3600
 
-- name: "Installing Nginx"
+- name: Installing Nginx
   ansible.builtin.apt:
     name: nginx
     state: present
     update_cache: true
     cache_valid_time: 3600
 
-- name: "Disabling nginx version show"
+- name: Disabling nginx version show
   ansible.builtin.lineinfile:
     dest: /etc/nginx/nginx.conf
-    regex: '.*server_tokens off'
+    regex: .*server_tokens off
     line: "\tserver_tokens off;"
-    insertafter: "types_hash_max_size"
+    insertafter: types_hash_max_size
   notify: Reload Nginx
 
-- name: "Remove default nginx site"
+- name: Remove default nginx site
   ansible.builtin.file:
     name: /etc/nginx/sites-enabled/default
     state: absent
 
-- name: "Include TLS configurarion tasks"
+- name: Include TLS configurarion tasks
   ansible.builtin.include_tasks: "{{ SSL_TYPE }}.yml"
   when:
     - fqdn is defined
     - (fqdn != None)
     - fqdn | trim != ""
 
-- name: "Include self-signed TLS Certificate tasks, fqdn is not defined"
+- name: Include self-signed TLS Certificate tasks, fqdn is not defined
   ansible.builtin.include_tasks: self-signed.yml
   when: fqdn is undefined or (fqdn == None) or (not fqdn | trim != "")
 
-- name: "Copy nginx site configuration"
+- name: Copy nginx site configuration
   ansible.builtin.template:
     src: nginx/site.j2
     dest: /etc/nginx/conf.d/{{ fqdn }}.conf
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   when: fqdn is defined and (fqdn != None) and fqdn
   notify: Reload Nginx
 
-- name: "Default nginx configuration, fqdn is not defined"
+- name: Default nginx configuration, fqdn is not defined
   ansible.builtin.template:
     src: nginx/default.j2
     dest: /etc/nginx/conf.d/default.conf
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   when: fqdn is undefined or (fqdn == None) or (not fqdn | trim != "")
   notify: Reload Nginx
 
-- name: "Generating Diffie–Hellman key parameters, takes a while, you may grab some coffee"
+- name: Generating Diffie–Hellman key parameters, takes a while, you may grab some coffee
   ansible.builtin.command: openssl dhparam -out /etc/nginx/dhparams.pem 2048
   args:
     creates: /etc/nginx/dhparams.pem
   notify: Reload Nginx
 
-- name: "Start nginx service"
+- name: Start nginx service
   ansible.builtin.service:
     name: nginx
     state: started
 
-- name: "Creating nginx upstream directory"
+- name: Creating nginx upstream directory
   ansible.builtin.file:
     path: /etc/nginx/conf.d/upstream
     state: directory
     owner: root
     group: root
-    mode: '0755'
+    mode: "0755"
   register: upstream_directory
 
-- name: "Upstream directory upstream cleanup"
+- name: Upstream directory upstream cleanup
   ansible.builtin.file:
     path: /etc/nginx/conf.d/upstream/{{ item }}
     state: absent
@@ -109,31 +109,31 @@
     - glowroot.conf
     - dhis2.conf
 
-- name: "Instance location configuration"
+- name: Instance location configuration
   ansible.builtin.template:
     src: nginx/instance.j2
     dest: /etc/nginx/conf.d/upstream/{{ item }}.conf
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   loop: "{{ groups['instances'] }}"
   notify: Reload Nginx
 
-- name: "Location configs | {{ server_monitoring }}"
+- name: Location configs | {{ server_monitoring }}
   ansible.builtin.template:
     src: nginx/{{ server_monitoring }}.j2
     dest: /etc/nginx/conf.d/upstream/{{ server_monitoring }}.conf
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   when: server_monitoring is defined
   notify: Reload Nginx
 
-- name: "Securing munin"
+- name: Securing munin
   ansible.builtin.include_tasks: securing_munin.yml
   when:
     - server_monitoring is defined and server_monitoring | trim == 'munin'
     - munin_users is defined and munin_users is iterable
 
-- name: "Flush Handlers"
+- name: Flush Handlers
   ansible.builtin.meta: flush_handlers

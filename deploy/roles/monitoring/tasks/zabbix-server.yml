@@ -1,31 +1,31 @@
 ---
-- mame: "Include {{ server_monitoring }} tasks"
+- mame: Include {{ server_monitoring }} tasks
   ansible.builtin.include_tasks: "{{server_monitoring}}.yml"
 
-- name: "Update and Upgrade monitoring server"
+- name: Update and Upgrade monitoring server
   ansible.builtin.apt:
     upgrade: "yes"
     update_cache: true
     cache_valid_time: 86400
 
-- name: "Set variables"
+- name: Set variables
   ansible.builtin.set_fact:
     zabbix_short_version: "{{ zabbix_version | regex_replace('\\.', '') }}"
     zabbix_server_apt_repository:
-      - "http://repo.zabbix.com/zabbix/{{ zabbix_version }}/{{ ansible_distribution.lower() }}/"
+      - http://repo.zabbix.com/zabbix/{{ zabbix_version }}/{{ ansible_distribution.lower() }}/
       - "{{ ansible_distribution_release }}"
-      - "main"
+      - main
 
-- name: "Downloading zabbix repo key"
+- name: Downloading zabbix repo key
   ansible.builtin.get_url:
     url: http://repo.zabbix.com/zabbix-official-repo.key
     dest: /etc/apt/keyrings/zabbix.asc
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   register: zabbix_key
 
-- name: "Installing zabbix repository for {{ ansible_distribution }}"
+- name: Installing zabbix repository for {{ ansible_distribution }}
   ansible.builtin.apt_repository:
     repo: "{{ item }} [signed-by={{ zabbix_key['dest'] }}] {{ zabbix_server_apt_repository | join(' ') }}"
     state: present
@@ -34,7 +34,7 @@
     - deb-src
     - deb
 
-- name: "Installing zabbix-server and its dependencies"
+- name: Installing zabbix-server and its dependencies
   ansible.builtin.apt:
     pkg:
       - zabbix-server-{{ zabbix_server_database }}
@@ -51,5 +51,5 @@
   until: zabbix_server_package_installed is succeeded
   tags: [never]
 
-- name: "Installing the postgresql database"
+- name: Installing the postgresql database
   ansible.builtin.include_tasks: zabbix_postgreql.yml

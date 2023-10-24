@@ -1,28 +1,31 @@
-
+---
 - name: Ensure admin email is defined
-  fail:
-    msg: "Your dhis2 administrator email is not defined. Please define existing email address to deploy dhis2 in 'email' variable"
+  ansible.builtin.fail:
+    msg: Your dhis2 administrator email is not defined. Please define existing email address to deploy dhis2 in 'email' variable
   when: (email is not defined) or (email == None) or (not email) or (email == "xxx@xxx.xxx")
 
 - name: Ensure fqdn is defined
-  fail:
-    msg: "Your dhis2 domain name  is not defined. Please define existing and working domain name to deploy dhis2 in 'fqdn' variable. It  should be resolved to one of public IP addresses of your server."
+  ansible.builtin.fail:
+    msg: Your dhis2 domain name  is not defined. Please define existing and working domain name to deploy dhis2 in 'fqdn' variable. It  should be resolved to one
+      of public IP addresses of your server.
   when: (fqdn is not defined) or (fqdn == None) or (not fqdn) or (fqdn == 'xxx.xxx.xxx')
 
 - name: Try to resolve fqdn "{{ fqdn }}"
-  set_fact:
+  ansible.builtin.set_fact:
     fqdn_ip: "{% if lookup('dig', fqdn) | ipaddr %}{{ lookup('dig', fqdn) }}{% else %}{% endif %}"
 
 - name: Ensure fqdn "{{ fqdn }}" has been resolved
-  fail:
-    msg: "Your dhis2 fqdn '{{ fqdn }}' couldn't be resolved to IP address. Please ensure DNS settings of your domain are actual. Keep in mind the DNS could take long to update"
+  ansible.builtin.fail:
+    msg: Your dhis2 fqdn '{{ fqdn }}' couldn't be resolved to IP address. Please ensure DNS settings of your domain are actual. Keep in mind the DNS could take long
+      to update
   when: (fqdn_ip == None) or (not fqdn_ip)
 
 - name: Set "public_ip" to "{{fqdn_ip }}" if it empty in config.yaml
-  set_fact:
+  ansible.builtin.set_fact:
     public_ip: "{{ fqdn_ip }}"
   when: (public_ip is not defined) or (public_ip == None) or (not public_ip)
 
 - name: Process SSL availability
-  set_fact:
-    ssl_enabled: "{% if certbot_enabled or (custom_ssl_cert is defined and custom_ssl_cert|length > 0 and custom_ssl_key is defined and custom_ssl_key|length > 0) %}true{% else %}false{% endif %}"
+  ansible.builtin.set_fact:
+    ssl_enabled: "{% if certbot_enabled or (custom_ssl_cert is defined and custom_ssl_cert | length > 0 and custom_ssl_key is defined and custom_ssl_key | length
+      > 0) %}true{% else %}false{% endif %}"

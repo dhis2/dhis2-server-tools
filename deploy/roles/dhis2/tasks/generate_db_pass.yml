@@ -1,3 +1,4 @@
+---
 - name: Generate database password
   ansible.builtin.set_fact:
     db_password: "{{ lookup('password', '/tmp/' + inventory_hostname, seed=inventory_hostname) }}"

@@ -1,10 +1,10 @@
 ---
-- name: restart unattended-upgrades
+- name: Restart Unattended-upgrades
   ansible.builtin.service:
     name: unattended-upgrades
     state: restarted
 
-- name: reload nginx
+- name: Reload Nginx
   ansible.builtin.service:
     name: nginx
     state: reloaded

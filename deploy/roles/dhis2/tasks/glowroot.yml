@@ -1,23 +1,24 @@
-- name: "Download and extract glowroot"
+---
+- name: Download and extract glowroot
   ansible.builtin.unarchive:
     src: https://github.com/glowroot/glowroot/releases/download/v0.13.6/glowroot-0.13.6-dist.zip
     dest: /opt/
     group: tomcat
     owner: tomcat
     remote_src: true
-    mode: '0755'
+    mode: "0755"
 
 - name: Check if /opt/glowroot/admin.json file exists
   ansible.builtin.stat:
     path: /opt/glowroot/admin.json
   register: glowroot_admin_file_status
 
-- name: "Copy glowroot configs to the instances"
+- name: Copy glowroot configs to the instances
   ansible.builtin.template:
     src: glowroot_admin.json
     dest: /opt/glowroot/admin.json
     group: tomcat
     owner: tomcat
-    mode: '0640'
+    mode: "0640"
   when: not glowroot_admin_file_status.stat.exists
   notify: Restart Tomcat

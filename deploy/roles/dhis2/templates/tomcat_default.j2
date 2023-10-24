@@ -31,3 +31,13 @@ JAVA_OPTS="${JAVA_OPTS} -XX:MaxGCPauseMillis=1500 -XX:GCTimeRatio=9"
 {% if app_monitoring is defined and app_monitoring == "glowroot" %}
 JAVA_OPTS="${JAVA_OPTS} -javaagent:/opt/glowroot/glowroot.jar"
 {% endif %}
+
+{% if zabbix_jmx_monitoring is defined and zabbix_jmx_monitoring | bool %}
+JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote"
+JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote.port=9090"
+JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote.ssl=false"
+JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote.rmi.port=9090"
+JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote.local.only=false"
+JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote.authenticate=false"
+JAVA_OPTS="${JAVA_OPTS} -Djava.rmi.server.hostname={{ansible_host}}"
+{% endif %}
