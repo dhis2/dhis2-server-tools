@@ -12,7 +12,7 @@ default connection plugin for ansible.
 ## lxd connection 
 When the setup is all in a single server, we separate components with lxd
 containers. To automate running tasks inside these containers with ansible,
-there is already a connection plugin available. It's the [lxd plugin](https://docs.ansible.com/ansible/latest/collections/community/general/lxd_container_module.html). 
+there is already a connection plugin available. It's the [lxd plugin](https://docs.ansible.com/ansible/latest/collections/community/general/lxd_connection.html). 
 
 ## ssh connection
 In case your servers are distributed, and you  are doing your deployment from a
