@@ -21,12 +21,12 @@ More specifically
 * munin logins
 * database usernames and passwords
 * sudo passwords (`ansible_become_pass`) if your deployments happens on
-  different servers, implies ssh password as well, if you not using key based
+  different servers, implies ssh password as well, if you're not using key based
   authentication.  
 
 The variables in Ansible can be stored in various locations. One approach is to
 use host files in the `inventory/host_vars/` directory with the name
-corresponding to the host name as it appears in your `inventory/hosts` file. This
+corresponding to the hostname as it appears in your `inventory/hosts` file. This
 allows you to separate variables specific to each host. For example, if you
 have a host named proxy, you can create an encrypted file in
 `inventory/host_vars/proxy` to store proxy-specific variables. You have the
@@ -38,13 +38,13 @@ you can refer to the [Ansible Documentation on Variable precedence
 variables and where you should place them for optimal management.
 
 ## How to encrypt files with ansible-vault 
-* **Option1**: Create encrypted files with ansible-vault command on fly. 
+* **Option1**: Create encrypted files with ansible-vault command on the fly. 
   This is the recommended approach, that you create an encrypted vault already,
   rather than later.
   ```
   ansible-vault create inventory/host_vars/proxy
   ```
-* **Option2**: Encrypt already created files with ansible vault 
+* **Option2**: Encrypt already created files with ansible vault.
   This approach is only good if you have files already created and you just
   want to enforce encryption.
 
@@ -52,24 +52,24 @@ variables and where you should place them for optimal management.
   ansible-vault encrypt inventory/host_vars/proxy
   ```
 
-In both scenarios you will be prompted twice for encryption password, be sure
-to save the password because you will later need it accessing vault.  To edit
+In both scenarios, you will be prompted twice for encryption password, be sure
+to save the password because you will later need it when accessing the vault.  To edit
 the vault and add contents like variables, use
 
 ```
 ansible-vault edit  inventory/host_vars/proxy
 ```
 
-This will open the file for editing, with your available system editor, in my
-experience `vim`. Put your variables like its shown below
+This will open the file for editing, with your available text editor, in my
+experience `vim`. Put your variables like it's shown below
 ```
 munin_users:
   - name: admin
     password: <put_secure_password>
 
-# if you want munic access from non default base path  
+# if you want munin access from non default base path  
 munin_base_path: <base_path_for_munin>
-# for privilege escalation if you are connecting via ssh with non root use and running tasks
+# for privilege escalation if you are connecting via ssh with non root user and running tasks
 # requring sudo access
 ansible_become_pass: <strong_sudo_password> 
 

@@ -1,5 +1,5 @@
 # Basic LXC container management
-listing containers <br>
+List containers <br>
 ```
 lxc list
 
@@ -19,15 +19,15 @@ lxc list
 ```
 Stop a running container 
 
-`lxc stop <container_name>`
+`lxc stop <container-name>`
 
-Restart container
+Restart a container
 
-`lxc restart <container_name>`
+`lxc restart <container-name>`
 
 Delete a container
 
-`lxc delete <container_name>`
+`lxc delete <container-name>`
 
 Execute and run commands inside a container 
 
@@ -35,23 +35,23 @@ Execute and run commands inside a container
 
 Access the Shell of a Container:
 ```
-lxc exec <container_name> -- /bin/bash
+lxc exec <container-name> -- /bin/bash
 ```
 Show Container Configuration:
 ```
-lxc config show <container_name>
+lxc config show <container-name>
 ```
 View Container Log:
 ```
-lxc info my-container
+lxc info <container-name>
 ```
 Example (pushing a file to the container):
 ```
-lxc file push myfile.txt my-container/root/
+lxc file push myfile.txt <container-name>/root/
 ```
 Copy Files Between Host and Container:
 ```
-lxc file push <local_file> <container_name>/<path_inside_container>
-lxc file pull <container_name>/<path_inside_container> <local_destination>
+lxc file push <local-file> <container-name>/<path_inside_container>
+lxc file pull <container-name>/<path_inside_container> <local_destination>
 ```
 
