@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -e 
-RED='\033[0;31m'
 
 # Check the version of ubuntu running
 distro_name=$(lsb_release -i | cut -f2)
@@ -12,7 +11,7 @@ UFW_STATUS=$(sudo ufw status |grep Status|cut -d ' ' -f 2)
 # ensure firewall is running on the host
 if [[ $UFW_STATUS == "inactive" ]]; then
       echo
-	    echo -e "\e ${RED}=========== ERROR =================="
+	    echo "============= ERROR =================="
 	    echo "ufw firewall needs to be enabled in order to perform the installation."
 	    echo "It is required to NAT connections to the proxy container."
 	    echo "You just need to have a rule to allow ssh access. eg:"
@@ -58,7 +57,7 @@ then
       esac
     sudo -E apt-get -yq autoclean
     # install community general collections 
-    ansible-galaxy collection install community.general
+    # ansible-galaxy collection install community.general
 fi
 # deploying dhis2 
 if [[ -f inventory/hosts ]]; then
