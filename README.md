@@ -1,6 +1,6 @@
 Table of contents
 ---
-<    !-- vim-markdown-toc GFM -->
+<!-- vim-markdown-toc GFM -->
 
 * [Introduction](#introduction)
 * [Quick before you start](#quick-before-you-start)
@@ -13,7 +13,6 @@ Table of contents
 	* [On multiple servers](#on-multiple-servers)
 * [Adding an instance](#adding-an-instance)
 * [Using a Custom SSL Certificate](#using-a-custom-ssl-certificate)
-	* [Where should you place certificate and key files, and what should be their naming convention ?](#where-should-you-place-certificate-and-key-files-and-what-should-be-their-naming-convention-)
 * [Monitoring](#monitoring)
 * [other important links](#other-important-links)
 

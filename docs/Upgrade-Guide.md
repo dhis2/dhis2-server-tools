@@ -3,6 +3,13 @@ Table of contents
 <!-- vim-markdown-toc GFM -->
 
 * [Introduction](#introduction)
+	* [Who is this document for](#who-is-this-document-for)
+	* [Why do we need to upgrade](#why-do-we-need-to-upgrade)
+	* [Types of upgrade](#types-of-upgrade)
+	* [Backing up and moving](#backing-up-and-moving)
+	* [Making an upgrade plan](#making-an-upgrade-plan)
+	* [Who needs to be involved](#who-needs-to-be-involved)
+	* [Post Upgrade](#post-upgrade)
 * [Upgrading DHIS2 (Short version)](#upgrading-dhis2-short-version)
 * [Detailed considerations](#detailed-considerations)
 	* [Backup and restore tips and tricks](#backup-and-restore-tips-and-tricks)
@@ -14,8 +21,6 @@ Table of contents
 * [The Upgrade calendar (example)](#the-upgrade-calendar-example)
 
 <!-- vim-markdown-toc -->
-
-
 ## Introduction
 
 This document outlines the procedure for upgrading the DHIS2 application on an
@@ -35,29 +40,27 @@ Issues can stem from resource limitations, unexpected changes in the new
 version, an incomplete upgrade process, among others. Therefore, it's essential
 to strategize and plan the upgrade process meticulously.
 
-
-
-* Who is this document for
-* Why do we need to upgrade
-* Types of upgrade
-* Backing up and moving 
-    * static files
-    * dhis.conf
-    * database
-    * war file
-* Making an upgrade plan
-    * prepare an upgrade schedule. 
-    * testing phase
-    * training phase
-    * Switchover phase
-        * Eg. Monday morning or a Friday evening? Compensation for working on the weekend
-* Who needs to be involved
-    * Don't forget the users
-    * And the person responsible for the DNS
-* Post Upgrade 
-    * backup configuration
-    * monitoring 
-    * optimizations, 
+### Who is this document for
+### Why do we need to upgrade
+### Types of upgrade
+### Backing up and moving 
+* static files
+* dhis.conf
+* database
+* war file
+### Making an upgrade plan
+* prepare an upgrade schedule. 
+* testing phase
+* training phase
+* Switchover phase
+    * Eg. Monday morning or a Friday evening? Compensation for working on the weekend
+### Who needs to be involved
+* DHIS2 users
+* And the person responsible for the DNS
+### Post Upgrade 
+* backup configuration
+* monitoring 
+* optimizations, 
 
 
 ## Upgrading DHIS2 (Short version)
@@ -334,4 +337,3 @@ Provision of physical or virtual training events </td>
 	 <td style="vertical-align: top; text-align: left;">Sysadmin resource for installation </td>
      </tr>
 </table>
-

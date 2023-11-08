@@ -60,6 +60,7 @@
   ansible.builtin.include_tasks: self-signed.yml
   when: fqdn is undefined or (fqdn == None) or (not fqdn | trim != "")
 
+# modify to be per instance
 - name: Copy nginx site configuration
   ansible.builtin.template:
     src: nginx/site.j2
