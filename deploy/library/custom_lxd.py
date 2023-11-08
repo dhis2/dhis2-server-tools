@@ -24,47 +24,44 @@ from ansible.module_utils.six.moves import configparser
 
 # Set up defaults
 resource = 'local:'
-group = 'lxd'
 connection = 'lxd'
 hosts = {}
 result = {}
 
-# Read the settings from the lxd.ini file
-config = configparser.ConfigParser()
-config.read(os.path.dirname(os.path.realpath(__file__)) + '/lxd.ini')
-if config.has_option('lxd', 'resource'):
-    resource = config.get('lxd', 'resource')
-if config.has_option('lxd', 'group'):
-    group = config.get('lxd', 'group')
-if config.has_option('lxd', 'connection'):
-    connection = config.get('lxd', 'connection')
+# persing INI file 
+        # Read the settings from the lxd.ini file
+        # config = configparser.ConfigParser(allow_no_value=True)
+        # config.read('../inventory/hosts')
+        
+        # if config.has_option('all:vars', 'ansible_connection'):
+            # ansible_connection = config.get('all:vars', 'ansible_connection')
+        # print(ansible_connection)
+        # if config.has_option('lxd', 'group'):
+        #     group = config.get('lxd', 'group')
+        # if config.has_option('lxd', 'connection'):
+        #     connection = config.get('lxd', 'connection')
 
-# Ensure executable exists
-# if distutils.spawn.find_executable('lxc'):
 if shutil.which('lxc'):
-
     # Set up containers result and hosts array
-    result[group] = {}
-    result[group]['hosts'] = []
-    result[group]['vars'] = {}
-    user_type_groups = {}
-
     # Run the command and load json result
     pipe = Popen(['lxc', 'list', '--format', 'json'], stdout=PIPE, universal_newlines=True)
     lxdjson = json.load(pipe.stdout)
-
     # Iterate the json lxd output
     for item in lxdjson:
 
         # Check state and network
         if 'state' in item and item['state'] is not None and 'network' in item['state']:
             network = item['state']['network']
-            new_group = item['config']['user.type']
+            new_group = item['config'].get('user.type', 'ungrouped')
+            # try:
+            #     new_group = item['config']['user.type']
+            # except KeyError:
+            #     new_group = "ungrouped"
+
             # Check for eth0 and addresses
             if 'eth0' in network and 'addresses' in network['eth0']:
                 addresses = network['eth0']['addresses']
                             
-
                 # Iterate addresses
                 for address in addresses:
 

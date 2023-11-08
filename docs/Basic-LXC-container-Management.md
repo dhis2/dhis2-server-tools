@@ -1,4 +1,8 @@
 # Basic LXC container management
+
+lxd environment offers `lxc` command line tool which can be used to manage and
+administer containers
+
 listing containers <br>
 ```
 lxc list

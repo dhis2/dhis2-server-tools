@@ -32,7 +32,8 @@ database_host: postgres
 dhis2_version: 2.39
 ```
 
-## general variables 
+## Here's the list of available configuration parameters and their default values
+### general variables 
 ---
 <table>
   <tr>
@@ -68,7 +69,7 @@ dhis2_version: 2.39
  <tr>
 </table>
 
-## Instance Variables
+### Instance Variables
 <table>
  <tr>
     <th style="text-align: left; vertical-align: top;">Variable</th>
@@ -114,7 +115,7 @@ dhis2_version: 2.39
   
 </table>
 
-## PostgreSQL Variables
+### PostgreSQL Variables
 <table>
  <tr>
     <th style="text-align: left; vertical-align: top;">Variable</th>
