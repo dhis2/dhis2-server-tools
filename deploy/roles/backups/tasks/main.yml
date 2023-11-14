@@ -1,5 +1,5 @@
 ---
 # tasks file for ./backups
-- name: "Configuring backups scripts |  {{ ansible_connection }}"
+- name: Configuring backups scripts |  {{ ansible_connection }}
   ansible.builtin.include_tasks: "{{ ansible_connection }}.yml"
   when: inventory_hostname in groups['databases']

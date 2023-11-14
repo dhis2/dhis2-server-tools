@@ -27,3 +27,10 @@
   handlers:
     - name: Handlers to restart unattended_upgrades etc
       ansible.builtin.import_tasks: playbooks/handlers.yml
+
+- name: Creating backup script
+  hosts: databases
+  gather_facts: false
+  become: true
+  roles:
+    - role: backups

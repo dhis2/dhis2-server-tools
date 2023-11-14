@@ -1,3 +1,4 @@
+---
 - name: Ensure s3cmd is installed
   ansible.builtin.apt:
     name: s3cmd
@@ -11,4 +12,4 @@
     dest: /usr/local/etc/dhis/s3cfg
     owner: root
     group: root
-    mode: '0600'
+    mode: "0600"

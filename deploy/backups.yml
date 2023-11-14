@@ -1,6 +1,0 @@
-- name: "Playbook automating creation of a backup script"
-  hosts: databases
-  gather_facts: false
-  become: true
-  roles:
-    - role: backups

@@ -1,3 +1,4 @@
+---
 - name: Create a list of dhis2 databases to backup
   ansible.builtin.set_fact:
     dhis2_databases: "{{ groups['instances'] | join(' ') }}"
@@ -8,9 +9,9 @@
     state: directory
     owner: root
     group: root
-    mode: '0755'
+    mode: "0755"
 
-- name: "Configuring s3"
+- name: Configuring s3
   ansible.builtin.include_tasks: s3cfg.yml
   when:
     - s3_access_key is defined and (s3_access_key != None) and s3_access_key | trim != ""
@@ -21,7 +22,7 @@
   ansible.builtin.template:
     src: dhis2-env.j2
     dest: /usr/local/etc/dhis/dhis2-env
-    mode: '0600'
+    mode: "0600"
     owner: root
     group: root
 
@@ -31,13 +32,13 @@
     dest: /usr/local/bin/dhis2-backup
     owner: root
     group: root
-    mode: '0701'
+    mode: "0701"
 
 - name: Add backup script to crontab
   ansible.builtin.cron:
-    name: "dhis2 backup Script"
+    name: dhis2 backup Script
     minute: "0"
     hour: "3"
-    user: "root"
-    job: "/usr/local/bin/dhis2-backup"
+    user: root
+    job: /usr/local/bin/dhis2-backup
     state: present
