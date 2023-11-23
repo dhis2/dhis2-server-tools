@@ -1,0 +1,42 @@
+---
+- name: Generate manager_password
+  ansible.builtin.set_fact:
+    manager_passwd: "{{ lookup('password', '/tmp/' + 'manager_password' + inventory_hostname, seed=inventory_hostname) }}"
+
+- name: Install ibwww-perl libxml-simple-perl
+  ansible.builtin.apt:
+    name:
+      - libwww-perl
+      - libxml-simple-perl
+
+- name: Copy tomcat-users.xml file
+  ansible.builtin.template:
+    src: tomcat-users.xml
+    dest: /etc/tomcat9/tomcat-users.xml
+    owner: root
+    group: tomcat
+    mode: '0640'
+
+- name: Add configuration block to the file
+  ansible.builtin.blockinfile:
+    path: /etc/munin/plugin-conf.d/munin-node
+    insertafter: EOF
+    block: |
+      [tomcat_*]
+      env.ports 8080
+      env.request /manager/status?XML=true
+      env.connector "http-nio-8080"
+      env.user monitor
+      env.password {{ manager_passwd }}
+
+- name: Create symlinks for Munin plugins
+  ansible.builtin.file:
+    src: "/usr/share/munin/plugins/{{ item }}"
+    dest: "/etc/munin/plugins/{{ item }}"
+    state: link
+  loop:
+    - tomcat_access
+    - tomcat_jvm
+    - tomcat_threads
+    - tomcat_volume
+  notify: Restart Munin-Node

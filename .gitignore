@@ -17,6 +17,11 @@ notes
 deploy.log
 hosts
 vars_backup.yml
-deploy/inventory/host_vars/*
-!deploy/inventory/host_vars/*.template
 .ansible-lint
+# Ignore all files in deploy/inventory/host_vars/ and deploy/inventory/group_vars/
+deploy/inventory/host_vars/*
+deploy/inventory/group_vars/*
+
+# But allow .template files in deploy/inventory/host_vars/ and deploy/inventory/group_vars/
+!deploy/inventory/host_vars/*.template
+!deploy/inventory/group_vars/*.template

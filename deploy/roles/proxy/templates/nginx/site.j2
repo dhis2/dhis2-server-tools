@@ -1,3 +1,15 @@
+# Let local monitoring agent access stats
+server {
+  listen 127.0.0.1;
+  server_name localhost;
+  location /nginx_status {
+    stub_status on;
+    access_log   off;
+    allow 127.0.0.1;
+    deny all;
+  }
+}
+
 # http block
 server {
   listen 80 ;

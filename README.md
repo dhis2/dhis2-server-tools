@@ -3,14 +3,14 @@ Table of contents
 <!-- vim-markdown-toc GFM -->
 
 * [Introduction](#introduction)
-* [Install on a single server](#install-on-a-single-server)
+* [Install with lxd containers](#install-with-lxd-containers)
 	* [Step 0 — Before you start](#step-0--before-you-start)
 	* [Step 1 — SSH to your server and enable firewall.](#step-1--ssh-to-your-server-and-enable-firewall)
 	* [Step 2 — Grab deployment tools from github](#step-2--grab-deployment-tools-from-github)
 	* [Step 3 —  Create hosts file](#step-3---create-hosts-file)
 	* [Step 4 — Set fqdn, email,timezone](#step-4--set-fqdn-emailtimezone)
 	* [Step 5 — The Install](#step-5--the-install)
-* [Install on multiple servers](#install-on-multiple-servers)
+* [Install on physical/virtual servers.](#install-on-physicalvirtual-servers)
 	* [Step 0: Before you start](#step-0-before-you-start)
 	* [Step 1: Access deployment server (ansible controller) via ssh](#step-1-access-deployment-server-ansible-controller-via-ssh)
 	* [Step 2: Install ansible on the deployment server](#step-2-install-ansible-on-the-deployment-server)
@@ -37,7 +37,7 @@ At the moment, the tools support two deployment architectures:-
 - [Install on multiple servers](#install-on-multiple-servers)
 
 You can also do a hybrid of both. [Read more on Architectures](./docs/Deployment-Architectures.md)
-## Install on a single server
+## Install with lxd containers
 ### Step 0 — Before you start
 Ensure you have:
 - Linux server, minimum 4GB RAM, 2CPU cores
@@ -73,7 +73,6 @@ Ensure you have:
 - Edit `dhis2-server-tools/deploy/inventory/hosts` file and set `fqdn`, `email`
   if you have.(you can leave them empty if you do not have)
 - Set your preferred `timezone`, you can leave other settings to their set defaults. 
-
   ```
   vim dhis2-server-tools/deploy/inventory/hosts
   ```
@@ -95,7 +94,7 @@ Ensure you have:
   https://your-domain/munin
   ```
 
-## Install on multiple servers
+## Install on physical/virtual servers.
 ### Step 0: Before you start
 - A deployment server - This server is going to an ansible-controller.<br>DHIS2
   setup on the backend server will done from here. I will be using
@@ -255,3 +254,4 @@ NOTE:
 - [Optimizing PostgreSQL](./docs/Optimizing-PostgreSQL.md)
 - [lxc container management](./docs/Basic-LXC-container-Management.md)
 - [service management with systemctl](./docs/Systemd-Service-Management.md)
+- [SSH Connection](./docs/SSH-Connection.md)

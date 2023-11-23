@@ -16,7 +16,7 @@
     owner: root
     group: root
     mode: "0644"
-  notify: Restart Munin_node
+  notify: Restart Munin-Node
 
 - name: Ensure munin-node is running.
   ansible.builtin.service:
@@ -33,3 +33,11 @@
     comment: Allow access from {{ item }} monitoring server
     state: enabled
   loop: "{{ groups['monitoring'] }}"
+
+- name: Include tasks for configuring munin on nginx
+  ansible.builtin.include_tasks: nginx-munin.yml
+  when: inventory_hostname in groups['web']
+
+- name: Include tasks for tomcat9
+  ansible.builtin.include_tasks: tomcat-munin.yml
+  when: inventory_hostname in groups['instances']

@@ -1,0 +1,2 @@
+---
+# This is just template. Ansible hosts are members of groups, in our tools we have 3 most commong groups, [web], [databases], [monitoring] 

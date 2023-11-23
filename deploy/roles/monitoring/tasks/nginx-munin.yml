@@ -1,0 +1,14 @@
+- name: Install ibwww-perl libxml-simple-perl
+  ansible.builtin.apt:
+    name:
+      - libwww-perl
+
+- name: Enable nginx modules for munin monitoring
+  ansible.builtin.file:
+    src: "/usr/share/munin/plugins/{{ item }}"
+    dest: "/etc/munin/plugins/{{ item }}"
+    state: link
+  loop:
+    - nginx_status
+    - nginx_request
+  notify: Restart Munin-Node
