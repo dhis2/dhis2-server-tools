@@ -23,7 +23,6 @@ server {
   server_name _;
   ssl_stapling on;
   ssl_stapling_verify  on;
-  server_name _;
   ssl_certificate     /etc/ssl/self-signed/self-signed.crt;
   ssl_certificate_key /etc/ssl/self-signed/self-signed.key;
   ssl_protocols TLSv1.2 TLSv1.3;
@@ -47,10 +46,26 @@ server {
   # rewrite ^/$ /dhis; 
 # This is quite strict.  If you have much older windoze browsers
   ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
+{# {% for instance in groups['instances']  if (hostvars[instance]['fqdn'] is defined and (hostvars[instance]['fqdn'] == hostvars[item]['fqdn'] and 'ROOT' not in groups['instances']  | map('extract', hostvars, 'instance_name') | map('default', 'None') and #}
+{# (hostvars[instance]['proxy_rewrite'] | default(false) == true or hostvars[instance]['proxy_rewrite'] | default('false') == "true") %} #}
+{# {% if loop.first %} #}
+{#     rewrite ^/$ /{{ hostvars[instance]['instance_name'] | default(instance) | to_fixed_string }}; #} 
+{# {%endif%} #}
+{# {%endfor%} #}
+
 # Location configuration 
-    include  conf.d/upstream/*;
-  location / {
-  return 444; 
+{% for instance  in groups['instances'] if (hostvars[instance]['fqdn'] is undefined)
+or hostvars[instance]['fqdn'] == None or  (not hostvars[instance]['fqdn'] | trim != "") %}
+    include  conf.d/upstream/{{ instance | to_fixed_string }}.conf;
+{%endfor%}
+    include  conf.d/upstream/munin.conf;
+{% for instance  in groups['instances'] if 'ROOT' not in groups['instances'] |
+    map('extract', hostvars, 'instance_name') | map('default', 'None') %}
+{% if loop.first %}
+location / {
+  return 444;
   }
+{%endif%}
+{%endfor%}
 }
 

@@ -13,6 +13,8 @@
         name: "{{ instance_name }}"
         state: absent
       when: inventory_hostname == instance_name
+      # ingroup instances 
+      # deleted is defined and deleted
 
     # need to incoporate apache2 as well
     - name: Delete nginx location configuration on nginx

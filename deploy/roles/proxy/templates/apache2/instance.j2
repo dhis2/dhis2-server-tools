@@ -1,13 +1,30 @@
-<Location /{{ item }}>
+{% if  hostvars[item]['instance_name'] | default(item) | to_fixed_string == "ROOT"  %}
+<Location />
     Require all granted
-    ProxyPass "http://{{hostvars[item]['ansible_host']+':8080' }}/{{ item }}"
-    ProxyPassReverse "http://{{hostvars[item]['ansible_host']+':8080'}}/{{ item }}"
+    ProxyPass "http://{{ hostvars[item]['ansible_host']+':8080' }}/"
+    ProxyPassReverse "http://{{ hostvars[item]['ansible_host']+':8080'}}/"
 </Location>
 
 {% if app_monitoring is defined and app_monitoring | trim == 'glowroot' %}
-<Location /{{ item }}-glowroot>
+<Location /glowroot>
     Require all granted
-    ProxyPass "http://{{hostvars[item]['ansible_host']+':4000' }}/{{ item }}-glowroot"
-    ProxyPassReverse "http://{{hostvars[item]['ansible_host']+':4000'}}/{{ item }}-glowroot"
+    ProxyPass "http://{{ hostvars[item]['ansible_host']+':4000' }}/glowroot"
+    ProxyPassReverse "http://{{ hostvars[item]['ansible_host']+':4000'}}/glowroot"
 </Location>
 {% endif %}
+{% else %}
+<Location /{{ hostvars[item]['instance_name'] | default(item) | to_fixed_string }}>
+    Require all granted
+    ProxyPass "http://{{ hostvars[item]['ansible_host']+':8080' }}/{{ hostvars[item]['instance_name'] | default(item) | to_fixed_string }}"
+    ProxyPassReverse "http://{{ hostvars[item]['ansible_host']+':8080'}}/{{ hostvars[item]['instance_name'] | default(item) | to_fixed_string }}"
+</Location>
+
+{% if app_monitoring is defined and app_monitoring | trim == 'glowroot' %}
+<Location /{{ hostvars[item]['instance_name'] | default(item) | to_fixed_string }}-glowroot>
+    Require all granted
+    ProxyPass "http://{{ hostvars[item]['ansible_host']+':4000' }}/{{ hostvars[item]['instance_name'] | default(item) | to_fixed_string }}-glowroot"
+    ProxyPassReverse "http://{{ hostvars[item]['ansible_host']+':4000'}}/{{ hostvars[item]['instance_name'] | default(item) | to_fixed_string }}-glowroot"
+</Location>
+{% endif %}
+{% endif %}
+

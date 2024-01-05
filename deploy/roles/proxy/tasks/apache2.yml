@@ -1,4 +1,20 @@
 ---
+# Consider adding a custom filter/test for this task
+- name: Assert two instances under the same fqdn have unique Instance Names
+  ansible.builtin.assert:
+    that:
+      - hostvars[item]['instance_name'] != hostvars[ansible_loop.nextitem]['instance_name']
+    fail_msg: "Instances Names for {{ item }}: hostvars[item]['instance_name'] and {{ ansible_loop.nextitem }}: hostvars[item]['instance_name'] are the same"
+  loop: "{{ groups['instances'] }}"
+  loop_control:
+    extended: true
+    label: "{{ item }}"
+  when:
+    - ansible_loop.nextitem is defined
+    - hostvars[item]['instance_name'] is defined and  hostvars[ansible_loop.nextitem]['instance_name'] is defined
+    - hostvars[item]['fqdn'] is defined and hostvars[ansible_loop.nextitem]['fqdn'] is defined
+    - hostvars[item]['fqdn'] == hostvars[ansible_loop.nextitem]['fqdn']
+
 - name: Open http port 80
   community.general.ufw:
     rule: allow
@@ -35,7 +51,7 @@
     cache_valid_time: 3600
     name:
       - apache2
-      - libwww-perl
+      - libwww-perl # required for munin monitoring
     state: present
 
 - name: Enabling apache2 modules
@@ -50,22 +66,39 @@
     path: /etc/apache2/sites-enabled/000-default.conf
     state: absent
 
-- name: TLS configuration, Letsencrypt | Customssl
+- name: Include TLS configurarion tasks
   ansible.builtin.include_tasks: "{{ SSL_TYPE }}.yml"
-  when: fqdn is defined and fqdn and (fqdn != None)
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
 
-- name: Self-signed TLS configuration, fqdn is not defined
+- name: Include self-signed TLS Certificate tasks, fqdn is not defined
   ansible.builtin.include_tasks: self-signed.yml
-  when: fqdn is undefined or (fqdn == None)  or (not fqdn | trim != "")
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (not hostvars[item]['fqdn'] | trim != "")
 
-- name: Copy apache2 main site configuration
+- name: Find files to delete in /etc/apache2/conf.d/
+  ansible.builtin.find:
+    paths: /etc/apache2/sites-enabled/
+    patterns: '*'
+    file_type: link
+    excludes: "{{ groups['instances'] | map('extract', hostvars, 'fqdn') | map('default', 'default') | map('regex_replace', '^\\s+|\\s+$', '')  | unique | map('regex_replace', '^$', 'default') | map('regex_replace', '(.+)', '\\1.conf') | list }}"
+  register: found_files
+
+- name: Clean /etc/apache2/sites-enabled/ directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ found_files['files'] | map(attribute='path') }}"
+
+- name: Copy apache2 site configuration
   ansible.builtin.template:
     src: apache2/site.j2
-    dest: /etc/apache2/sites-available/{{ fqdn }}.conf
+    dest: /etc/apache2/sites-available/{{ hostvars[item]['fqdn'] | trim }}.conf
     owner: root
     group: root
-    mode: "0640"
-  when: fqdn is defined and fqdn and (fqdn != None)
+    mode: "0644"
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
   notify: Reload Apache2
 
 - name: Default apache2 configuration, fqdn is not defined
@@ -75,7 +108,8 @@
     owner: root
     group: root
     mode: "0644"
-  when: fqdn is undefined  or (fqdn == None) or (not fqdn | trim != "")
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (not hostvars[item]['fqdn'] | trim != "")
   notify: Reload Apache2
 
 - name: Start apache2 service
@@ -83,18 +117,21 @@
     name: apache2
     state: started
 
-- name: Enable apache2 configuration
-  ansible.builtin.command: a2ensite {{ fqdn }}.conf
+- name: Enable apache2 site configuration
+  ansible.builtin.command: a2ensite {{ hostvars[item]['fqdn'] | trim }}.conf
   args:
-    creates: /etc/apache2/sites-enabled/{{ fqdn }}.conf
-  when: fqdn is defined and fqdn and (fqdn != None)
+    creates: /etc/apache2/sites-enabled/{{  hostvars[item]['fqdn'] | trim }}.conf
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
   notify: Reload Apache2
 
 - name: Enable apache2 configuration, fqdn is not defined
   ansible.builtin.command: a2ensite default.conf
   args:
     creates: /etc/apache2/sites-enabled/default.conf
-  when: fqdn is undefined  or (fqdn == None) or (not fqdn | trim != "")
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (not hostvars[item]['fqdn'] | trim != "")
+  notify: Reload Apache2
 
 - name: Create apache2 upstream directory
   ansible.builtin.file:
@@ -105,19 +142,10 @@
     mode: "0755"
   register: upstream_directory
 
-- name: Upstream directory cleanup
-  ansible.builtin.file:
-    path: /etc/apache2/upstream/{{ item }}
-    state: absent
-  when: not upstream_directory.changed
-  loop:
-    - glowroot.conf
-    - dhis2.conf
-
 - name: Instance location configuration
   ansible.builtin.template:
     src: apache2/instance.j2
-    dest: /etc/apache2/upstream/{{ item }}.conf
+    dest: /etc/apache2/upstream/{{ item | to_fixed_string }}.conf
     owner: root
     group: root
     mode: "0644"

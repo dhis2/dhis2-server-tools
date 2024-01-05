@@ -1,7 +1,7 @@
 ---
 - name: Creating TLS certificate directory
   ansible.builtin.file:
-    path: /etc/ssl/{{ fqdn }}
+    path: /etc/ssl/{{  hostvars[item]['fqdn'] | trim }}
     state: directory
     modification_time: preserve
     access_time: preserve
@@ -9,13 +9,18 @@
     group: root
     mode: "0755"
 
-- name: Copying TLS certificate to the proxy
+- name: Copying TLS key to the proxy
   ansible.builtin.copy:
-    src: "{{ item }}" # ensure the file exists
-    dest: /etc/ssl/{{ fqdn }}/{{ item }}
+    src: customssl.key # ensure the file exists
+    dest: /etc/ssl/{{ hostvars[item]['fqdn'] | trim }}/
     owner: root
     group: root
     mode: "0644"
-  loop:
-    - customssl.crt
-    - customssl.key
+
+- name: Copying TLS certificate to the proxy
+  ansible.builtin.copy:
+    src: customssl.crt # ensure the file exists
+    dest: /etc/ssl/{{ hostvars[item]['fqdn'] | trim }}/
+    owner: root
+    group: root
+    mode: "0644"

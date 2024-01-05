@@ -1,8 +1,4 @@
-- name: Install ibwww-perl libxml-simple-perl
-  ansible.builtin.apt:
-    name:
-      - libwww-perl
-
+---
 - name: Enable nginx modules for munin monitoring
   ansible.builtin.file:
     src: "/usr/share/munin/plugins/{{ item }}"

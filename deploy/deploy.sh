@@ -30,7 +30,8 @@ ansible_install_2004() {
   }
 # install ansible on ubutnu22.04
   ansible_install_2204() {
-  sed -i 's/#$nrconf{restart} = '"'"'i'"'"';/$nrconf{restart} = '"'"'a'"'"';/g' /etc/needrestart/needrestart.conf  
+  # disables needrestart dialog on ubuntu 22.04 
+  sed -i 's/#$nrconf{restart} = '"'"'i'"'"';/$nrconf{restart} = '"'"'a'"'"';/g' /etc/needrestart/needrestart.conf 
   sed -i "s/#\$nrconf{kernelhints} = -1;/\$nrconf{kernelhints} = -1;/g" /etc/needrestart/needrestart.conf  
   sudo apt -yq update
   sudo apt install -yq  git

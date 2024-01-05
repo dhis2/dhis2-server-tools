@@ -1,5 +1,21 @@
 ---
-- name: Allow http port 80
+# consider creating custom filter for this task.
+- name: Assert two instances under the same fqdn have unique Instance Names
+  ansible.builtin.assert:
+    that:
+      - hostvars[item]['instance_name'] != hostvars[ansible_loop.nextitem]['instance_name']
+    fail_msg: "Instances Names for {{ item }}: hostvars[item]['instance_name'] and {{ ansible_loop.nextitem }}: hostvars[item]['instance_name'] are the same"
+  loop: "{{ groups['instances'] }}"
+  loop_control:
+    extended: true
+    label: "{{ item }}"
+  when:
+    - ansible_loop.nextitem is defined
+    - hostvars[item]['instance_name'] is defined and  hostvars[ansible_loop.nextitem]['instance_name'] is defined
+    - hostvars[item]['fqdn'] is defined and hostvars[ansible_loop.nextitem]['fqdn'] is defined
+    - hostvars[item]['fqdn'] == hostvars[ansible_loop.nextitem]['fqdn']
+
+- name: Open http port 80
   community.general.ufw:
     rule: allow
     port: "{{ http_port | default('80') }}"
@@ -7,7 +23,7 @@
     comment: http
     state: enabled
 
-- name: Allow https port 443
+- name: Open https port 443
   community.general.ufw:
     rule: allow
     port: "{{ https_port | default('443') }}"
@@ -31,7 +47,9 @@
 
 - name: Installing Nginx
   ansible.builtin.apt:
-    name: nginx
+    name:
+      - nginx
+      - libwww-perl # required for munin monitoring
     state: present
     update_cache: true
     cache_valid_time: 3600
@@ -51,24 +69,37 @@
 
 - name: Include TLS configurarion tasks
   ansible.builtin.include_tasks: "{{ SSL_TYPE }}.yml"
-  when:
-    - fqdn is defined
-    - (fqdn != None)
-    - fqdn | trim != ""
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
 
 - name: Include self-signed TLS Certificate tasks, fqdn is not defined
   ansible.builtin.include_tasks: self-signed.yml
-  when: fqdn is undefined or (fqdn == None) or (not fqdn | trim != "")
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (not hostvars[item]['fqdn'] | trim != "")
 
-# modify to be per instance
+- name: Find files to delete in /etc/nginx/conf.d/
+  ansible.builtin.find:
+    paths: /etc/nginx/conf.d/
+    patterns: '*'
+    file_type: file
+    excludes: "{{ groups['instances'] | map('extract', hostvars, 'fqdn') | map('default', 'default') | map('regex_replace', '^\\s+|\\s+$', '') | unique | map('regex_replace', '^$', 'default') | map('regex_replace', '(.+)', '\\1.conf') | list }}"
+  register: found_files
+
+- name: Clean /etc/nginx/conf.d/ directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ found_files['files'] | map(attribute='path') }}"
+
 - name: Copy nginx site configuration
   ansible.builtin.template:
     src: nginx/site.j2
-    dest: /etc/nginx/conf.d/{{ fqdn }}.conf
+    dest: /etc/nginx/conf.d/{{ hostvars[item]['fqdn'] | trim }}.conf
     owner: root
     group: root
     mode: "0644"
-  when: fqdn is defined and (fqdn != None) and fqdn
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
   notify: Reload Nginx
 
 - name: Default nginx configuration, fqdn is not defined
@@ -78,7 +109,8 @@
     owner: root
     group: root
     mode: "0644"
-  when: fqdn is undefined or (fqdn == None) or (not fqdn | trim != "")
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (not hostvars[item]['fqdn'] | trim != "")
   notify: Reload Nginx
 
 - name: Generating Diffie–Hellman key parameters, takes a while, you may grab some coffee
@@ -86,11 +118,6 @@
   args:
     creates: /etc/nginx/dhparams.pem
   notify: Reload Nginx
-
-- name: Start nginx service
-  ansible.builtin.service:
-    name: nginx
-    state: started
 
 - name: Creating nginx upstream directory
   ansible.builtin.file:
@@ -101,19 +128,10 @@
     mode: "0755"
   register: upstream_directory
 
-- name: Upstream directory upstream cleanup
-  ansible.builtin.file:
-    path: /etc/nginx/conf.d/upstream/{{ item }}
-    state: absent
-  when: not upstream_directory.changed
-  loop:
-    - glowroot.conf
-    - dhis2.conf
-
 - name: Instance location configuration
   ansible.builtin.template:
     src: nginx/instance.j2
-    dest: /etc/nginx/conf.d/upstream/{{ item }}.conf
+    dest: /etc/nginx/conf.d/upstream/{{ item | to_fixed_string }}.conf
     owner: root
     group: root
     mode: "0644"
@@ -135,6 +153,12 @@
   when:
     - server_monitoring is defined and server_monitoring | trim == 'munin'
     - munin_users is defined and munin_users is iterable
+
+# starting nginx service is it was stopped generaging letsencrypt.
+- name: Start nginx service
+  ansible.builtin.service:
+    name: nginx
+    state: started
 
 - name: Flush Handlers
   ansible.builtin.meta: flush_handlers

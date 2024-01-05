@@ -24,7 +24,11 @@
   "web": {
     "port": 4000,
     "bindAddress": "0.0.0.0",
-    "contextPath": "/{{ inventory_hostname }}-glowroot",
+{% if instance_name | default(inventory_hostname) | to_fixed_string  == "ROOT"  %}
+  "contextPath": "/glowroot",
+{% else %}
+    "contextPath": "/{{ instance_name | default(inventory_hostname) | to_fixed_string }}-glowroot",
+{% endif %}
     "sessionTimeoutMinutes": 30,
     "sessionCookieName": "GLOWROOT_SESSION_ID"
   },

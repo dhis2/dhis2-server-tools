@@ -6,15 +6,15 @@
 
 - name: Set LetsEcrypt mail
   ansible.builtin.set_fact:
-    mail: "{{ email if email is match('^(?!.*\\.example\\.com$)[\\w\\.-]+@[\\w\\.-]+\\.\\w+$') else 'admin@' + fqdn.split('.')[-2:] | join('.') }}"
+    mail: "{{ email if email is match('^(?!.*\\.example\\.com$)[\\w\\.-]+@[\\w\\.-]+\\.\\w+$') else 'admin@' + hostvars[item]['fqdn'].split('.')[-2:] | join('.') }}"
 
 - name: Generate TLS/SSL Certificate with certbot
   become: true
   ansible.builtin.shell: |
     systemctl stop {{ proxy }}
-    certbot certonly -n -m {{ mail }} --agree-tos -d {{ fqdn }} --standalone --no-eff-email
+    certbot certonly -n -m {{ mail }} --agree-tos -d {{  hostvars[item]['fqdn'] | trim }} --standalone --no-eff-email
   args:
-    creates: /etc/letsencrypt/live/{{ fqdn }}
+    creates: /etc/letsencrypt/live/{{ hostvars[item]['fqdn'] | trim }}
 
 #  daily is identical with  0 0 * * *
 - name: Add letsencrypt cronjob for cert renewal

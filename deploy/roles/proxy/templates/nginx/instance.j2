@@ -1,6 +1,6 @@
-location /{{ item }} {
-   # {{ item }} location block configs 
-   proxy_pass http://{{hostvars[item]['ansible_host']+':8080' }}/{{ item }};
+{% if  hostvars[item]['instance_name'] | default(item) | to_fixed_string == "ROOT"  %}
+location / {
+   proxy_pass  http://{{hostvars[item]['ansible_host']+':8080' }};
    include /etc/nginx/proxy_params;
    proxy_redirect off;
    proxy_hide_header X-Powered-By;
@@ -11,9 +11,9 @@ location /{{ item }} {
    proxy_hide_header Server;
    }
 {% if app_monitoring is defined and app_monitoring | trim == 'glowroot' %}
-# {{ item }} glowroot location block configs 
-location /{{ item }}-glowroot {
-   proxy_pass http://{{ hostvars[item]['ansible_host']+':4000' }}/{{ item }}-glowroot;
+{# glowroot location block configs #} 
+location /glowroot/ {
+   proxy_pass http://{{ hostvars[item]['ansible_host']+':4000' }}/glowroot/;
    include /etc/nginx/proxy_params;
    proxy_redirect off;
    proxy_hide_header X-Powered-By;
@@ -23,4 +23,32 @@ location /{{ item }}-glowroot {
    proxy_set_header X-Xss-Protection "1; mode=block"; #To leverage browser-based protections against cross-site scripting
    proxy_hide_header Server;
    }
+{% endif %}
+{% else %}
+location /{{ hostvars[item]['instance_name'] | default(item) | to_fixed_string }}/ {
+   {# instance location block configs #} 
+   proxy_pass http://{{hostvars[item]['ansible_host']+':8080' }}/{{ hostvars[item]['instance_name'] | default(item) | to_fixed_string }}/;
+   include /etc/nginx/proxy_params;
+   proxy_redirect off;
+   proxy_hide_header X-Powered-By;
+   proxy_set_header X-Frame-Options "SAMEORIGIN";  # protect against clickjacking attacks
+   proxy_set_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload";
+   proxy_set_header X-Content-Type-Options "nosniff"; # drive-by download attacks
+   proxy_set_header X-Xss-Protection "1; mode=block"; #browser-based protections against cross-site scripting
+   proxy_hide_header Server;
+   }   
+{% if app_monitoring is defined and app_monitoring | trim == 'glowroot' %}
+{# glowroot location block configs #} 
+location /{{ hostvars[item]['instance_name'] | default(item) | to_fixed_string }}-glowroot {
+   proxy_pass http://{{ hostvars[item]['ansible_host']+':4000' }}/{{ hostvars[item]['instance_name'] | default(item) | to_fixed_string }}-glowroot;
+   include /etc/nginx/proxy_params;
+   proxy_redirect off;
+   proxy_hide_header X-Powered-By;
+   proxy_set_header X-Frame-Options "SAMEORIGIN";  # To mitigate the risk of clickjacking attacks
+   proxy_set_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload";
+   proxy_set_header X-Content-Type-Options "nosniff"; # drive-by download attacks
+   proxy_set_header X-Xss-Protection "1; mode=block"; #To leverage browser-based protections against cross-site scripting
+   proxy_hide_header Server;
+   }
+{% endif %}
 {% endif %}

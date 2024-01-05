@@ -26,6 +26,10 @@
         parent: "{{ lxd_bridge_interface | default('lxdbr1') }}"
         nictype: bridged
         ipv4.address: "{{ ansible_host | ansible.utils.ipaddr(lxd_network) }}"
+      root:
+        path: /
+        pool: default
+        type: disk
 
 - name: Get facts
   ansible.builtin.setup:

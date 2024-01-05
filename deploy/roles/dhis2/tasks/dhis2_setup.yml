@@ -73,9 +73,8 @@
 
 - name: Check running dhis2 version
   ansible.builtin.shell:
-    cmd: unzip -q -p  /var/lib/tomcat9/webapps/{{ inventory_hostname }}/WEB-INF/lib/dhis-service-core-*.jar build.properties | awk -F' *= *' '$1=="build.version"{print
-      $2}'
-    removes: /var/lib/tomcat9/webapps/{{ inventory_hostname }}/WEB-INF/lib/dhis-service-core-*.jar
+    cmd: unzip -q -p  /var/lib/tomcat9/webapps/{{ instance_name | default(inventory_hostname) | to_fixed_string }}/WEB-INF/lib/dhis-service-core-*.jar build.properties | awk -F' *= *' '$1=="build.version"{print $2}'
+    removes: /var/lib/tomcat9/webapps/{{  instance_name | default(inventory_hostname) | to_fixed_string }}/WEB-INF/lib/dhis-service-core-*.jar
   register: version_results
   changed_when: false
 
@@ -83,7 +82,7 @@
     msg:
       - "Running release: {{ version_results.stdout | trim }}"
       - "Latest patch release: {{ latest_patchversion }}"
-      - set dhis2_auto_upgrade = True in your inventory file to enable automatic upgrade.
+      - set dhis2_auto_upgrade=True in your inventory file to enable automatic upgrade.
       - Prior to the upgrade, it is important to have a backup of your instance database
   when:
     - latest_patchversion is defined
@@ -129,7 +128,7 @@
 
 - name: Creating webapps directories
   ansible.builtin.file:
-    path: /var/lib/tomcat9/webapps/{{ inventory_hostname }}
+    path: /var/lib/tomcat9/webapps/{{ instance_name | default(inventory_hostname) | to_fixed_string }}
     mode: "0755"
     state: directory
   notify: Restart Tomcat
@@ -204,7 +203,7 @@
 - name: Extracting dhis2.war file
   ansible.builtin.unarchive:
     src: /opt/dhis2/dhis2.war
-    dest: /var/lib/tomcat9/webapps/{{ inventory_hostname }}
+    dest: /var/lib/tomcat9/webapps/{{ instance_name | default(inventory_hostname) | to_fixed_string }}
     remote_src: true
   notify: Restart Tomcat
 

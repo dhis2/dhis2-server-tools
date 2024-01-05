@@ -104,7 +104,11 @@
         # </Location>
         #===========================================================
 
-        IncludeOptional upstream/*
+{% for instance  in groups['instances'] if (hostvars[instance]['fqdn'] is undefined) or
+        hostvars[instance]['fqdn'] == None or  (not hostvars[instance]['fqdn'] | trim != "") %}
+        IncludeOptional  upstream/{{ instance | to_fixed_string }}.conf
+{%endfor%}
+        IncludeOptional  upstream/munin.conf
 
         #===========================================================
         # Restrictions on other locations

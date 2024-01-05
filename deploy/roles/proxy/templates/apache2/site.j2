@@ -23,8 +23,8 @@
 
 
 <VirtualHost *:80>
-        ServerName {{ fqdn }}
-        ServerAdmin {{ email if email is match('^(?!.*\\.example\\.com$)[\\w\\.-]+@[\\w\\.-]+\\.\\w+$') else 'admin@' + fqdn.split('.')[-2:] | join('.') }}
+        ServerName {{ hostvars[item]['fqdn'] | trim  }}
+        ServerAdmin {{ email if email is match('^(?!.*\\.example\\.com$)[\\w\\.-]+@[\\w\\.-]+\\.\\w+$') else 'admin@' + (hostvars[item]['fqdn'] | trim).split('.')[-2:] | join('.') }}
 
         RewriteEngine On
 
@@ -41,11 +41,11 @@
 
 # Main vhost configuration
   <VirtualHost *:443>
-       ServerName {{ fqdn }}
-       ServerAdmin {{ email if email is match('^(?!.*\\.example\\.com$)[\\w\\.-]+@[\\w\\.-]+\\.\\w+$') else 'admin@' + fqdn.split('.')[-2:] | join('.') }}
+       ServerName {{ hostvars[item]['fqdn'] | trim }}
+       ServerAdmin {{ email if email is match('^(?!.*\\.example\\.com$)[\\w\\.-]+@[\\w\\.-]+\\.\\w+$') else 'admin@' + (hostvars[item]['fqdn'] | trim).split('.')[-2:] | join('.') }}
 
        # Throw out IP based requests
-       RewriteCond %{HTTP_HOST} !^{{ '\\.'.join(fqdn.split('.')) }} [NC]
+       RewriteCond %{HTTP_HOST} !^{{ '\\.'.join((hostvars[item]['fqdn'] | trim).split('.')) }} [NC]
        RewriteCond %{REQUEST_URI} !^/error [NC]
        RewriteRule ^.(.*) - [L,F]
 
@@ -83,10 +83,13 @@
         #===========================================================
 
         # RewriteRule   ^/$  /dhis/  [R]
-{% for host in groups['instances']  if hostvars[host]['proxy_rewrite'] is defined and 
-(hostvars[host]['proxy_rewrite'] == true or hostvars[host]['proxy_rewrite'] == "true") %}
+{% for instance in groups['instances']  if (hostvars[instance]['fqdn'] is defined)  and
+(hostvars[instance]['fqdn'] | trim  == hostvars[item]['fqdn'] | trim ) and 
+'ROOT' not in groups['instances'] | map('extract', hostvars, 'instance_name') | map('default', 'None') and
+(hostvars[instance]['proxy_rewrite'] | default(false) == true or 
+hostvars[instance]['proxy_rewrite'] | default('false') == "true") %}
 {% if loop.first %}
-        RewriteRule   ^/$  /{{ host }}/  [R]
+  RewriteRule   ^/$  /{{ hostvars[instance]['instance_name'] | default(instance) | to_fixed_string }}/  [R]
 {%endif%}
 {%endfor%}
         #===========================================================
@@ -118,8 +121,11 @@
         #  ProxyPassReverse "http://192.168.0.11:8080/test1"
         # </Location>
         #===========================================================
-
-        IncludeOptional upstream/*
+        {% for instance  in groups['instances'] if (hostvars[instance]['fqdn'] is defined) and 
+        (hostvars[instance]['fqdn'] | trim == hostvars[item]['fqdn'] | trim  )  %}
+          IncludeOptional upstream/{{ instance | to_fixed_string }}.conf
+        {%endfor%}
+          IncludeOptional  upstream/munin.conf
 
         #===========================================================
         # Restrictions on other locations
@@ -148,11 +154,11 @@
        SSLEngine on
        # set these to match your server certificate and key
 {% if SSL_TYPE == 'letsencrypt' %}
-       SSLCertificateFile      /etc/letsencrypt/live/{{ fqdn }}/fullchain.pem
-       SSLCertificateKeyFile /etc/letsencrypt/live/{{ fqdn }}/privkey.pem
+       SSLCertificateFile      /etc/letsencrypt/live/{{ (hostvars[item]['fqdn'] | trim) }}/fullchain.pem
+       SSLCertificateKeyFile /etc/letsencrypt/live/{{ (hostvars[item]['fqdn'] | trim) }}/privkey.pem
 {% elif SSL_TYPE == 'customssl' %}
-       SSLCertificateFile /etc/ssl/{{ fqdn }}/customssl.crt
-       SSLCertificateKeyFile /etc/ssl/{{ fqdn }}/customssl.key
+       SSLCertificateFile /etc/ssl/{{ (hostvars[item]['fqdn'] | trim) }}/customssl.crt
+       SSLCertificateKeyFile /etc/ssl/{{ (hostvars[item]['fqdn'] | trim) }}/customssl.key
 {%endif%}
 
        SSLProtocol TLSv1.1 TLSv1.2
