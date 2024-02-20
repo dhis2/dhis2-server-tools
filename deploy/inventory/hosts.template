@@ -22,7 +22,7 @@ monitor   ansible_host=172.19.2.30
 
 # variables applying to all hosts, 
 [all:vars]
-# if you do not set fqdn, you dhis2 will be set up with self-signed certificate
+# if you do not set fqdn, you dhis2 will be set up with selfsigned certificate
 fqdn=
 # required for LetsEncrypt certificate notification. 
 email=
@@ -34,7 +34,8 @@ ansible_connection=lxd
 
 # database 
 # this is the host gateway address to the database server if the database is on another network
-# db_gateway_address=172.21.0.2 
+# db_gateway_address=172.21.0.2
+postgresql_version=13
 
 # monitoring
 server_monitoring=munin
@@ -52,8 +53,8 @@ guest_os_arch=amd64
 # Options: nginx, apache2 defaults to nginx
 proxy=nginx
 
-# Options: letsencrypt, customssl, default(letsencrypt)
-SSL_TYPE=letsencrypt
+# Options: letsencrypt, customssl, selfsigned, default(letsencrypt if fqdn is defined else selfsigned )
+TLS_TYPE=letsencrypt
 
 # instances group variables,
 [instances:vars]
@@ -67,5 +68,5 @@ JAVA_VERSION=11
 dhis2_version=2.39
 
 # whether dhis2 should be upgraded automatically to the latest defined version. 
-dhis2_auto_upgrade=false 
+dhis2_auto_upgrade=false
 unattended_upgrades=yes

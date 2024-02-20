@@ -1,0 +1,23 @@
+{% for host in groups['monitoring'] %}
+{% if hostvars['proxy']['munin_base_path'] is defined  and  hostvars['proxy']['munin_base_path'] is not none and  hostvars['proxy']['munin_base_path'] | trim != '' %}
+location /{{ munin_base_path }} {
+  proxy_pass http://{{hostvars[host]['ansible_host']+':80' }}/{{ munin_base_path }};
+{% else  %}
+location /{{ server_monitoring }} {
+  proxy_pass http://{{hostvars[host]['ansible_host']+':80' }}/{{ server_monitoring }};
+{% endif  %}
+  include /etc/nginx/proxy_params;
+  proxy_redirect off;
+  proxy_hide_header X-Powered-By;
+  proxy_set_header X-Frame-Options "SAMEORIGIN";  # To mitigate the risk of clickjacking attacks
+  proxy_set_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload";
+  proxy_set_header X-Content-Type-Options "nosniff"; # drive-by download attacks
+  proxy_set_header X-Xss-Protection "1; mode=block"; #To leverage browser-based protections against cross-site scripting
+  proxy_hide_header Server;
+{% for user in munin_users if user.state | default('present') == 'present' %}
+  auth_basic "Restricted Content";
+  auth_basic_user_file /etc/nginx/.htpasswd;
+{%endfor%}
+# {% endif %}
+}
+{% endfor %}

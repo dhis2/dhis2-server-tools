@@ -20,7 +20,7 @@ Table of contents
 	* [Step 6:  Ensure connection to the managed hosts works](#step-6--ensure-connection-to-the-managed-hosts-works)
 	* [Step 7: Run the playbook](#step-7-run-the-playbook)
 * [Adding an instance](#adding-an-instance)
-* [Using a Custom SSL Certificate](#using-a-custom-ssl-certificate)
+* [Using a Custom TLS Certificate](#using-a-custom-tls-certificate)
 * [Conclusion](#conclusion)
 * [other important links](#other-important-links)
 
@@ -77,7 +77,7 @@ Ensure you have:
   vim dhis2-server-tools/deploy/inventory/hosts
   ```
   Below is an example screenshot
-![Alt text](./docs/images/fqdn-mail-tz-lxd.png?raw=true "ansible_connection")
+![](./docs/images/fqdn-mail-tz-lxd.png?raw=true "ansible_connection")
 
   _**NOTE**: When the install is on a single host with lxd, ensure your lxd_network is unique and not overlapping with any of your host network._ 
 
@@ -104,7 +104,7 @@ Ensure you have:
     application servers). Key based authentication is advisable<br> 
     Deployment will be working with ssh connection. 
 
-    ![Alt text](./docs/images/distributed-architecture.png?raw=true "Distributed")
+    ![](./docs/images/distributed-architecture.png?raw=true "Distributed")
 - Backend Servers (managed hosts) - These are the servers that will be running
   your DHIS2 components, i.e database(PostgreSQL,DHIS2,Monitoring,Proxy)
   - They all should be be running Ubuntu 20.04 or 22.04 
@@ -147,7 +147,7 @@ Ensure you have:
   ```
   vim dhis2-server-tools/deploy/inventory/hosts
   ```
-  ![Alt text](./docs/images/fqdn-mail-tz-ssh.png?raw=true "ansible_connection")
+  ![](./docs/images/fqdn-mail-tz-ssh.png?raw=true "ansible_connection")
 
 ### Step 6:  Ensure connection to the managed hosts works
 - [Read More on how you can configure ssh](./docs/SSH-Connection.md)
@@ -163,7 +163,7 @@ servers.
   ansible 'all:!127.0.0.1' -m ping 
   ```
   If your ssh is working, you will see SUCCESS messages as show on below screenshot
-  ![Alt text](./docs/images/ping_pong.png?raw=true "ping pong")
+  ![](./docs/images/ping_pong.png?raw=true "ping pong")
   
 ### Step 7: Run the playbook
 - Since installing packages on the remote needs sudo, you will be using `-K` or `--ask-bocome-pass` 
@@ -206,24 +206,24 @@ NOTE:
   training  ansible_host=172.19.2.12 database_host=postgres  dhis2_version=2.39
   ```
   On the above example,  the name `training` and `ansible_host`  should be  to be unique. 
-  ![Alt text](./docs/images/adding_instance.png?raw=true "customssl")
+  ![](./docs/images/adding_instance.png?raw=true "customssl")
 
 - re-run the installation as explained on [Step 5 — The
   Install](#step-5--the-install) or [Step 7: Run the
   playbook](#step-7-run-the-playbook) depending on your deployment
   architecture. 
 
-## Using a Custom SSL Certificate 
+## Using a Custom TLS Certificate 
 
 - Your will need to have two files, named  `customssl.crt` and `customssl.key` <br>
   `customssl.crt` should contain main certificate concatenated with intermediate and
    root certificates.
 -  Copy these two files into `dhis2-server-tools/deploy/roles/proxy/files/` directory, preserving their names.
-- Edit hosts file and set `SSL_TYPE=customssl`
+- Edit hosts file and set `TLS_TYPE=customssl`
   ```
   vim dhis2-server-tools/deploy/inventory/hosts
   ```
-  ![Alt text](./docs/images/ssl_type.png?raw=true "customssl")
+  ![](./docs/images/ssl_type.png?raw=true "customssl")
 - re-run the installation as explained on [Step 5 — The
   Install](#step-5--the-install) or [Step 7: Run the
   playbook](#step-7-run-the-playbook) depending on your deployment

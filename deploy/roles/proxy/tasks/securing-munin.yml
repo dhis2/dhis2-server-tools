@@ -1,0 +1,19 @@
+---
+- name: Install python3-passlib
+  ansible.builtin.apt:
+    name: python3-passlib
+    state: present
+
+- name: "Munin authenticatin, defaults: Username: admin, password: district"
+  community.general.htpasswd:
+    path: /etc/{{ proxy }}/.htpasswd
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    owner: root
+    group: www-data
+    mode: "0640"
+    state: "{{ item.state | default(omit) }}"
+  loop: "{{ munin_users | default([{'name': 'admin', 'password': 'district'}]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  notify: Reload {{ proxy | capitalize }}

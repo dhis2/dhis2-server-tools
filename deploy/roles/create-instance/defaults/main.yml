@@ -1,0 +1,22 @@
+---
+ansible_connection: lxd
+
+# default java version
+JAVA_VERSION: 11
+
+# default app monitoring
+app_monitoring: glowroot
+
+# default database_host
+database_host: postgres
+
+# default dhis2_version
+dhis2_version: 2.40
+
+# required postgresql extensions
+postgresql_version: 13
+
+postgresql_extensions:
+  - postgis
+  - btree_gin
+  - pg_trgm

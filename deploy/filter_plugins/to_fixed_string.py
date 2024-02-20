@@ -13,4 +13,3 @@ class FilterModule(object):
         if value is not None and value != 'None':
             return str(value).lower()
         return value
-

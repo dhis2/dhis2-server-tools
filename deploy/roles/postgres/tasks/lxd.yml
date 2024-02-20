@@ -1,5 +1,5 @@
 ---
-- name: Creating postgres container
+- name: Creating PostgreSQL containers
   become: true
   vars:
     ansible_connection: local
@@ -7,7 +7,7 @@
     config:
       boot.autostart.priority: "0"
       security.protection.delete: "true"
-      user.type: databases
+      user.type: "{{ group_names[0] }}"
     name: "{{ inventory_hostname }}"
     state: started
     profiles: [default]
@@ -28,14 +28,11 @@
         ipv4.address: "{{ ansible_host | ansible.utils.ipaddr(lxd_network) }}"
       root:
         path: /
-        pool: default
+        pool: "{{ lxd_storage_pool_name | default('default') }}"
         type: disk
 
 - name: Get facts
   ansible.builtin.setup:
-    gather_subset:
-      - network
-      - "!min"
 
 - name: Ensuring container has configured static ip address
   become: true
@@ -48,5 +45,5 @@
   when:
     - hostvars[inventory_hostname]['ansible_host'] != hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['address']
 
-- name: Installing postgreSQL database
-  ansible.builtin.include_tasks: pg_install.yaml
+- name: Installing postgreSQL-{{ postgresql_version }} database
+  ansible.builtin.include_tasks: pg-install.yml

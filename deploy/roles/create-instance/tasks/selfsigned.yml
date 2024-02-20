@@ -1,0 +1,21 @@
+---
+- name: Creating TLS certificate directory
+  ansible.builtin.file:
+    path: /etc/ssl/selfsigned
+    state: directory
+    modification_time: preserve
+    access_time: preserve
+    mode: "0755"
+    owner: root
+    group: root
+  register: self_signed_dir
+
+- name: Generating private key RSA, 4096 bits
+  community.crypto.openssl_privatekey:
+    path: "{{ self_signed_dir['path'] }}/selfsigned.key"
+
+- name: Generating selfsigned certificate
+  community.crypto.x509_certificate:
+    path: "{{ self_signed_dir['path'] }}/selfsigned.crt"
+    privatekey_path: "{{ self_signed_dir['path'] }}/selfsigned.key"
+    provider: selfsigned

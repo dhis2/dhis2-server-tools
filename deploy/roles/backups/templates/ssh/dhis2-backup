@@ -13,21 +13,32 @@ source /usr/local/etc/dhis/dhis2-env
 function perform_backups()
 {
   SUFFIX=$1
-  FINAL_BACKUP_DIR=$BACKUP_DIR/backup-"$(date +%Y%m%d-%H%M%S)$SUFFIX/"
-  echo "Backupdir = $FINAL_BACKUP_DIR"
+  FINAL_BACKUP_DIR=$BACKUP_DIR/db-backup/"$(date +%Y%m%d-%H%M%S)$SUFFIX/"
+  FINAL_AUDIT_DIR=$BACKUP_DIR/audit-backup/"$(date +%Y%m%d-%H%M%S)$SUFFIX/"
+
+  echo "Backup-dir = $FINAL_BACKUP_DIR"
+  echo "Audit-dir = $FINAL_AUDIT_DIR"
+  
   if ! mkdir -p $FINAL_BACKUP_DIR; then
         echo "`date` Cannot create backup directory in $FINAL_BACKUP_DIR. Go and fix it!"
         exit 1;
   fi;
+
+  echo "Make Audit table backup directory"
+  if ! mkdir -p $FINAL_AUDIT_DIR; then
+        echo "`date` Cannot create backup directory in $FINAL_AUDIT_DIR. Go and fix it!"
+        exit 1;
+  fi;
+
   #  sudo su -c "pg_dump -O -Fp $DBNAME -T aggregated_* -T analytics_* -T completeness_*  | gzip > ./$DB_NAME.sql.gz" postgres
   for DBNAME in $PLAIN_BACKUPS 
     do
       set -o pipefail
       # First backup and truncate audit table
-      if ! pg_dump -a -t audit $DBNAME | gzip - > "$FINAL_BACKUP_DIR"audit_"$DBNAME".sql.gz.in_progress; then 
+      if ! pg_dump -a -t audit $DBNAME | gzip - > "$FINAL_AUDIT_DIR"audit_"$DBNAME".sql.gz.in_progress; then 
            echo "`date` [!!ERROR!!] Failed to backup audit table of database $DBNAME"
       else
-          mv "$FINAL_BACKUP_DIR"audit_"$DBNAME".sql.gz.in_progress "$FINAL_BACKUP_DIR"audit_"$DBNAME".sql.gz
+          mv "$FINAL_AUDIT_DIR"audit_"$DBNAME".sql.gz.in_progress "$FINAL_AUDIT_DIR"audit_"$DBNAME".sql.gz
          echo "TRUNCATE audit" | psql $DBNAME
       fi
       # Perform backup of them main database

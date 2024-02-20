@@ -1,0 +1,68 @@
+##
+config:
+  core.trust_password: {{ lxd_cluster_secret }}
+  core.https_address: {{ ansible_default_ipv4.address | default('127.0.0.1') }}:8443
+  images.auto_update_interval: 15
+storage_pools:
+{% if not lxd_with_zfs_backend or (ansible_virtualization_type is defined and (ansible_virtualization_type == "lxc" or ansible_virtualization_type == "docker")) %}
+- config:
+  name: {{ lxd_storage_pool_name }}
+  driver: dir
+{% else %}
+- config:
+    size: {{ lxd_zfs_size }}
+  description: ""
+  name: {{ lxd_storage_pool_name }}
+  driver: zfs
+{% endif %}
+networks:
+{% if lxd_bridgeconf_use_bridge %}
+- name: {{ lxd_bridgeconf_bridge }}
+  type: bridge
+  config:
+    ipv4.address: {{ lxd_bridgeconf_ipv4_network }}
+{% if lxd_bridgeconf_ipv4_dhcp_range %}
+    ipv4.dhcp: "true"
+    ipv4.dhcp.gateway: "{{ lxd_bridgeconf_ipv4_addr }}"
+    ipv4.dhcp.ranges: "{{ lxd_bridgeconf_ipv4_dhcp_range }}"
+{% endif %}
+    ipv4.nat: "{{ lxd_bridgeconf_ipv4_nat }}"
+    ipv6.address: "{{ lxd_bridgeconf_ipv6_addr }}"
+{% if lxd_bridgeconf_ipv6_dhcp %}
+    ipv6.dhcp: "true"
+{% if lxd_bridgeconf_ipv6_dhcp_range %}
+    ipv6.dhcp.ranges: "{{ lxd_bridgeconf_ipv6_dhcp_range }}"
+{% endif %}
+{% endif %}
+{% endif %}
+{% if lxd_fanconf_use_fan %}
+- name: {{ lxd_fanconf_fan }}
+  type: ""
+  config:
+    bridge.mode: fan
+    fan.underlay_subnet: {{ lxd_fanconf_underlay_subnet }}
+{% endif %}
+profiles:
+- config: {}
+  name: default
+  description: ""
+  devices:
+    root:
+      path: /
+      pool: {{ lxd_storage_name }}
+      type: disk
+    eth0:
+      name: eth0
+      nictype: bridged
+      parent: {{ lxd_bridgeconf_bridge if not lxd_fanconf_use_fan else lxd_fanconf_fan }}
+      type: nic
+{% if lxd_cluster %}
+cluster:
+  server_name: {{ inventory_hostname }}
+  enabled: true
+  member_config: []
+  cluster_address: ""
+  cluster_certificate: ""
+  server_address: ""
+  cluster_password: ""
+{% endif %}

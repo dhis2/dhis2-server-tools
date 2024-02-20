@@ -16,3 +16,15 @@
   ansible.builtin.service:
     name: munin-node
     state: restarted
+
+- name: Reload Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded
+    enabled: true
+
+- name: Reload Apache2
+  ansible.builtin.service:
+    name: apache2
+    state: reloaded
+    enabled: true

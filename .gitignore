@@ -1,32 +1,3 @@
+.idea/
 .DS_Store
-fullchain.pem
-privkey.pem
-.stignore
-.stversions/
-.stfolder
-notes.sh
-create_containers.yml
-releases.json
-notes
-*test*
-*artemis*
-*dev*
-*.vim
-*.war
-*scripts*
-deploy.log
-hosts
-vars_backup.yml
-.ansible-lint
-# Ignore all files in deploy/inventory/host_vars/ and deploy/inventory/group_vars/
-deploy/inventory/host_vars/*
-deploy/inventory/group_vars/*
-
-# But allow .template files in deploy/inventory/host_vars/ and deploy/inventory/group_vars/
-!deploy/inventory/host_vars/*.template
-!deploy/inventory/group_vars/*.template
-# Ignore Python bytecode files
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+.vscode/

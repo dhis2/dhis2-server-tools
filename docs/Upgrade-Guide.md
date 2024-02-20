@@ -66,7 +66,18 @@ It depends on the scope really, upgrades can have many forms, it can be categori
       * Hot-fix 
 
 ### General guide on developing a good upgrade plan. 
-Already, this guide is a plan, but a general one, customize it to suit your specific needs. Visualize your entire upgrade before doing it, write it down. That's an upgrade plan. This guide tries to capture all the upgrade requirements, but we have varying setups, perhaps your are running your dhis2 on Windows, it could be your database is very old, (and in your case your need to deal with upgrading database first). Read the upgrade notes, and but its general. When you'll be doing the actual upgrade, you might need create a more specific plan.   Planning is an important piece for the success of the upgrade process. It brakes down the "Upgrade Elephant" into smaller executable actions.Planning lays a clear perspective on what needs to be done.  When you break down your upgrade task, it becomes easy tackling individual tasks.
+Already, this guide is a plan, but a general one, customize it to suit your
+specific needs. Visualize your entire upgrade before doing it, write it down.
+That's an upgrade plan. This guide tries to capture all the upgrade
+requirements, but we have varying setups, perhaps your are running your dhis2
+on Windows, it could be your database is very old, (and in your case your need
+to deal with upgrading database first). Read the upgrade notes, and but its
+general. When you'll be doing the actual upgrade, you might need create a more
+specific plan.   Planning is an important piece for the success of the upgrade
+process. It brakes down the "Upgrade Elephant" into smaller executable
+actions.Planning lays a clear perspective on what needs to be done.  When you
+break down your upgrade task, it becomes easy tackling individual tasks.
+
 * Understand the scope better. 
    * Is it only dhis2, will you touch base operating system, what about postgres ?, and Java and Tomcat ?.
 * Plan on the resource requirements. 
@@ -141,9 +152,8 @@ You can't talk about upgrading without a fall-back plan. So many things can go w
    * Ensure you have enough disk storage for storing local backups. use` df -h
      `command to check available disk space on your server.
    * Ensure you have remote location for storing your backups.
-      
-      It can be and object storage end point, Network Attached Storage (NAS),
-      some backup server with sufficient storage, 
+     It can be and object storage end point, Network Attached Storage (NAS),
+     some backup server with sufficient storage, 
    * Versioning - Consider using versioned backups, which allow you to restore
      to a specific point in time, not just the latest backup.
    * Encryption: Encrypt your backups to secure your data, especially if it

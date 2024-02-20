@@ -1,0 +1,97 @@
+---
+- name: Set Ansible connection to local
+  vars:
+    ansible_connection: local
+  ansible.builtin.set_fact:
+    ansible_connection: local
+
+- name: Gathering facts
+  ansible.builtin.setup:
+    gather_subset:
+      - network
+      - "!min"
+
+- name: Update and upgrade the host
+  ansible.builtin.apt:
+    upgrade: "yes"
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure python's netaddr is installed
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name:
+      - python3-netaddr
+      - unzip
+    state: present
+
+- name: Ensure snapd is installed
+  ansible.builtin.apt:
+    name: snapd
+    state: present
+    update_cache: true
+
+- name: Ensure lxd is installed
+  community.general.snap:
+    name: lxd
+    state: present
+
+- name: Getting lxc info
+  ansible.builtin.command: lxc info
+  register: lxc_info_src0
+  run_once: true
+  changed_when: false
+
+- name: Creating lxd-preseed.yml
+  ansible.builtin.set_fact:
+    master: "{{ lookup('template', 'lxd-preseed.yml.j2') }}"
+
+- name: Backup lxd-preseed configuration to /etc directory
+  ansible.builtin.copy:
+    dest: /etc/lxd-preseed.yml
+    content: "{{ master }}"
+    mode: "0644"
+
+- name: Initiating lxd with lxd-preseed.yml
+  ansible.builtin.command: lxd init --preseed <
+  args:
+    stdin: "{{ master }}"
+    creates: "{{ lxd_init_file_test }}"
+  when: >
+    (not lxd_cluster or inventory_hostname == groups.all[0])
+    and lxc_info_src0.stdout.find('storage: \"\"') != -1
+
+- name: Restarting LXD service
+  ansible.builtin.command: snap restart lxd.daemon
+  args:
+    creates: /snap/lxd/.lxd-restart
+  changed_when: false
+
+- name: Making lxd restart idempotent
+  ansible.builtin.file:
+    path: /snap/lxd/.lxd-restart
+    state: touch
+    mode: u+rw,g-wx,o-rwx
+    modification_time: preserve
+    access_time: preserve
+
+- name: Copy service sripts to /usr/local/bin/
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /usr/local/bin/
+    owner: root
+    group: root
+    mode: u=rwx,g=rwx,o=x
+  loop:
+    - dhis2-dbactivity
+    - dhis2-deploy-war
+    - dhis2-logview
+    - dhis2-restoredb
+    # - dhis2-query-killer.py
+    # - dhis2-tomcat-munin
+    # - dhis2-delete-instance
+    # - dhis2-create-instance
+
+- name: Including firewall configuration tasks on the host
+  ansible.builtin.include_tasks: firewall.yml

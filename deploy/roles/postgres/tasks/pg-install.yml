@@ -1,0 +1,77 @@
+---
+- name: Updating and Upgrading packages
+  ansible.builtin.apt:
+    upgrade: "yes"
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Adding postgresql repo signing key
+  ansible.builtin.get_url:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    dest: /etc/apt/trusted.gpg.d/postgresql.asc
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Adding postgres apt repository to sources list
+  ansible.builtin.apt_repository:
+    repo: deb [arch={{ guest_os_arch | default('amd64') }} signed-by=/etc/apt/trusted.gpg.d/postgresql.asc] https://apt.postgresql.org/pub/repos/apt {{ hostvars[inventory_hostname]['ansible_facts']['distribution_release']
+      }}-pgdg main
+    update_cache: true
+    filename: apt_postgresql_org
+    state: present
+    mode: "0644"
+
+- name: Installing postgres version {{ postgresql_version }}
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name:
+      - ca-certificates
+      - postgresql-{{ postgresql_version }}
+      - postgresql-client-{{ postgresql_version }}
+      - postgresql-{{ postgresql_version }}-postgis-{{ '2.5' if guest_os == '20.04' else '3' }}
+      - python3-psycopg2
+      - libdbd-pg-perl
+
+- name: Custom postgresql conf
+  ansible.builtin.template:
+    src: dhis-pg.conf.j2
+    dest: /etc/postgresql/{{ postgresql_version }}/main/conf.d/dhispg.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Postgres
+
+- name: Ensure postgresql is running
+  become: true
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Adding root postgresql role
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    db: postgres
+    name: root
+    role_attr_flags: SUPERUSER
+
+- name: Checking postgresql Version
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_info:
+    filter: ver*
+  register: postgresql_version_info
+  tags: [never]
+
+- name: Postgresql | listen_addresses '*'
+  ansible.builtin.lineinfile:
+    dest: /etc/postgresql/{{ postgresql_version }}/main/postgresql.conf
+    regex: ^#?listen_addresses
+    line: listen_addresses '*'
+  notify: Restart Postgres
+
+- name: Flushing Handlers
+  ansible.builtin.meta: flush_handlers

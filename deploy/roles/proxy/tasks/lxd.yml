@@ -6,18 +6,17 @@
   community.general.lxd_container:
     config:
       boot.autostart.priority: "4"
-      user.type: web
+      user.type: "{{ group_names[0] }}"
     name: "{{ inventory_hostname }}"
-    # architecture: "{{ guest_os_arch}}"
     state: started
     profiles: [default]
     ignore_volatile_options: false
+    wait_for_container: true
     wait_for_ipv4_addresses: true
     timeout: 60
     source:
       type: image
       mode: pull
-      # server: https://images.linuxcontainers.org
       server: "{{ lxd_source_server | default('https://cloud-images.ubuntu.com/releases') }}"
       protocol: "{{ lxd_source_protocol | default('simplestreams') }}"
       alias: "{{ guest_os }}/{{ guest_os_arch | default('amd64') }}"
@@ -44,3 +43,6 @@
     wait_for_ipv4_addresses: true
   when:
     - hostvars[inventory_hostname]['ansible_host'] != hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['address']
+
+- name: "Installing {{ proxy }} proxy "
+  ansible.builtin.include_tasks: "{{ proxy }}-install.yml"

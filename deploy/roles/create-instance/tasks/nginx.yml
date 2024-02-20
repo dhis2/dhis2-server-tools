@@ -1,0 +1,82 @@
+---
+# consider creating custom filter for this task.
+# Rigt now, it does not work when fqdn is not defined
+- name: Assert two instances under the same fqdn have unique Instance Names
+  ansible.builtin.assert:
+    that:
+      - hostvars[item]['instance_name'] != hostvars[ansible_loop.nextitem]['instance_name']
+    fail_msg: "Instances Names for {{ item }}: hostvars[item]['instance_name'] and {{ ansible_loop.nextitem }}: hostvars[item]['instance_name'] are the same"
+  loop: "{{ groups['instances'] }}"
+  loop_control:
+    extended: true
+    label: "{{ item }}"
+  when:
+    - ansible_loop.nextitem is defined
+    - hostvars[item]['instance_name'] is defined and  hostvars[ansible_loop.nextitem]['instance_name'] is defined
+    - hostvars[item]['fqdn'] is defined and hostvars[ansible_loop.nextitem]['fqdn'] is defined
+    - hostvars[item]['fqdn'] == hostvars[ansible_loop.nextitem]['fqdn']
+
+- name: Include TLS configurarion tasks
+  ansible.builtin.include_tasks: "{{ TLS_TYPE | default('letsencrypt') }}.yml"
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
+
+- name: Instance location configuration
+  ansible.builtin.template:
+    src: nginx/instance.j2
+    dest: /etc/nginx/conf.d/upstream/{{ item | to_fixed_string }}.conf
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ groups['instances'] }}"
+  notify: Reload Nginx
+
+- name: Include selfsigned TLS Certificate tasks, fqdn is not defined
+  ansible.builtin.include_tasks: selfsigned.yml
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (not hostvars[item]['fqdn'] | trim != "")
+
+- name: Find files to delete in /etc/nginx/conf.d/
+  ansible.builtin.find:
+    paths: /etc/nginx/conf.d/
+    patterns: '*'
+    file_type: file
+    excludes: "{{ groups['instances'] | map('extract', hostvars, 'fqdn') | map('default', 'default') | map('regex_replace', '^\\s+|\\s+$', '') | unique | map('regex_replace', '^$', 'default') | map('regex_replace', '(.+)', '\\1.conf') | list }}"
+  register: found_files
+
+- name: Clean /etc/nginx/conf.d/ directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ found_files['files'] | map(attribute='path') }}"
+
+- name: Copy nginx site configuration
+  ansible.builtin.template:
+    src: nginx/site.j2
+    dest: /etc/nginx/conf.d/{{ hostvars[item]['fqdn'] | trim }}.conf
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
+  notify: Reload Nginx
+
+- name: Default nginx configuration, fqdn is not defined
+  ansible.builtin.template:
+    src: nginx/default.j2
+    dest: /etc/nginx/conf.d/default.conf
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (not hostvars[item]['fqdn'] | trim != "")
+  notify: Reload Nginx
+
+# starting nginx service is it was stopped generaging letsencrypt.
+- name: Start nginx service
+  ansible.builtin.service:
+    name: nginx
+    state: started
+
+- name: Flush Handlers
+  ansible.builtin.meta: flush_handlers

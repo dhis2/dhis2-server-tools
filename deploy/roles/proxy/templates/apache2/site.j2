@@ -153,10 +153,10 @@ hostvars[instance]['proxy_rewrite'] | default('false') == "true") %}
        #===========================================================
        SSLEngine on
        # set these to match your server certificate and key
-{% if SSL_TYPE == 'letsencrypt' %}
+{% if TLS_TYPE == 'letsencrypt' %}
        SSLCertificateFile      /etc/letsencrypt/live/{{ (hostvars[item]['fqdn'] | trim) }}/fullchain.pem
        SSLCertificateKeyFile /etc/letsencrypt/live/{{ (hostvars[item]['fqdn'] | trim) }}/privkey.pem
-{% elif SSL_TYPE == 'customssl' %}
+{% elif TLS_TYPE == 'customssl' %}
        SSLCertificateFile /etc/ssl/{{ (hostvars[item]['fqdn'] | trim) }}/customssl.crt
        SSLCertificateKeyFile /etc/ssl/{{ (hostvars[item]['fqdn'] | trim) }}/customssl.key
 {%endif%}

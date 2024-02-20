@@ -1,0 +1,76 @@
+---
+- name: Open http port 80
+  community.general.ufw:
+    rule: allow
+    port: "{{ http_port | default('80') }}"
+    proto: tcp
+    comment: http
+    state: enabled
+
+- name: Open https port 443
+  community.general.ufw:
+    rule: allow
+    port: "{{ https_port | default('443') }}"
+    proto: tcp
+    comment: https
+
+- name: Ensure nginx is stopped and disabled.
+  ansible.builtin.service:
+    name: nginx
+    enabled: false
+    state: stopped
+  register: unused_disable
+  failed_when: unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)
+
+- name: Updating and Upgrading proxy
+  ansible.builtin.apt:
+    upgrade: "yes"
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Installing apache2
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name:
+      - apache2
+      - libwww-perl # required for munin monitoring
+    state: present
+
+- name: Enabling apache2 modules
+  community.general.apache2_module:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ ['ssl', 'cache', 'rewrite', 'proxy_http', 'headers'] }}"
+  notify: Reload Apache2
+
+- name: Remove default apache2 site
+  ansible.builtin.file:
+    path: /etc/apache2/sites-enabled/000-default.conf
+    state: absent
+
+- name: Create apache2 upstream directory
+  ansible.builtin.file:
+    path: /etc/apache2/upstream
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Location configs munin
+  ansible.builtin.template:
+    src: apache2/{{ server_monitoring }}.j2
+    dest: /etc/apache2/upstream/{{ server_monitoring }}.conf
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ munin_users | default([{'name': 'admin', 'password': 'district'}]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  notify: Reload Apache2
+  when: server_monitoring is defined
+
+- name: Include tasks securing-munin
+  ansible.builtin.include_tasks: securing-munin.yml
+  when:
+    - server_monitoring is defined and server_monitoring | trim == 'munin'

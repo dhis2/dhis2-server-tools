@@ -21,5 +21,5 @@
     proto: tcp
     comment: Allow ssh access to the instance
 
-- name: Installing postgreSQL database
-  ansible.builtin.include_tasks: pg_install.yaml
+- name: Installing postgreSQL-{{ postgresql_version }} database
+  ansible.builtin.include_tasks: pg-install.yml

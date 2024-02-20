@@ -7,7 +7,7 @@
   community.general.lxd_container:
     config:
       boot.autostart.priority: "4"
-      user.type: monitoring
+      user.type: "{{ group_names[0] }}"
     name: "{{ inventory_hostname }}"
     # architecture: "{{ guest_os_arch | default('amd64')}}"
     state: started

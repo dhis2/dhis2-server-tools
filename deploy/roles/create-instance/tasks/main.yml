@@ -1,0 +1,26 @@
+---
+- name: DHIS2 instance setup with  {{ ansible_connection }}
+  ansible.builtin.include_tasks: "{{ ansible_connection }}.yml"
+  when: inventory_hostname in groups['instances']
+
+- name: Include tasks to setup postgresql
+  ansible.builtin.include_tasks: generate-db-pass.yml
+  when: inventory_hostname in groups['instances']
+
+- name: Include postgresql tasks
+  ansible.builtin.include_tasks: postgresql-db.yml
+  when: inventory_hostname in groups['databases']
+
+- name: Include tasks for DHIS2 setup
+  ansible.builtin.include_tasks: dhis2-setup.yml
+  when: inventory_hostname in groups['instances']
+
+- name: Include tasks for {{ proxy }} configuration.
+  ansible.builtin.include_tasks: "{{ proxy }}.yml"
+  when: inventory_hostname in groups['web'] and proxy is defined
+
+- name: Include tasks for Tomcat monitoring with Munin.
+  ansible.builtin.include_tasks: tomcat-munin-monitoring.yml
+  when:
+    - server_monitoring is defined
+    - inventory_hostname in groups['instances']

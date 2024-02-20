@@ -23,10 +23,10 @@ server {
   ssl_stapling on;
   ssl_stapling_verify  on;
   server_name {{ hostvars[item]['fqdn'] | trim }};
-{%if SSL_TYPE == 'letsencrypt'%} 
+{%if TLS_TYPE == 'letsencrypt'%} 
   ssl_certificate /etc/letsencrypt/live/{{ hostvars[item]['fqdn'] | trim }}/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/{{ hostvars[item]['fqdn'] | trim }}/privkey.pem;
-{%elif SSL_TYPE == 'customssl'%}
+{%elif TLS_TYPE == 'customssl'%}
   ssl_certificate /etc/ssl/{{ hostvars[item]['fqdn'] | trim }}/customssl.crt;
   ssl_certificate_key /etc/ssl/{{ hostvars[item]['fqdn'] | trim }}/customssl.key;
 {%endif%}
@@ -56,7 +56,7 @@ server {
 'ROOT' not in groups['instances']  | map('extract', hostvars, 'instance_name') | map('default', 'None') and
 (hostvars[instance]['proxy_rewrite'] | default(false) == true or hostvars[instance]['proxy_rewrite'] | default('false') == "true") %}
 {% if loop.first %}
-    rewrite ^/$ /{{ instance | to_fixed_string }}; 
+  rewrite ^/$ /{{ hostvars[instance]['instance_name']  | default(instance)| to_fixed_string }}; 
 {%endif%}
 {%endfor%}
 

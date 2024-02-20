@@ -13,3 +13,6 @@
     proto: tcp
     comment: Allow ssh access to the instance
     state: enabled
+
+- name: "Installing {{ proxy }} proxy "
+  ansible.builtin.include_tasks: "{{ proxy }}-install.yml"

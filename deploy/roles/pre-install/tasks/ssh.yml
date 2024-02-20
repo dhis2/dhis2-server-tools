@@ -1,0 +1,21 @@
+---
+- name: Set Ansible connection to local
+  vars:
+    ansible_connection: local
+  ansible.builtin.set_fact:
+    ansible_connection: local
+
+- name: Update and upgrade system packages
+  ansible.builtin.apt:
+    upgrade: "yes"
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure python's netaddr is installed
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name:
+      - python3-netaddr
+      - unzip
+    state: present
