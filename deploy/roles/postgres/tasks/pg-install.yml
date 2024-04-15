@@ -58,14 +58,6 @@
     name: root
     role_attr_flags: SUPERUSER
 
-- name: Checking postgresql Version
-  become: true
-  become_user: postgres
-  community.postgresql.postgresql_info:
-    filter: ver*
-  register: postgresql_version_info
-  tags: [never]
-
 - name: Postgresql | listen_addresses '*'
   ansible.builtin.lineinfile:
     dest: /etc/postgresql/{{ postgresql_version }}/main/postgresql.conf

@@ -95,3 +95,14 @@
 
 - name: Including firewall configuration tasks on the host
   ansible.builtin.include_tasks: firewall.yml
+
+# Todo: Check on how to refactor 
+- name: Get the list of stopped Containers
+  ansible.builtin.command: lxc list status=stopped -c=n -f=csv
+  register: stopped_containers
+  changed_when: false
+
+- name: Remove stopped LXC containers
+  ansible.builtin.command: lxc rm {{ item }}
+  with_items: "{{ stopped_containers.stdout_lines }}"
+  when: item is in groups['all']

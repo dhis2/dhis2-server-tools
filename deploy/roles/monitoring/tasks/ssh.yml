@@ -19,3 +19,6 @@
     src: "0.0.0.0/0"
     proto: tcp
     comment: Allow ssh access to the instance
+
+- name: Include  server tasks for {{ server_monitoring }}
+  ansible.builtin.include_tasks: "{{ server_monitoring }}-server.yml"

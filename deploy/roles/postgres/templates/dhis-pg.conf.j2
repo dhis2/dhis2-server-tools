@@ -2,6 +2,7 @@
 # Adjust depending on number of DHIS2 instances and their pool size
 # By default each instance requires up to 80 connections
 # This might be different if you have set pool in dhis.conf
+password_encryption = scram-sha-256
 # max_connections = 200 
 {% if pg_max_connections is defined and pg_max_connections | regex_search('\d+') %}
 max_connections = {{ pg_max_connections }}

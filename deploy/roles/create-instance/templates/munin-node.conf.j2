@@ -32,7 +32,7 @@ ignore_file \.pod$
 
 # Set this if the client doesn't report the correct hostname when
 # telnetting to localhost, port 4949
-{% if munin_node_host_name %}
+{% if munin_node_host_name is defined and  munin_node_host_name %}
 host_name {{ munin_node_host_name }}
 {% endif %}
 
@@ -40,10 +40,11 @@ host_name {{ munin_node_host_name }}
 # regular expression, since Net::Server does not understand CIDR-style
 # network notation unless the perl module Net::CIDR is installed.  You
 # may repeat the allow line as many times as you'd like
-
+{% if munin_node_allowed_ips is defined  %}
 {% for allowed_ip in munin_node_allowed_ips %}
 allow {{ allowed_ip }}
 {% endfor %}
+{% endif %}
 
 # If you have installed the Net::CIDR perl module, you can use one or more
 # cidr_allow and cidr_deny address/mask patterns.  A connecting client must
@@ -55,12 +56,6 @@ allow {{ allowed_ip }}
 # cidr_allow 127.0.0.1/32
 # cidr_allow 192.0.2.0/24
 # cidr_deny  192.0.2.42/32
-{% for allowed_cidr in munin_node_allowed_cidrs %}
-cidr_allow {{ allowed_cidr }}
-{% endfor %}
-{% for denied_cidr in munin_node_denied_cidrs %}
-cidr_deny {{ denied_cidr }}
-{% endfor %}
 {% for host in groups['monitoring'] %}
     cidr_allow {{ hostvars[host]['ansible_host'] }}/32
 {% endfor %}
@@ -69,4 +64,4 @@ cidr_deny {{ denied_cidr }}
 {# host {{ munin_node_bind_host }} #}
 host * 
 # And which port
-port {{ munin_node_bind_port }}
+port {{ munin_node_bind_port | default('4949') }}

@@ -4,6 +4,11 @@
     name: apache2
     state: restarted
 
+- name: Reload Apache2
+  ansible.builtin.service:
+    name: apache2
+    state: reloaded
+
 - name: Restart Munin
   ansible.builtin.service:
     name: munin

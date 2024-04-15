@@ -33,7 +33,7 @@
     rule: allow
     direction: in
     interface: "{{ lxd_bridge_interface | default('lxdbr0') }}"
-    from_ip: 0.0.0.0/0 
+    from_ip: 0.0.0.0/0
 
 - name: Configure host to NAT to the proxy container
   vars:
@@ -48,13 +48,14 @@
       *nat
       -F
       :PREROUTING ACCEPT [0:0]
-      {% for host in groups['all'] %}
-      {% if host == "proxy" %}
+      {% for host in groups['web'] %}
+      {% if loop.first %}
+      # port forward port 80 and 443 to the proxy container
       -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport 80 -j  DNAT --to-destination {{ hostvars[host]['ansible_host'] }}:80
       -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport 443 -j  DNAT --to-destination {{ hostvars[host]['ansible_host'] }}:443
       {% endif %}
       {% endfor %}
-      # setup routing
+      # Enable masquerade on host network for internet connection.
       -A POSTROUTING -s {{ lxd_network }} ! -d {{ lxd_network }} -j MASQUERADE
       COMMIT
   notify: Reload UFW

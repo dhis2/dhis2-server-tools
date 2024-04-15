@@ -1,5 +1,5 @@
 {% for host in ansible_play_hosts_all %}
-[{{ host }}]
-    address {{ hostvars[host]['ansible_host'] }}
+[{{ host if host != '127.0.0.1' else 'host' }}]
+    address {{ hostvars[host]['ansible_host'] | default(lxd_network.split('/')[0]) }}
     use_node_name yes
 {% endfor %}

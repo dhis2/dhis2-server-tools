@@ -42,8 +42,8 @@ server {
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
   add_header Referrer-Policy "no-referrer";
   add_header X-XSS-Protection "1; mode=block" always;
-  keepalive_timeout 10;
-  send_timeout 10;
+  keepalive_timeout 10; # helps mitigate denial of service attacks that establish too many persistent connections, exhausting server resources.
+  send_timeout 10; # mitigate slow HTTP denial of service attacks by ensuring write operations taking up large amounts of time are closed.
   error_log /var/log/nginx/error.log info;
   ssl_session_tickets off;
   client_body_timeout 10;

@@ -65,8 +65,9 @@ JAVA_VERSION=11
 # NOTE: if dhis2_war_file and dhis2_version are both defined, dhis2_war_file takes precedence  
 # dhis2_war_file="https://releases.dhis2.org/2.39/dhis2-stable-latest.war"
 # dhis2_war_file=/full/path/dhis2.war
-dhis2_version=2.39
+dhis2_version=2.40
 
 # whether dhis2 should be upgraded automatically to the latest defined version. 
 dhis2_auto_upgrade=false
 unattended_upgrades=yes
+

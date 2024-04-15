@@ -19,8 +19,10 @@
   ansible.builtin.include_tasks: "{{ proxy }}.yml"
   when: inventory_hostname in groups['web'] and proxy is defined
 
+# Todo: A check to ensure this runs only when server_monitoring is munin  
 - name: Include tasks for Tomcat monitoring with Munin.
   ansible.builtin.include_tasks: tomcat-munin-monitoring.yml
   when:
     - server_monitoring is defined
+    - groups['monitoring']  | length > 0
     - inventory_hostname in groups['instances']
