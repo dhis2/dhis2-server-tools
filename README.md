@@ -3,7 +3,7 @@ Table of contents
 <!-- vim-markdown-toc GFM -->
 
 * [Introduction](#introduction)
-* [Install with lxd containers](#install-with-lxd-containers)
+* [Installation with lxd containers](#install-with-lxd-containers)
 	* [Step 0 — Before you start](#step-0--before-you-start)
 	* [Step 1 — SSH to your server and enable firewall.](#step-1--ssh-to-your-server-and-enable-firewall)
 	* [Step 2 — Grab deployment tools from github](#step-2--grab-deployment-tools-from-github)
@@ -30,11 +30,11 @@ Table of contents
 ## Introduction 
 This is a quick DHIS2 install guide using [ansible](https://www.ansible.com/). At the end, you will have
 one or more dhis2 instances running, configured with postgreSQL database and
-nginx or apache2 proxy. You will have munin server monitoring as well. 
+nginx or apache2 proxy. You will have a munin instance for server resource monitoring as well. 
 
 At the moment, the tools support two deployment architectures:- 
-- [Install on a single server](#install-on-a-single-server)
-- [Install on multiple servers](#install-on-multiple-servers)
+- [Installation on a single server](#install-on-a-single-server)
+- [Installation on multiple servers](#install-on-multiple-servers)
 
 You can also do a hybrid of both. [Read more on Architectures](./docs/Deployment-Architectures.md)
 ## Install with lxd containers
@@ -49,14 +49,14 @@ Ensure you have:
 ### Step 1 — SSH to your server and enable firewall. 
 - SSH to your server, secure your ssh, allow ssh port on the firewall and
   finally enable the firewall. Be careful not to lock yourself out. Remember to
-  allow ssh port before enabling the firewall. 
+  allow your prefered ssh port before enabling the firewall. 
   ```
-  sudo ufw limit 22 # Assuming you did not change default ssh port 22
+  sudo ufw limit 22 # Assuming you did not change default ssh port (22)
   sudo ufw enable
   ```
 
-### Step 2 — Grab deployment tools from github
-- Access the server and get deployment tools by invoking below command
+### Step 2 — Grab the deployment tools from github
+- Access the server and clone the deployment tools in your prefered directory by invoking below command
   ```
   git clone https://github.com/dhis2/dhis2-server-tools
   ```
@@ -64,14 +64,14 @@ Ensure you have:
 ### Step 3 —  Create hosts file
 - Create the `hosts` file using the already existing template,
   `hosts.template`. <br>
-  Use command below 
+  Use command below (provided you are in the directory you cloned the tools in)
   ```
   cp dhis2-server-tools/deploy/inventory/{hosts.template,hosts}
   ```
 
 ### Step 4 — Set fqdn, email,timezone
 - Edit `dhis2-server-tools/deploy/inventory/hosts` file and set `fqdn`, `email`
-  if you have.(you can leave them empty if you do not have)
+  if you have any (you can leave them empty if you do not have).
 - Set your preferred `timezone`, you can leave other settings to their set defaults. 
   ```
   vim dhis2-server-tools/deploy/inventory/hosts
@@ -79,15 +79,15 @@ Ensure you have:
   Below is an example screenshot
 ![](./docs/images/fqdn-mail-tz-lxd.png?raw=true "ansible_connection")
 
-  _**NOTE**: When the install is on a single host with lxd, ensure your lxd_network is unique and not overlapping with any of your host network._ 
+  _**NOTE**: When the installation is on a single host with lxd, ensure your lxd_network is unique and not overlapping with any of your host network._ 
 
 ###  Step 5 — The Install
-- Run `deploy.sh` script from withing `dhis2-server-tools/deploy/` directory. 
+- Run `deploy.sh` script from within `dhis2-server-tools/deploy/` directory. 
   ```
   cd dhis2-server-tools/deploy/
   sudo ./deploy.sh
   ```
-- After the script finishes running (without errors), access your dhis2, glowroot and munin monitoring with your domain. If your setup is without fqdn, use servers ip address<br>
+- After the script finishes running (without errors), access your dhis2, glowroot and munin monitoring instance with your domain (fqdn set in step 5). If your setup is without fqdn, use servers' ip address<br>
   ```
   https://your-domain/dhis
   https://your-domain/dhis-glowroot
