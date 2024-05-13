@@ -1,13 +1,33 @@
 ---
 - name: Download and extract glowroot
   ansible.builtin.unarchive:
-    # src: https://github.com/glowroot/glowroot/releases/download/v0.13.6/glowroot-0.13.6-dist.zip
     src: https://github.com/glowroot/glowroot/releases/download/v0.14.0/glowroot-0.14.0-dist.zip
     dest: /opt/
-    group: tomcat
     owner: tomcat
+    group: tomcat
     remote_src: true
-    mode: "0755"
+    mode: "0700"
+
+- name: Change ownership and permissions of glowroot.jar
+  ansible.builtin.file:
+    path: /opt/glowroot/glowroot.jar
+    owner: root
+    group: tomcat
+    mode: '0640'
+
+- name: Find jar files in /opt/glowroot/lib
+  ansible.builtin.find:
+    path: "/opt/glowroot/lib"
+    pattern: "*.jar"
+  register: jar_files
+
+- name: Change ownership and permissions of found jar files in /opt/glowroot/lib
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: root
+    group: tomcat
+    mode: '0640'
+  loop: "{{ jar_files.files }}"
 
 - name: Check if /opt/glowroot/admin.json file exists
   ansible.builtin.stat:
