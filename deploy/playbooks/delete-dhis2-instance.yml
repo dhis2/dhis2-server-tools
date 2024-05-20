@@ -4,22 +4,22 @@
   vars_files:
     - ../vars/vars.yml
   vars:
-    instance_name: hmis
+    dhis2_base_path: hmis
   tasks:
     - name: Delete instance containers
       vars:
         ansible_connection: local
       community.general.lxd_container:
-        name: "{{ instance_name }}"
+        name: "{{ dhis2_base_path }}"
         state: absent
-      when: inventory_hostname == instance_name
+      when: inventory_hostname == dhis2_base_path
       # ingroup instances 
       # deleted is defined and deleted
 
     # need to incoporate apache2 as well
     - name: Delete nginx location configuration on nginx
       ansible.builtin.file:
-        path: /etc/nginx/conf.d/upstream/{{ instance_name }}.conf
+        path: /etc/nginx/conf.d/upstream/{{ dhis2_base_path }}.conf
         state: absent
       when: inventory_hostname in groups['web'] and proxy is defined
       notify: Reload Nginx
@@ -28,21 +28,21 @@
       become: true
       become_user: postgres
       community.postgresql.postgresql_db:
-        name: "{{ instance_name }}"
+        name: "{{ dhis2_base_path }}"
         state: absent
       when:
         - inventory_hostname in groups['databases']
-        - inventory_hostname == hostvars[instance_name]['database_host']
+        - inventory_hostname == hostvars[dhis2_base_path]['database_host']
 
     - name: Delete database role
       become: true
       become_user: postgres
       community.general.postgresql_user:
-        name: "{{ instance_name }}"
+        name: "{{ dhis2_base_path }}"
         state: absent
       when:
         - inventory_hostname in groups['databases']
-        - inventory_hostname == hostvars[instance_name]['database_host']
+        - inventory_hostname == hostvars[dhis2_base_path]['database_host']
 
     - name: Checking postgresql Version, needed when editing postgres config files
       become: true
@@ -53,17 +53,17 @@
       register: postgresql_version_info
       when:
         - inventory_hostname in groups['databases']
-        - inventory_hostname == hostvars[instance_name]['database_host']
+        - inventory_hostname == hostvars[dhis2_base_path]['database_host']
 
     # Delete entries on pg_hba.conf file
-    - name: Delete {{ instance_name }} entry in pg_hba.conf config
+    - name: Delete {{ dhis2_base_path }} entry in pg_hba.conf config
       become: true
       ansible.builtin.lineinfile:
         path: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf
-        regex: host .* {{ instance_name }} .*
+        regex: host .* {{ dhis2_base_path }} .*
         state: absent
       when:
-        - inventory_hostname == hostvars[instance_name]['database_host']
+        - inventory_hostname == hostvars[dhis2_base_path]['database_host']
         - inventory_hostname in groups['databases']
       notify: Reload Postgres
 
@@ -72,11 +72,11 @@
       community.general.ufw:
         rule: deny
         port: "{{ postgresql_port | default('5432') }}"
-        src: "{{ hostvars[instance_name]['ansible_host'] }}"
+        src: "{{ hostvars[dhis2_base_path]['ansible_host'] }}"
         proto: tcp
-        comment: "Allow access from {{ instance_name }} instance "
+        comment: "Allow access from {{ dhis2_base_path }} instance "
       when:
-        - inventory_hostname == hostvars[instance_name]['database_host']
+        - inventory_hostname == hostvars[dhis2_base_path]['database_host']
         - inventory_hostname in groups['databases']
 
   handlers:

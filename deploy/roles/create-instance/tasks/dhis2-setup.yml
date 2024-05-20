@@ -51,8 +51,8 @@
     cache_valid_time: 3600
     name:
       - unzip
-      - tomcat9
-      - tomcat9-admin
+      - tomcat{{ tomcat_version | default('9') }}
+      - tomcat{{ tomcat_version | default('9') }}-admin
       - openjdk-{{ JAVA_VERSION }}-jre-headless
       - ufw
 
@@ -73,8 +73,8 @@
 
 - name: Check running dhis2 version
   ansible.builtin.shell:
-    cmd: unzip -q -p  /var/lib/tomcat9/webapps/{{ instance_name | default(inventory_hostname) | to_fixed_string }}/WEB-INF/lib/dhis-service-core-*.jar build.properties | awk -F' *= *' '$1=="build.version"{print $2}'
-    removes: /var/lib/tomcat9/webapps/{{  instance_name | default(inventory_hostname) | to_fixed_string }}/WEB-INF/lib/dhis-service-core-*.jar
+    cmd: unzip -q -p  /var/lib/tomcat{{ tomcat_version | default('9') }}/webapps/{{ dhis2_base_path | default(inventory_hostname) | to_fixed_string }}/WEB-INF/lib/dhis-service-core-*.jar build.properties | awk -F' *= *' '$1=="build.version"{print $2}'
+    removes: /var/lib/tomcat{{ tomcat_version | default('9') }}/webapps/{{  dhis2_base_path | default(inventory_hostname) | to_fixed_string }}/WEB-INF/lib/dhis-service-core-*.jar
   register: version_results
   changed_when: false
 
@@ -119,16 +119,16 @@
     mode: "0644"
   when: dhis2_war_file is defined and dhis2_war_file | regex_search('^(?!.*?https:\/\/).*$')
 
-- name: Clean /var/lib/tomcat9/webapps
+- name: Clean /var/lib/tomcat{{ tomcat_version | default('9') }}/webapps
   ansible.builtin.file:
-    path: /var/lib/tomcat9/webapps/
+    path: /var/lib/tomcat{{ tomcat_version | default('9') }}/webapps/
     state: absent
   when: "'skipped' in version_results.stdout or (latest_patchversion is defined and version_results.stdout | trim is version(latest_patchversion, '<') and dhis2_auto_upgrade
     | default(false) | bool ) or dhis2_war_file is defined"
 
 - name: Creating webapps directories
   ansible.builtin.file:
-    path: /var/lib/tomcat9/webapps/{{ instance_name | default(inventory_hostname) | to_fixed_string }}
+    path: /var/lib/tomcat{{ tomcat_version | default('9') }}/webapps/{{ dhis2_base_path | default(inventory_hostname) | to_fixed_string }}
     mode: "0755"
     state: directory
   notify: Restart Tomcat
@@ -147,25 +147,25 @@
 - name: Copy server.xml to the instances
   ansible.builtin.copy:
     src: server.xml
-    dest: /etc/tomcat9/server.xml
+    dest: /etc/tomcat{{ tomcat_version | default('9') }}/server.xml
     mode: "0640"
     owner: root
     group: tomcat
   notify: Restart Tomcat
 
-- name: Creating tomcat9.service.d  directory
+- name: Creating tomcat{{ tomcat_version | default('9') }}.service.d  directory
   ansible.builtin.file:
     owner: root
     group: root
     mode: "0755"
-    path: /etc/systemd/system/tomcat9.service.d
+    path: /etc/systemd/system/tomcat{{ tomcat_version | default('9') }}.service.d
     state: directory
   notify: Restart Tomcat
 
-- name: Create systemd override file for tomcat9
+- name: Create systemd override file for tomcat{{ tomcat_version | default('9') }}
   ansible.builtin.template:
     src: tomcat_overrides.j2
-    dest: /etc/systemd/system/tomcat9.service.d/override.conf
+    dest: /etc/systemd/system/tomcat{{ tomcat_version | default('9') }}.service.d/override.conf
     mode: "0644"
     owner: root
     group: root
@@ -194,7 +194,7 @@
 - name: Copy tomcat default configuration
   ansible.builtin.template:
     src: tomcat_default.j2
-    dest: /etc/default/tomcat9
+    dest: /etc/default/tomcat{{ tomcat_version | default('9') }}
     mode: "0644"
     owner: root
     group: root
@@ -203,7 +203,7 @@
 - name: Extracting dhis2.war file
   ansible.builtin.unarchive:
     src: /opt/dhis2/dhis2.war
-    dest: /var/lib/tomcat9/webapps/{{ instance_name | default(inventory_hostname) | to_fixed_string }}
+    dest: /var/lib/tomcat{{ tomcat_version | default('9') }}/webapps/{{ dhis2_base_path | default(inventory_hostname) | to_fixed_string }}
     remote_src: true
   notify: Restart Tomcat
 

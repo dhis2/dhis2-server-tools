@@ -72,11 +72,11 @@
         # Rewrite requests for / to main dhis application
         #===========================================================
 {% for instance in groups['instances']  if 'ROOT' not in groups['instances'] |
-map('extract', hostvars, 'instance_name') | map('default', 'None') and
+map('extract', hostvars, 'dhis2_base_path') | map('default', 'None') and
 (hostvars[instance]['proxy_rewrite'] | default(false) == true or
 hostvars[instance]['proxy_rewrite'] | default('false') == "true") %} 
 {% if loop.first %}
-        RewriteRule   ^/$  /{{ hostvars[instance]['instance_name'] | default(instance) }}/ [R]
+        RewriteRule   ^/$  /{{ hostvars[instance]['dhis2_base_path'] | default(instance) }}/ [R]
 {%endif%}
 {%endfor%}
         # RewriteRule   ^/$  /dhis/  [R]

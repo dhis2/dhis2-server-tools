@@ -62,6 +62,6 @@ allow {{ allowed_ip }}
 
 # Which address to bind to;
 {# host {{ munin_node_bind_host }} #}
-host * 
+host *
 # And which port
 port {{ munin_node_bind_port | default('4949') }}

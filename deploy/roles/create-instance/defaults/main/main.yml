@@ -16,6 +16,8 @@ dhis2_version: 2.40
 # required postgresql extensions
 postgresql_version: 16
 
+tomcat_version: 9
+
 postgresql_extensions:
   - postgis
   - btree_gin

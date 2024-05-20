@@ -44,7 +44,7 @@
 - name: Copy tomcat-users.xml file
   ansible.builtin.template:
     src: tomcat-users.xml
-    dest: /etc/tomcat9/tomcat-users.xml
+    dest: /etc/tomcat{{ tomcat_version | default('9') }}/tomcat-users.xml
     owner: root
     group: tomcat
     mode: '0640'

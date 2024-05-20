@@ -85,11 +85,11 @@
         # RewriteRule   ^/$  /dhis/  [R]
 {% for instance in groups['instances']  if (hostvars[instance]['fqdn'] is defined)  and
 (hostvars[instance]['fqdn'] | trim  == hostvars[item]['fqdn'] | trim ) and 
-'ROOT' not in groups['instances'] | map('extract', hostvars, 'instance_name') | map('default', 'None') and
+'ROOT' not in groups['instances'] | map('extract', hostvars, 'dhis2_base_path') | map('default', 'None') and
 (hostvars[instance]['proxy_rewrite'] | default(false) == true or 
 hostvars[instance]['proxy_rewrite'] | default('false') == "true") %}
 {% if loop.first %}
-  RewriteRule   ^/$  /{{ hostvars[instance]['instance_name'] | default(instance) | to_fixed_string }}/  [R]
+  RewriteRule   ^/$  /{{ hostvars[instance]['dhis2_base_path'] | default(instance) | to_fixed_string }}/  [R]
 {%endif%}
 {%endfor%}
         #===========================================================

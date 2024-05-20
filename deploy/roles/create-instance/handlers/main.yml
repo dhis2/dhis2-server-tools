@@ -7,24 +7,24 @@
   when:
     - database_host is defined
 
-# stopping tomcat9
+# stopping tomcat
 - name: Stop Tomcat
   ansible.builtin.systemd:
-    name: tomcat9
+    name: tomcat{{ tomcat_version | default('9') }}
     state: stopped
     daemon_reload: true
 
-# starting tomcat9
+# starting tomcat
 - name: Start Tomcat
   ansible.builtin.systemd:
-    name: tomcat9
+    name: tomcat{{ tomcat_version | default('9') }}
     state: started
     daemon_reload: true
 
-# restarting tomcat 9
+# restarting tomcat
 - name: Restart Tomcat
   ansible.builtin.systemd:
-    name: tomcat9
+    name: tomcat{{ tomcat_version | default('9') }}
     state: restarted
     daemon_reload: true
 

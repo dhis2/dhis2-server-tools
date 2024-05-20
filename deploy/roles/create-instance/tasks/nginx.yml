@@ -4,15 +4,15 @@
 - name: Assert two instances under the same fqdn have unique Instance Names
   ansible.builtin.assert:
     that:
-      - hostvars[item]['instance_name'] != hostvars[ansible_loop.nextitem]['instance_name']
-    fail_msg: "Instances Names for {{ item }}: hostvars[item]['instance_name'] and {{ ansible_loop.nextitem }}: hostvars[item]['instance_name'] are the same"
+      - hostvars[item]['dhis2_base_path'] != hostvars[ansible_loop.nextitem]['dhis2_base_path']
+    fail_msg: "Instances Names for {{ item }}: hostvars[item]['dhis2_base_path'] and {{ ansible_loop.nextitem }}: hostvars[item]['dhis2_base_path'] are the same"
   loop: "{{ groups['instances'] }}"
   loop_control:
     extended: true
     label: "{{ item }}"
   when:
     - ansible_loop.nextitem is defined
-    - hostvars[item]['instance_name'] is defined and  hostvars[ansible_loop.nextitem]['instance_name'] is defined
+    - hostvars[item]['dhis2_base_path'] is defined and  hostvars[ansible_loop.nextitem]['dhis2_base_path'] is defined
     - hostvars[item]['fqdn'] is defined and hostvars[ansible_loop.nextitem]['fqdn'] is defined
     - hostvars[item]['fqdn'] == hostvars[ansible_loop.nextitem]['fqdn']
 
