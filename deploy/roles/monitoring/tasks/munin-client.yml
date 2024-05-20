@@ -38,6 +38,6 @@
   ansible.builtin.include_tasks: nginx-munin.yml
   when: inventory_hostname in groups['web']
 
-- name: Include tasks for tomcat9
+- name: Include tasks for tomcat{{ tomcat_version | default('9') }}
   ansible.builtin.include_tasks: tomcat-munin.yml
   when: inventory_hostname in groups['instances']

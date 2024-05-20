@@ -28,6 +28,6 @@
   ansible.builtin.lineinfile:
     path: /opt/glowroot/admin.json
     regexp: '^(.*)"contextPath"'
-    line: '\1"contextPath": "{{ "/glowroot" if instance_name | default(inventory_hostname) | to_fixed_string == "ROOT" else "/" + instance_name | default(inventory_hostname) | to_fixed_string + "-glowroot" }}",'
+    line: '\1"contextPath": "{{ "/glowroot" if dhis2_base_path | default(inventory_hostname) | to_fixed_string == "ROOT" else "/" + dhis2_base_path | default(inventory_hostname) | to_fixed_string + "-glowroot" }}",'
     backrefs: true
   notify: Restart Tomcat

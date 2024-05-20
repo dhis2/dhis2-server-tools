@@ -53,10 +53,10 @@ server {
   
 {% for instance in groups['instances']  if (hostvars[instance]['fqdn'] is defined) and
 (hostvars[instance]['fqdn'] | trim  == hostvars[item]['fqdn'] | trim ) and
-'ROOT' not in groups['instances']  | map('extract', hostvars, 'instance_name') | map('default', 'None') and
+'ROOT' not in groups['instances']  | map('extract', hostvars, 'dhis2_base_path') | map('default', 'None') and
 (hostvars[instance]['proxy_rewrite'] | default(false) == true or hostvars[instance]['proxy_rewrite'] | default('false') == "true") %}
 {% if loop.first %}
-  rewrite ^/$ /{{ hostvars[instance]['instance_name']  | default(instance)| to_fixed_string }}; 
+  rewrite ^/$ /{{ hostvars[instance]['dhis2_base_path']  | default(instance)| to_fixed_string }}; 
 {%endif%}
 {%endfor%}
 
@@ -68,7 +68,7 @@ server {
 
 {% for instance  in groups['instances'] if (hostvars[instance]['fqdn'] is defined) and
 (hostvars[instance]['fqdn'] | trim  == hostvars[item]['fqdn'] | trim ) and 
-'ROOT' not in groups['instances'] | map('extract', hostvars, 'instance_name') | map('default', 'None') %}
+'ROOT' not in groups['instances'] | map('extract', hostvars, 'dhis2_base_path') | map('default', 'None') %}
 {% if loop.first %}
 location / {
   return 444;
