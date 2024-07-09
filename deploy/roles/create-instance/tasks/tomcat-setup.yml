@@ -1,0 +1,124 @@
+---
+- name: Updating and Upgrading packages
+  ansible.builtin.apt:
+    upgrade: "yes"
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Define the package list
+  ansible.builtin.set_fact:
+    package_list: >
+      {{
+          ['unzip', 'tomcat10', 'tomcat10-admin', 'openjdk-' + (java_version | default(JAVA_VERSION | string)) + '-jre-headless', 'tomcat-jakartaee-migration']
+          if (ansible_facts['distribution_version']) == '24.04'
+          else ['unzip', 'tomcat9', 'tomcat9-admin', 'openjdk-' + (java_version | default(JAVA_VERSION | string)) + '-jre-headless']
+      }}
+    tomcat_version: "{{ '10' if (ansible_facts['distribution_version']) == '24.04' else '9' }}"
+
+- ansible.builtin.debug:
+    msg: "{{ package_list }}"
+
+- name: Installing java and tomcat and zip
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name: "{{ package_list }}"
+
+- name: Creating /opt/dhis2 directory
+  ansible.builtin.file:
+    path: /opt/dhis2
+    state: directory
+    owner: tomcat
+    mode: "0700"
+    modification_time: preserve
+    access_time: preserve
+
+- name: Copy dhis2.conf to the instances
+  ansible.builtin.template:
+    src: dhis.conf.j2
+    dest: /opt/dhis2/dhis.conf
+    mode: "0640"
+    owner: root
+    group: tomcat
+  when: db_password is defined
+  ignore_errors: true # ignore errors so it works even wen db_password is not defined
+  notify: Restart Tomcat
+
+- name: Copy server.xml to the instances
+  ansible.builtin.copy:
+    src: server.xml
+    dest: /etc/tomcat{{ tomcat_version }}/server.xml
+    mode: "0640"
+    owner: root
+    group: tomcat
+  notify: Restart Tomcat
+
+- name: Create tomcat service directory
+  ansible.builtin.file:
+    owner: root
+    group: root
+    mode: "0755"
+    path: /etc/systemd/system/tomcat{{ tomcat_version }}.service.d
+    state: directory
+  notify: Restart Tomcat
+
+- name: Create systemd override file for tomcat{{ tomcat_version }}
+  ansible.builtin.template:
+    src: tomcat_overrides.j2
+    dest: /etc/systemd/system/tomcat{{ tomcat_version }}.service.d/override.conf
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart Tomcat
+
+- name: Restrict tomcat user from running cron
+  ansible.builtin.lineinfile:
+    path: /etc/cron.deny
+    state: present
+    create: true
+    line: tomcat
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Restrict tomcat user from scheduling and running commands
+  ansible.builtin.lineinfile:
+    path: /etc/at.deny
+    owner: root
+    group: root
+    state: present
+    line: tomcat
+    create: true
+    mode: "0600"
+
+- name: Copy tomcat default configuration
+  ansible.builtin.template:
+    src: tomcat_default.j2
+    dest: /etc/default/tomcat{{ tomcat_version }}
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart Tomcat
+
+- name: Open port 8080 (tomcat) access from from proxy
+  community.general.ufw:
+    rule: allow
+    port: "{{ tomcat_port | default('8080') }}"
+    src: "{{ hostvars[item]['ansible_host'] }}"
+    proto: tcp
+    state: enabled
+    comment: tomcat access from the proxy
+  loop: "{{ groups['web'] }}"
+
+- name: Open port 4000 (glowroot) access from proxy
+  community.general.ufw:
+    rule: allow
+    port: "{{ glow_root_port | default('4000') }}"
+    src: "{{ hostvars[item]['ansible_host'] }}"
+    proto: tcp
+    comment: Glowroot monitor access from proxy
+    state: enabled
+  loop: "{{ groups['web'] }}"
+  when: >
+    app_monitoring is defined and
+    app_monitoring == "glowroot"

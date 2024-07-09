@@ -3,23 +3,25 @@
   ansible.builtin.unarchive:
     src: https://github.com/glowroot/glowroot/releases/download/v0.14.0/glowroot-0.14.0-dist.zip
     dest: /opt/
-    owner: tomcat
-    group: tomcat
-    remote_src: true
-    mode: "0700"
-
-- name: Change ownership and permissions of glowroot.jar
-  ansible.builtin.file:
-    path: /opt/glowroot/glowroot.jar
     owner: root
     group: tomcat
-    mode: '0640'
+    remote_src: true
+    mode: "0770"
+    creates: /opt/glowroot/
+    exclude:
+      - glowroot/lib/glowroot-central-collector-https-osx.jar
+      - glowroot/lib/glowroot-central-collector-https-windows.jar
 
-- name: Find jar files in /opt/glowroot/lib
+- name: Find jar files in /opt/glowroot directory
   ansible.builtin.find:
-    path: "/opt/glowroot/lib"
-    pattern: "*.jar"
-  register: jar_files
+    path: "/opt/glowroot/"
+    recurse: true
+    depth: 2
+    patterns:
+      - "*.jar" # search all files ending with .jar
+    excludes:
+      - plugin-pointcuts.jar
+  register: glowroot_jar_files
 
 - name: Change ownership and permissions of found jar files in /opt/glowroot/lib
   ansible.builtin.file:
@@ -27,7 +29,9 @@
     owner: root
     group: tomcat
     mode: '0640'
-  loop: "{{ jar_files.files }}"
+  loop: "{{ glowroot_jar_files.files }}"
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Check if /opt/glowroot/admin.json file exists
   ansible.builtin.stat:
@@ -38,9 +42,9 @@
   ansible.builtin.template:
     src: glowroot_admin.json
     dest: /opt/glowroot/admin.json
+    owner: root
     group: tomcat
-    owner: tomcat
-    mode: "0640"
+    mode: "0660"
   when: not glowroot_admin_file_status.stat.exists
   notify: Restart Tomcat
 

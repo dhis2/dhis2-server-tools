@@ -5,3 +5,9 @@
 
 # JAVA_VERSION: 11
 # heap_memory_size: 4G 
+
+# pool configuration 
+# 
+# analytics
+# analytics.table.unlogged
+# analytics.cache.expiration

@@ -24,12 +24,11 @@ fi
 # Ensure inventory file is created before doing anything
 hosts_file="inventory/hosts"
 if [ ! -f "$hosts_file" ]; then
+    echo "$hosts_file file does not exist, creating one from hosts.template"
+    cp inventory/hosts.template inventory/hosts
     echo ""
-    echo "============================================ ERROR ================================================="
-    echo "$hosts_file file does not exist, create one with below command before proceeding with the install"
-    echo "cp inventory/hosts.template inventory/hosts"
     echo ""
-    exit 1
+    sleep 2
 fi
 
 # install ansible on Ubuntu 20.04 
@@ -99,5 +98,10 @@ if [ $(cat inventory/hosts  | grep -Po '(?<=ansible_connection=)([a-z].*)') == "
      # deploying dhis2 over ssh
      echo "Deploy dhis2 over ssh ..."
      read -p "Enter ssh user: " ssh_user
+     # Check if group exists and add user silently
+      if ! getent group 'lxd' >/dev/null 2>&1; then
+        usermod -a -G "lxd" "$ssh_user"
+      fi
+     # usermod -a -G lxd $ssh_user
      su -c "ansible-playbook  dhis2.yml -kK" $ssh_user
 fi

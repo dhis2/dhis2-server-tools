@@ -1,0 +1,99 @@
+---
+# deploy war file
+- name: Get sha256sum of dhis2.war file
+  ansible.builtin.stat:
+    path: /opt/dhis2/dhis2.war
+    checksum_algorithm: sha256
+  register: dhis2_war_stat
+
+- name: Check running dhis2 version
+  ansible.builtin.shell:
+    cmd: unzip -q -p  /var/lib/tomcat{{ tomcat_version }}/webapps/{{ dhis2_base_path | default(inventory_hostname) | to_fixed_string }}/WEB-INF/lib/dhis-service-core-*.jar build.properties | awk -F' *= *' '$1=="build.version"{print $2}'
+    removes: /var/lib/tomcat{{ tomcat_version }}/webapps/{{ dhis2_base_path | default(inventory_hostname) | to_fixed_string }}/WEB-INF/lib/dhis-service-core-*.jar
+  register: version_results
+  changed_when: false
+  tags: [ never  ]
+
+- ansible.builtin.debug:
+    msg:
+      - "Running release: {{ version_results.stdout | trim }}"
+      - "Latest patch release: {{ latest_patchversion }}"
+      - set dhis2_auto_upgrade=True in your inventory file to enable automatic upgrade.
+      - Prior to the upgrade, it is important to have a backup of your instance database
+  when:
+    - latest_patchversion is defined
+    - version_results is defined
+    - "'skipped' not in  version_results.stdout"
+    - version_results.stdout | trim is version(latest_patchversion, '<')
+
+- name: Download dhis2 war file
+  ansible.builtin.get_url:
+    url: "{{ dhis2_url }}"
+    dest: /opt/dhis2/dhis2.war
+    force: true
+    mode: "0644"
+    # checksum: "sha256:{{ sha256 }}"
+  when:
+    - latest_patchversion is defined
+    - dhis2_url is defined
+    - "'skipped' in version_results.stdout or (version_results.stdout | trim is version(latest_patchversion, '<') and dhis2_auto_upgrade | default(false) | bool)"
+    - sha256 is defined
+
+- name: Download dhis2.war with hard coded url
+  ansible.builtin.get_url:
+    url: "{{ dhis2_war_file }}"
+    timeout: 120
+    dest: /opt/dhis2/dhis2.war
+    force: true
+    mode: "0644"
+  when: dhis2_war_file is defined and dhis2_war_file | regex_search('(https:\/\/)')
+
+- name: Copy dhis2.war file from ansible controller
+  ansible.builtin.copy:
+    src: "{{ dhis2_war_file }}"
+    dest: /opt/dhis2/dhis2.war
+    mode: "0644"
+  when: dhis2_war_file is defined and dhis2_war_file | regex_search('^(?!.*?https:\/\/).*$')
+
+- name: Clean /var/lib/tomcat{{ tomcat_version }}/webapps
+  ansible.builtin.file:
+    path: /var/lib/tomcat{{ tomcat_version }}/webapps/
+    state: absent
+  when: "'skipped' in version_results.stdout or (latest_patchversion is defined and version_results.stdout | trim is version(latest_patchversion, '<') and dhis2_auto_upgrade
+    | default(false) | bool ) or dhis2_war_file is defined"
+
+- name: Creating webapps directories
+  ansible.builtin.file:
+    path: /var/lib/tomcat{{ tomcat_version }}/webapps/{{ dhis2_base_path | default(inventory_hostname) | to_fixed_string }}
+    mode: "0755"
+    state: directory
+  notify: Restart Tomcat
+
+- name: Convert javax to jakartaee
+  ansible.builtin.command:
+    cmd: javax2jakarta /opt/dhis2/dhis2.war /opt/dhis2/jakarta-dhis2.war
+    creates: /opt/dhis2/jakarta-dhis2.war
+  when: tomcat_version == "10"
+
+- name: Extracting jakarta-dhis2.war
+  ansible.builtin.unarchive:
+    src: /opt/dhis2/jakarta-dhis2.war
+    dest: /var/lib/tomcat{{ tomcat_version }}/webapps/{{ dhis2_base_path | default(inventory_hostname) | to_fixed_string }}
+    remote_src: true
+  when: tomcat_version == '10'
+  notify: Restart Tomcat
+
+- name: Extracting dhis2.war file
+  ansible.builtin.unarchive:
+    src: /opt/dhis2/dhis2.war
+    dest: /var/lib/tomcat{{ tomcat_version }}/webapps/{{ dhis2_base_path | default(inventory_hostname) | to_fixed_string }}
+    remote_src: true
+  when: tomcat_version != '10'
+  notify: Restart Tomcat
+
+- name: Glowroot app monitoring
+  ansible.builtin.include_tasks: "{{ app_monitoring }}.yml"
+  when: app_monitoring is defined
+
+- name: Flushing handlers
+  ansible.builtin.meta: flush_handlers

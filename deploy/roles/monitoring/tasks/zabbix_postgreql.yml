@@ -12,7 +12,7 @@
 # add postgres apt repository
 - name: Adding postgres apt repository to sources list
   ansible.builtin.apt_repository:
-    repo: deb [arch={{ guest_os_arch | default('amd64') }} signed-by={{ postgres_key['dest'] }}] https://apt.postgresql.org/pub/repos/apt {{ hostvars[inventory_hostname]['ansible_facts']['distribution_release']
+    repo: deb [arch={{ guest_os_arch | default('amd64') }} signed-by={{ postgres_key['dest'] }}] https://apt.postgresql.org/pub/repos/apt {{ ansible_facts['distribution_release']
       }}-pgdg main
     update_cache: true
     state: present

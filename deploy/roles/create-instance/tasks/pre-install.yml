@@ -1,0 +1,23 @@
+---
+- name: Generate database password
+  ansible.builtin.set_fact:
+    db_password: "{{ db_password | default(lookup('password', '/tmp/' + inventory_hostname, seed=inventory_hostname)) }}" # password in a file on controller.,
+  when:
+    - create_db is defined and  create_db | bool
+
+- name: Setting tomcaat verson
+  ansible.builtin.set_fact:
+    tomcat_version: "{{ ansible_facts['distribution_version'] | tomcat_version }}"
+
+- ansible.builtin.debug:
+    msg: "{{ tomcat_version }}"
+
+- name: Check running dhis2 version
+  ansible.builtin.shell:
+    cmd: unzip -q -p  /var/lib/tomcat{{ tomcat_version }}/webapps/{{ dhis2_base_path | default(inventory_hostname) | to_fixed_string }}/WEB-INF/lib/dhis-service-core-*.jar build.properties | awk -F' *= *' '$1=="build.version"{print $2}'
+    removes: /var/lib/tomcat{{ tomcat_version }}/webapps/{{ dhis2_base_path | default(inventory_hostname) | to_fixed_string }}/WEB-INF/lib/dhis-service-core-*.jar
+  register: version_results
+  changed_when: false
+
+- ansible.builtin.debug:
+    msg: "{{ version_results }}"

@@ -1,6 +1,5 @@
 ---
-# consider creating custom filter for this task.
-# Rigt now, it does not work when fqdn is not defined
+
 - name: Assert two instances under the same fqdn have unique Instance Names
   ansible.builtin.assert:
     that:
@@ -16,67 +15,82 @@
     - hostvars[item]['fqdn'] is defined and hostvars[ansible_loop.nextitem]['fqdn'] is defined
     - hostvars[item]['fqdn'] == hostvars[ansible_loop.nextitem]['fqdn']
 
-- name: Include TLS configurarion tasks
-  ansible.builtin.include_tasks: "{{ TLS_TYPE | default('letsencrypt') }}.yml"
-  loop: "{{ groups['instances'] }}"
-  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
-
 - name: Instance location configuration
   ansible.builtin.template:
-    src: nginx/instance.j2
-    dest: /etc/nginx/conf.d/upstream/{{ item | to_fixed_string }}.conf
+    src: apache2/instance.j2
+    dest: /etc/apache2/upstream/{{ item | to_fixed_string }}.conf
     owner: root
     group: root
     mode: "0644"
   loop: "{{ groups['instances'] }}"
-  notify: Reload Nginx
+  notify: Reload Apache2
+
+- name: Include TLS configurarion tasks
+  ansible.builtin.include_tasks: "tls/{{ TLS_TYPE | default('letsencrypt') }}.yml"
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
 
 - name: Include selfsigned TLS Certificate tasks, fqdn is not defined
-  ansible.builtin.include_tasks: selfsigned.yml
+  ansible.builtin.include_tasks: tls/selfsigned.yml
   loop: "{{ groups['instances'] }}"
   when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (not hostvars[item]['fqdn'] | trim != "")
 
-- name: Find files to delete in /etc/nginx/conf.d/
+- name: Find files to delete in /etc/apache2/conf.d/
   ansible.builtin.find:
-    paths: /etc/nginx/conf.d/
+    paths: /etc/apache2/sites-enabled/
     patterns: '*'
-    file_type: file
+    file_type: link
     excludes: "{{ groups['instances'] | map('extract', hostvars, 'fqdn') | map('default', 'default') | map('regex_replace', '^\\s+|\\s+$', '') | unique | map('regex_replace', '^$', 'default') | map('regex_replace', '(.+)', '\\1.conf') | list }}"
   register: found_files
 
-- name: Clean /etc/nginx/conf.d/ directory
+- name: Clean /etc/apache2/sites-enabled/ directory
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent
   loop: "{{ found_files['files'] | map(attribute='path') }}"
 
-- name: Copy nginx site configuration
+- name: Copy apache2 site configuration
   ansible.builtin.template:
-    src: nginx/site.j2
-    dest: /etc/nginx/conf.d/{{ hostvars[item]['fqdn'] | trim }}.conf
+    src: apache2/site.j2
+    dest: /etc/apache2/sites-available/{{ hostvars[item]['fqdn'] | trim }}.conf
     owner: root
     group: root
     mode: "0644"
   loop: "{{ groups['instances'] }}"
   when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
-  notify: Reload Nginx
+  notify: Reload Apache2
 
-- name: Default nginx configuration, fqdn is not defined
+- name: Default apache2 configuration, fqdn is not defined
   ansible.builtin.template:
-    src: nginx/default.j2
-    dest: /etc/nginx/conf.d/default.conf
+    src: apache2/default.j2
+    dest: /etc/apache2/sites-available/default.conf
     owner: root
     group: root
     mode: "0644"
   loop: "{{ groups['instances'] }}"
   when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (not hostvars[item]['fqdn'] | trim != "")
-  notify: Reload Nginx
+  notify: Reload Apache2
 
-# starting nginx service is it was stopped generaging letsencrypt.
-- name: Start nginx service
+- name: Start apache2 service
   ansible.builtin.service:
-    name: nginx
+    name: apache2
     state: started
+
+- name: Enable apache2 site configuration
+  ansible.builtin.command: a2ensite {{ hostvars[item]['fqdn'] | trim }}.conf
+  args:
+    creates: /etc/apache2/sites-enabled/{{  hostvars[item]['fqdn'] | trim }}.conf
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
+  notify: Reload Apache2
+
+- name: Enable apache2 configuration, fqdn is not defined
+  ansible.builtin.command: a2ensite default.conf
+  args:
+    creates: /etc/apache2/sites-enabled/default.conf
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (not hostvars[item]['fqdn'] | trim != "")
+  notify: Reload Apache2
 
 - name: Flush Handlers
   ansible.builtin.meta: flush_handlers

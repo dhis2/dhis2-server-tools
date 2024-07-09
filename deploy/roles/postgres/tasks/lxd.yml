@@ -33,6 +33,9 @@
 
 - name: Get facts
   ansible.builtin.setup:
+    gather_subset:
+      - network
+      - "!min"
 
 - name: Ensuring container has configured static ip address
   become: true
@@ -43,7 +46,7 @@
     state: restarted
     wait_for_ipv4_addresses: true
   when:
-    - hostvars[inventory_hostname]['ansible_host'] != hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['address']
+    - ansible_host != ansible_facts['default_ipv4']['address']
 
 - name: Installing postgreSQL-{{ postgresql_version }} database
   ansible.builtin.include_tasks: pg-install.yml

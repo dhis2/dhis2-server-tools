@@ -14,6 +14,6 @@ pg_work_mem: 20MB
 # As much as you can reasonably afford. Helps with index generation during the analytics generation task
 pg_maintenance_work_mem: 3GB 
 
-# As much as you can reasonably afford. Helps with index generation during the analytics generation task
+# Approx 80% of ( Available RAM - maintenance_work_mem - max_connections * work_mem)
 pg_effective_cache_size: 10GB 
 

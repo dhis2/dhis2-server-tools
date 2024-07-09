@@ -1,0 +1,48 @@
+---
+- name: Download dhis2 releases.json file
+  vars:
+    ansible_connection: local
+  become: false
+  ansible.builtin.get_url:
+    url: "https://releases.dhis2.org/v1/versions/stable.json"
+    dest: vars/releases.json
+    force: true
+    mode: "0666"
+  changed_when: false
+  # when: dhis2_war_file is undefined and dhis2_version is defined and dhis2_version | type_debug == "float"
+
+- name: Load releases.json file
+  vars:
+    ansible_connection: local
+  ansible.builtin.include_vars:
+    file: releases.json
+    name: dhis2_releases
+  # when: dhis2_war_file is undefined and dhis2_version is defined and dhis2_version | type_debug == "float"
+
+# no local connection because dhis2_release_version is per instance.
+- name: Set DHIS2 release version
+  ansible.builtin.set_fact:
+    dhis2_release_version: "{{ dhis2_releases.versions | selectattr('name', 'eq', ('%.2f' | format(dhis2_version))) | first }}"
+# when: dhis2_releases is defined
+
+- name: Set dhis2_latest_patchversion and sha256
+  vars:
+    ansible_connection: local
+  ansible.builtin.set_fact:
+    sha256: "{{ dhis2_release_version['sha256'] | default(omit) }}"
+    latest_patchversion: "{{ (dhis2_release_version['patchVersions'] | last).name | default(omit) }}"
+# when: dhis2_release_version is defined
+
+- name: "Set dhis2_url "
+  vars:
+    ansible_connection: local
+  ansible.builtin.set_fact:
+    dhis2_url: "{{ dhis2_release_version['latestStableUrl'] }}"
+
+- name: Determine java_version using custom filter
+  ansible.builtin.set_fact:
+    java_version: "{{ dhis2_version | determine_java_version(dhis2_auto_upgrade, version_results) }}"
+
+- name: Display java_version
+  ansible.builtin.debug:
+    msg: "Determined java_version: {{ java_version }}"

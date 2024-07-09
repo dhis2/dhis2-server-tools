@@ -12,6 +12,7 @@
     dest: /etc/apt/apt.conf.d/20auto-upgrades
     regexp: ^#?APT::Periodic::Update
     line: APT::Periodic::Update-Package-Lists "1";
+    create: true
   notify: Restart Unattended-upgrades
 
 # Switch on unattended upgrades

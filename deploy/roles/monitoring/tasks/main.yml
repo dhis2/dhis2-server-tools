@@ -10,5 +10,5 @@
   when:
     - groups['monitoring']  | length > 0
     - server_monitoring is defined
-    - inventory_hostname in groups['web'] | union(groups['monitoring']) | union(['databases'])
+    - inventory_hostname in groups['web'] | union(groups['monitoring']) | union(groups['databases'])
     # - inventory_hostname in (groups['all'] | difference(groups['instances']))

@@ -3,24 +3,35 @@
   ansible.builtin.include_tasks: "{{ ansible_connection }}.yml"
   when: inventory_hostname in groups['instances']
 
-- name: Include tasks to setup postgresql
-  ansible.builtin.include_tasks: generate-db-pass.yml
+- name: Set dhis2 pre-install variables
+  ansible.builtin.include_tasks: pre-install.yml
   when: inventory_hostname in groups['instances']
 
 - name: Include postgresql tasks
   ansible.builtin.include_tasks: postgresql-db.yml
   when: inventory_hostname in groups['databases']
 
-- name: Include tasks for DHIS2 setup
-  ansible.builtin.include_tasks: dhis2-setup.yml
+- name: Set dhis2 url, when dhis2_version is defined
+  ansible.builtin.include_tasks: set-dhis2-url.yml
+  when:
+    - dhis2_war_file is undefined
+    - dhis2_version is defined and dhis2_version | type_debug == "float"
+    - inventory_hostname in groups['instances']
+
+- name: Include tasks for DHIS2 tomcat setup
+  ansible.builtin.include_tasks: tomcat-setup.yml
   when: inventory_hostname in groups['instances']
 
-- name: Include tasks for {{ proxy }} configuration.
-  ansible.builtin.include_tasks: "{{ proxy }}.yml"
+- name: Deploy dhis2 war file
+  ansible.builtin.include_tasks: deploy-war.yml
+  when: inventory_hostname in groups['instances']
+
+- name: Configuring {{ proxy }}
+  ansible.builtin.include_tasks: "proxy/{{ proxy }}.yml"
   when: inventory_hostname in groups['web'] and proxy is defined
 
-# Todo: A check to ensure this runs only when server_monitoring is munin  
-- name: Include tasks for Tomcat monitoring with Munin.
+# Todo: A check to ensure this runs only when server_monitoring is munin
+- name: Configuring tomcat monitoring with munin
   ansible.builtin.include_tasks: tomcat-munin-monitoring.yml
   when:
     - server_monitoring is defined

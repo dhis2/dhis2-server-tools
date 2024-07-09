@@ -13,9 +13,10 @@
     group: root
     mode: "0644"
 
+
 - name: Adding postgres apt repository to sources list
   ansible.builtin.apt_repository:
-    repo: deb [arch={{ guest_os_arch | default('amd64') }} signed-by=/etc/apt/trusted.gpg.d/postgresql.asc] https://apt.postgresql.org/pub/repos/apt {{ hostvars[inventory_hostname]['ansible_facts']['distribution_release']
+    repo: deb [arch={{ guest_os_arch | default('amd64') }} signed-by=/etc/apt/trusted.gpg.d/postgresql.asc] https://apt.postgresql.org/pub/repos/apt {{ ansible_facts['distribution_release']
       }}-pgdg main
     update_cache: true
     filename: apt_postgresql_org
@@ -30,7 +31,7 @@
       - ca-certificates
       - postgresql-{{ postgresql_version }}
       - postgresql-client-{{ postgresql_version }}
-      - postgresql-{{ postgresql_version }}-postgis-{{ '2.5' if guest_os == '20.04' else '3' }}
+      - postgresql-{{ postgresql_version }}-postgis-{{ ansible_facts['distribution_release'] | postgis_version }}
       - python3-psycopg2
       - libdbd-pg-perl
 
@@ -49,6 +50,7 @@
     name: postgresql
     state: started
     enabled: true
+  # did not come up.
 
 - name: Adding root postgresql role
   become: true

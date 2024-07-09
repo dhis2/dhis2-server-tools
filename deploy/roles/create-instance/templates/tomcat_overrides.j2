@@ -3,4 +3,4 @@ ReadWritePaths=/opt/dhis2
 {% if app_monitoring is defined and app_monitoring == "glowroot"  %}
 ReadWritePaths=/opt/glowroot
 {% endif  %}
-ReadWritePaths=/var/log/tomcat{{ tomcat_version | default('9') }}
+ReadWritePaths=/var/log/tomcat{{ tomcat_version }}

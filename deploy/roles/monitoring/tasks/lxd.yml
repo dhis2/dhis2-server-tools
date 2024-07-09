@@ -42,7 +42,7 @@
     state: restarted
     wait_for_ipv4_addresses: true
   when:
-    - hostvars[inventory_hostname]['ansible_host'] != hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['address']
+    - ansible_host != ansible_facts['default_ipv4']['address']
 
 - name: Include server tasks for {{ server_monitoring | trim }}
   ansible.builtin.include_tasks: "{{ server_monitoring | trim }}-server.yml"

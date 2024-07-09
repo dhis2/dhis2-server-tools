@@ -20,7 +20,7 @@
     enabled: false
     state: stopped
   register: unused_disable
-  failed_when: unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)
+  failed_when: unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg) # this prevents failing when the service is not found
 
 - name: Updating and Upgrading
   ansible.builtin.apt:
