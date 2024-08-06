@@ -42,7 +42,3 @@
 - name: Determine java_version using custom filter
   ansible.builtin.set_fact:
     java_version: "{{ dhis2_version | determine_java_version(dhis2_auto_upgrade, version_results) }}"
-
-- name: Display java_version
-  ansible.builtin.debug:
-    msg: "Determined java_version: {{ java_version }}"

@@ -15,3 +15,8 @@
   ansible.builtin.service:
     name: unattended-upgrades
     state: restarted
+
+- name: Restart Munin-Node
+  ansible.builtin.service:
+    name: munin-node
+    state: restarted

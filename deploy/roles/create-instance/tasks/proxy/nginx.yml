@@ -1,7 +1,7 @@
 ---
 # consider creating custom filter for this task.
 # Rigt now, it does not work when fqdn is not defined
-- name: Assert two instances under the same fqdn have unique Instance Names
+- name: Assert two instances using the same fqdn have unique Instance Names
   ansible.builtin.assert:
     that:
       - hostvars[item]['dhis2_base_path'] != hostvars[ansible_loop.nextitem]['dhis2_base_path']

@@ -3,3 +3,9 @@
     address {{ hostvars[host]['ansible_host'] | default(lxd_network.split('/')[0]) }}
     use_node_name yes
 {% endfor %}
+
+{% if ansible_connection == "lxd" %}
+[host]
+    address {{ lxd_network.split('/')[0] }}
+    use_node_name yes
+{% endif %}

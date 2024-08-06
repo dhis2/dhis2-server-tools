@@ -93,10 +93,13 @@
     # - dhis2-delete-instance
     # - dhis2-create-instance
 
-- name: Including firewall configuration tasks on the host
+- name: Setting up firewall on the host
   ansible.builtin.include_tasks: firewall.yml
 
-# Todo: Check on how to refactor 
+- name: Munin Monitoring for the host
+  ansible.builtin.include_tasks: munin-client.yml
+
+# Todo: Check on how to refactor
 - name: Get the list of stopped Containers
   ansible.builtin.command: lxc list status=stopped -c=n -f=csv
   register: stopped_containers

@@ -1,3 +1,6 @@
 ---
 ansible_connection: lxd
+http_port: 80
+https_port: 443
+
 # TLS_TYPE: letsencrypt

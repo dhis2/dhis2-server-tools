@@ -23,8 +23,9 @@ connection.password = {{ db_password }}
 # Database schema behavior, can be 'validate', 'update', 'create', 'create-drop'
 connection.schema = update
 
-# Max size of connection pool (default: 40)
-# connection.pool.max_size = 40
+# Max size of connection pool (default: 80)
+# connection.pool.max_size = 80
+
 # ----------------------------------------------------------------------
 # System
 # ----------------------------------------------------------------------
@@ -97,7 +98,8 @@ connection.schema = update
 # ----------------------------------------------------------------------
 
 # Analytics server-side cache expiration in seconds
-# analytics.cache.expiration = 3600
+analytics.cache.expiration = 3600
+analytics.table.unlogged: {{ analytics.table.unlogged | default('OFF') }}
 
 # ----------------------------------------------------------------------
 # System monitoring
