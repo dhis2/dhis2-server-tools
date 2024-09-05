@@ -3,26 +3,24 @@
   gather_facts: false
   vars_files:
     - ../vars/vars.yml
-  vars:
-    dhis2_base_path: hmis
   tasks:
     - name: Delete instance containers
       vars:
         ansible_connection: local
       community.general.lxd_container:
-        name: "{{ dhis2_base_path }}"
+        name: "{{ inventory_hostname }}"
         state: absent
       when: inventory_hostname in groups['instances'] and instance_state == 'deleted'
-      
-    # need to incoporate apache2 as well
+    - name: Delete nginx include line line
+
     - name: Delete nginx location configuration on nginx
       ansible.builtin.file:
-        path: /etc/nginx/conf.d/upstream/{{ hostvars[item]['dhis2_base_path'] | default(item) }}.conf
+        path: /etc/nginx/conf.d/upstream/{{ item }}.conf
         state: absent
-      loop: group['instances']
+      loop: "{{ groups['instances'] }}"
       when:
         - inventory_hostname in groups['web']
-        - hostvars['item']['instance_state'] == "deleted"
+        - hostvars[item]['instance_state'] == "deleted"
       notify: Reload Nginx
 
     - name: Delete database
@@ -31,9 +29,10 @@
       community.postgresql.postgresql_db:
         name: "{{ item }}"
         state: absent
+      loop: "{{ groups['instances'] }}"
       when:
         - inventory_hostname in groups['databases']
-        -  hostvars['item']['instance_state'] == "deleted"
+        -  hostvars[item]['instance_state'] == "deleted"
 
     - name: Delete database role
       become: true
@@ -41,45 +40,48 @@
       community.general.postgresql_user:
         name: "{{ item }}"
         state: absent
-      loop: groups['instances']
+      loop: "{{ groups['instances'] }}"
       when:
         - inventory_hostname in groups['databases']
         -  hostvars[item]['instance_state'] == 'deleted'
 
-    - name: Checking postgresql Version, needed when editing postgres config files
+    - name: hecking postgresql Versions
       become: true
-      # become_method: sudo
       become_user: postgres
       community.general.postgresql_info:
         filter: ver*
       register: postgresql_version_info
+      # loop: "{{ groups['instances'] }}"
       when:
         - inventory_hostname in groups['databases']
-        - inventory_hostname == hostvars[dhis2_base_path]['database_host']
+        # - inventory_hostname == hostvars[item]['database_host']
 
-    # Delete entries on pg_hba.conf file
-    - name: Delete {{  }} entry in pg_hba.conf config
+    - ansible.builtin.debug:
+        msg: "{{ postgresql_version_info }}"
+      when: inventory_hostname in groups['databases']
+
+    - name: Delete access entry in postgresql pg_hba.conf
       become: true
       ansible.builtin.lineinfile:
         path: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf
-        regex: host .* {{ dhis2_base_path }} .*
+        regex: host .* {{ item }} .*
         state: absent
-      loop: groups['instances']
+      loop: "{{ groups['instances'] }}"
       when:
-        - hostvars[item]['instance_state'] is deleted
-        - inventory_hostname == hostvars[item]['database_host']
         - inventory_hostname in groups['databases']
+        - hostvars[item]['instance_state'] == 'deleted'
+        - inventory_hostname == hostvars[item]['database_host']
       notify: Reload Postgres
 
-    # delete ufw rule
     - name: Firewall | Open port 5432 from dhis2 instances
       community.general.ufw:
-        rule: deny
+        rule: allow
         port: "{{ postgresql_port | default('5432') }}"
         src: "{{ hostvars[item]['ansible_host'] }}"
         proto: tcp
         comment: "Allow access from {{ item }} instance "
-      loop: groups['instances']
+        delete: true
+      loop: "{{ groups['instances'] }}"
       when:
         - hostvars[item]['instance_state'] == 'deleted'
         - inventory_hostname == hostvars[item]['database_host']

@@ -13,11 +13,14 @@ source /usr/local/etc/dhis/dhis2-env
 function perform_backups()
 {
   SUFFIX=$1
-  FINAL_BACKUP_DIR=$BACKUP_DIR/db-backup/"$(date +%Y%m%d-%H%M%S)$SUFFIX/"
-  FINAL_AUDIT_DIR=$BACKUP_DIR/audit-backup/"$(date +%Y%m%d-%H%M%S)$SUFFIX/"
+  DB_BUCKUP_DIR=$BACKUP_DIR/db-backup
+  AUDIT_BACKUP_DIR=$BACKUP_DIR/audit-backup
 
-  echo "Backupdir = $FINAL_BACKUP_DIR"
-  echo "Audit-dir = $FINAL_AUDIT_DIR"
+  FINAL_BACKUP_DIR=$DB_BUCKUP_DIR/"$(date +%Y%m%d-%H%M%S)$SUFFIX"
+  FINAL_AUDIT_DIR=$AUDIT_BACKUP_DIR/"$(date +%Y%m%d-%H%M%S)$SUFFIX"
+
+  echo "Backup Directory = $FINAL_BACKUP_DIR"
+  echo "Audit Directory = $FINAL_AUDIT_DIR"
   
   if ! mkdir -p $FINAL_BACKUP_DIR; then
         echo "`date` Cannot create backup directory in $FINAL_BACKUP_DIR. Go and fix it!"
@@ -35,17 +38,17 @@ function perform_backups()
     do
       set -o pipefail
       # First backup and truncate audit table
-      if ! lxc exec postgres -- pg_dump -a -t audit $DBNAME | gzip - > "$FINAL_AUDIT_DIR"audit_"$DBNAME".sql.gz.in_progress; then 
+      if ! lxc exec postgres -- pg_dump -a -t audit $DBNAME | gzip - > "$FINAL_AUDIT_DIR/"audit_"$DBNAME".sql.gz.in_progress; then 
            echo "`date` [!!ERROR!!] Failed to backup audit table of database $DBNAME"
       else
-          mv "$FINAL_AUDIT_DIR"audit_"$DBNAME".sql.gz.in_progress "$FINAL_AUDIT_DIR"audit_"$DBNAME".sql.gz
+          mv "$FINAL_AUDIT_DIR"/audit_"$DBNAME".sql.gz.in_progress "$FINAL_AUDIT_DIR"/audit_"$DBNAME".sql.gz
          echo "TRUNCATE audit" | lxc exec postgres psql $DBNAME
       fi
       # Perform backup of them main database
-      if ! lxc exec postgres -- pg_dump -O -Fp $DBNAME $EXCLUDED | gzip > $FINAL_BACKUP_DIR"$DBNAME".sql.gz.in_progress; then
+      if ! lxc exec postgres -- pg_dump -O -Fp $DBNAME $EXCLUDED | gzip > $FINAL_BACKUP_DIR/"$DBNAME".sql.gz.in_progress; then
         echo "`date` [!!ERROR!!] Failed to produce plain backup of database $DBNAME"
       else
-        mv $FINAL_BACKUP_DIR"$DBNAME".sql.gz.in_progress $FINAL_BACKUP_DIR"$DBNAME".sql.gz
+        mv $FINAL_BACKUP_DIR/"$DBNAME".sql.gz.in_progress $FINAL_BACKUP_DIR/"$DBNAME".sql.gz
       fi
     done
 
@@ -69,8 +72,8 @@ DAY_OF_MONTH=`date +%d`
  
 if [ $DAY_OF_MONTH = "01" ];
 then
-	# Delete all expired monthly directories
-	# find $BACKUP_DIR -maxdepth 1 -name "*-monthly" -exec rm -rf '{}' ';'
+	# Delete all expired monthly directories, keeping only two
+	find $DB_BUCKUP_DIR -maxdepth 1 -name "*-monthly" -mtime +60 -exec rm -rf '{}' ';'
 	perform_backups "-monthly"
 fi
  
@@ -81,12 +84,12 @@ EXPIRED_DAYS=$(expr $((($WEEKS_TO_KEEP * 7) + 1)))
 if [ $DAY_OF_WEEK = $DAY_OF_WEEK_TO_KEEP ];
 then
 	# Delete all expired weekly directories
-	find $BACKUP_DIR -maxdepth 1 -mtime +$EXPIRED_DAYS -name "*-weekly" -exec rm -rf '{}' ';'
+	find $DB_BUCKUP_DIR -maxdepth 1 -mtime +$EXPIRED_DAYS -name "*-weekly" -exec rm -rf '{}' ';'
 	perform_backups "-weekly"
 fi
 
 # Delete daily backups 7 days old or more
-find $BACKUP_DIR -maxdepth 1 -mtime +$DAYS_TO_KEEP -name "*-daily" -exec rm -rf '{}' ';'
+find $DB_BUCKUP_DIR -maxdepth 1 -mtime +$DAYS_TO_KEEP -name "*-daily" -exec rm -rf '{}' ';'
  
 perform_backups "-daily"
 

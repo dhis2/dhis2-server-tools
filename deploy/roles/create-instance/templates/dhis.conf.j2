@@ -99,7 +99,8 @@ connection.schema = update
 
 # Analytics server-side cache expiration in seconds
 analytics.cache.expiration = 3600
-analytics.table.unlogged: {{ analytics.table.unlogged | default('OFF') }}
+# Analytics table logging, options: ON, OFF default: ON
+analytics.table.unlogged = {{ analytics.table.unlogged | default('ON') }} 
 
 # ----------------------------------------------------------------------
 # System monitoring
