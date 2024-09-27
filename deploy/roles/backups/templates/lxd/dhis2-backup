@@ -27,7 +27,6 @@ function perform_backups()
         exit 1;
   fi;
 
-  echo "Make Audit table backup directory"
   if ! mkdir -p $FINAL_AUDIT_DIR; then
         echo "`date` Cannot create backup directory in $FINAL_AUDIT_DIR. Go and fix it!"
         exit 1;
@@ -72,25 +71,26 @@ DAY_OF_MONTH=`date +%d`
  
 if [ $DAY_OF_MONTH = "01" ];
 then
-	# Delete all expired monthly directories, keeping only two
-	find $DB_BUCKUP_DIR -maxdepth 1 -name "*-monthly" -mtime +60 -exec rm -rf '{}' ';'
-	perform_backups "-monthly"
+    # Delete all expired monthly directories, keeping only two
+    find $BACKUP_DIR -maxdepth 1 -name "*-monthly" -mtime +60 -exec rm -rf '{}' ';'
+    find $DB_BUCKUP_DIR -maxdepth 1 -name "*-monthly" -mtime +60 -exec rm -rf '{}' ';'
+    perform_backups "-monthly"
 fi
  
 # WEEKLY BACKUPS
 DAY_OF_WEEK=$(date +%u) #1-7 (Monday-Sunday)
 EXPIRED_DAYS=$(expr $((($WEEKS_TO_KEEP * 7) + 1)))
- 
 if [ $DAY_OF_WEEK = $DAY_OF_WEEK_TO_KEEP ];
 then
-	# Delete all expired weekly directories
-	find $DB_BUCKUP_DIR -maxdepth 1 -mtime +$EXPIRED_DAYS -name "*-weekly" -exec rm -rf '{}' ';'
-	perform_backups "-weekly"
+    # Delete all expired weekly directories
+    find $DB_BUCKUP_DIR -maxdepth 1 -mtime +$EXPIRED_DAYS -name "*-weekly" -exec rm -rf '{}' ';'
+    find $BUCKUP_DIR -maxdepth 1 -mtime +$EXPIRED_DAYS -name "*-weekly" -exec rm -rf '{}' ';'
+    perform_backups "-weekly"
 fi
 
 # Delete daily backups 7 days old or more
 find $DB_BUCKUP_DIR -maxdepth 1 -mtime +$DAYS_TO_KEEP -name "*-daily" -exec rm -rf '{}' ';'
- 
+find $BUCKUP_DIR -maxdepth 1 -mtime +$DAYS_TO_KEEP -name "*-daily" -exec rm -rf '{}' ';'
 perform_backups "-daily"
 
 {% if s3_access_key is defined and s3_cluster_id is defined and s3_secret_key is defined %}

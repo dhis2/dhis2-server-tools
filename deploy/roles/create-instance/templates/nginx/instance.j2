@@ -3,9 +3,10 @@ location / {
    proxy_pass  http://{{hostvars[item]['ansible_host']+':8080' }};
    include /etc/nginx/proxy_params;
    proxy_redirect off;
-   proxy_hide_header X-Powered-By;
    proxy_set_header X-Frame-Options "SAMEORIGIN";  # protect against clickjacking attacks
    proxy_set_header X-Content-Type-Options "nosniff"; # drive-by download attacks
+   proxy_hide_header Strict-Transport-Security;
+   proxy_hide_header X-Powered-By;
    proxy_hide_header Server;
    }
 {% if app_monitoring is defined and app_monitoring | trim == 'glowroot' %}
@@ -14,9 +15,10 @@ location /glowroot/ {
    proxy_pass http://{{ hostvars[item]['ansible_host']+':4000' }}/glowroot/;
    include /etc/nginx/proxy_params;
    proxy_redirect off;
-   proxy_hide_header X-Powered-By;
    proxy_set_header X-Frame-Options "SAMEORIGIN";  # To mitigate the risk of clickjacking attacks
    proxy_set_header X-Content-Type-Options "nosniff"; # drive-by download attacks
+   proxy_hide_header Strict-Transport-Security;
+   proxy_hide_header X-Powered-By;
    proxy_hide_header Server;
    }
 {% endif %}
@@ -26,9 +28,10 @@ location /{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string
    proxy_pass http://{{hostvars[item]['ansible_host']+':8080' }}/{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}/;
    include /etc/nginx/proxy_params;
    proxy_redirect off;
-   proxy_hide_header X-Powered-By;
    proxy_set_header X-Frame-Options "SAMEORIGIN";  # protect against clickjacking attacks
    proxy_set_header X-Content-Type-Options "nosniff"; # drive-by download attacks
+   proxy_hide_header Strict-Transport-Security;
+   proxy_hide_header X-Powered-By;
    proxy_hide_header Server;
    }   
 {% if app_monitoring is defined and app_monitoring | trim == 'glowroot' %}
@@ -37,9 +40,10 @@ location /{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string
    proxy_pass http://{{ hostvars[item]['ansible_host']+':4000' }}/{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}-glowroot;
    include /etc/nginx/proxy_params;
    proxy_redirect off;
-   proxy_hide_header X-Powered-By;
    proxy_set_header X-Frame-Options "SAMEORIGIN";  # To mitigate the risk of clickjacking attacks
    proxy_set_header X-Content-Type-Options "nosniff"; # drive-by download attacks
+   proxy_hide_header Strict-Transport-Security;
+   proxy_hide_header X-Powered-By;
    proxy_hide_header Server;
    }
 {% endif %}

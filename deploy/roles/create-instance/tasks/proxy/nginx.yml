@@ -58,7 +58,7 @@
     group: root
     mode: "0644"
   loop: "{{ groups['instances'] }}"
-  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
+  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "") #Explore using default here
   notify: Reload Nginx
 
 - name: Default nginx configuration, fqdn is not defined

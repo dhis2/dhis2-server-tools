@@ -11,7 +11,18 @@
         name: "{{ inventory_hostname }}"
         state: absent
       when: inventory_hostname in groups['instances'] and instance_state == 'deleted'
-    - name: Delete nginx include line line
+
+    # - name: Delete nginx rewrite rule 
+
+    - name: Delete include location config 
+      ansible.builtin.lineinfile:
+        line:  "include  conf.d/upstream/{{ hostvars[item]['fqdn'] | trim  }}.conf;"
+        state: absent
+      loop: "{{ groups['instances'] }}"
+      when: 
+        - inventory_hostname in groups['web']
+        - hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "") # Explore using default here
+        - hostvars[item]['instance_state'] == "deleted"
 
     - name: Delete nginx location configuration on nginx
       ansible.builtin.file:

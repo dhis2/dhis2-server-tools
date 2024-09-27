@@ -51,8 +51,8 @@
       {% for host in groups['web'] %}
       {% if loop.first %}
       # port forward port 80 and 443 to the proxy container
-      -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport {{ hostvars[host]['http_port'] | default('80')}}   -j  DNAT --to-destination {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default('80')}}
-      -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport {{ hostvars[host]['https_port'] | default('443')}} -j  DNAT --to-destination {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['https_port'] | default('443')}}
+      -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport {{ hostvars[host]['http_port'] | default('80') }} -j  DNAT --to-destination {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default('80') }}
+      -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport {{ hostvars[host]['https_port'] | default('443') }} -j  DNAT --to-destination {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['https_port'] | default('443') }}
       {% endif %}
       {% endfor %}
       # Enable masquerade on host network for internet connection.

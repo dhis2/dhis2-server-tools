@@ -31,7 +31,7 @@ server {
   ssl_dhparam /etc/nginx/dhparams.pem;
   ssl_prefer_server_ciphers on;
   underscores_in_headers on;
-  {#- add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;#}
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
   add_header Referrer-Policy "no-referrer";
   add_header X-XSS-Protection "1; mode=block" always;
   keepalive_timeout 10;
