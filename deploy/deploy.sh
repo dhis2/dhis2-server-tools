@@ -85,7 +85,7 @@ then
       esac
     sudo -E apt-get -yq autoclean
     # install community general collections 
-    # ansible-galaxy collection install community.general
+    ansible-galaxy collection install community.general
 fi
 
 # deploying dhis2 
@@ -93,6 +93,8 @@ if [ $(cat inventory/hosts  | grep -Po '(?<=ansible_connection=)([a-z].*)') == "
   then
      # deploying dhis2 in lxd containers
      echo "Deploying dhis2 with lxd ..."
+     # Ensure you community general callections are upgraded, 
+     ansible-galaxy collection install community.general --upgrade
      sudo ansible-playbook dhis2.yml
   else
      # deploying dhis2 over ssh
