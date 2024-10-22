@@ -1,0 +1,9 @@
+- name: instegration ontainer setup 
+  gather_facts: false
+  force_handlers: true
+  become: true
+  hosts: all:!127.0.0.1
+  vars_files:
+    - vars/vars.yml
+  roles:
+    - role: integration

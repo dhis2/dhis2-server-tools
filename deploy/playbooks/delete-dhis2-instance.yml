@@ -16,7 +16,11 @@
 
     - name: Delete include location config 
       ansible.builtin.lineinfile:
-        line:  "include  conf.d/upstream/{{ hostvars[item]['fqdn'] | trim  }}.conf;"
+        regexp: '^\s*include\s+conf\.d/upstream/{{ hostvars[item].fqdn | trim }}\.conf;$'
+        # regexp: '^ *include +conf\.d/upstream/dhis\.conf;$'
+        path: /etc/nginx/conf.d/{{ hostvars[item]['fqdn'] | trim  }}.conf
+        line: "    include  conf.d/upstream/{{ hostvars[item]['fqdn'] | trim }}.conf;"
+
         state: absent
       loop: "{{ groups['instances'] }}"
       when: 

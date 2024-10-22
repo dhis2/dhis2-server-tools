@@ -8,8 +8,8 @@
   ansible.builtin.user:
     name: "{{ service_user }}"
     group: "{{ service_group }}"
-    shell: /bin/false  # Service user doesn't need shell access
-    system: true        # Mark as a system user
+    shell: /bin/false
+    system: true
     create_home: false
 
 - name: "Update and upgrade"
@@ -18,14 +18,14 @@
     update_cache: true
     cache_valid_time: 86400
 
-# install java runtime
 - name: Ensure OpenJDK 17 is installed
   ansible.builtin.apt:
-    name: openjdk-17-jre-headless
+    name:
+      - openjdk-17-jre-headless
+      - acl
     state: present
     update_cache: true
 
-# deployment directory
 - name: Ensure working directory exists
   ansible.builtin.file:
     path: "{{ working_directory }}"
@@ -43,13 +43,20 @@
     group: root
     mode: '0644'  # Owner (root) has read and write, group and others have read-only
 
-# Updating permissions
 - name: Set read permission for service user on the JAR file
-  acl:
+  ansible.builtin.acl:
     path: "{{ working_directory }}/civil_registry_proxy.jar"
     entity: "{{ service_user }}"
     etype: user
     permissions: r
+
+- name: Create application.yml config
+  ansible.builtin.template:
+    src: application.yml.j2
+    dest: /usr/local/etc/application.yml
+    owner: root
+    group: root
+    mode: '0644'
 
 # systemd service
 - name: Create a systemd service file for civil_registry_proxy
@@ -79,7 +86,6 @@
     state: present
     update_cache: true
 
-# this is to the tomcat instance , lxd container or server,
 - name: Allow access to port 8080 from allowed IPs
   ansible.builtin.ufw:
     rule: allow

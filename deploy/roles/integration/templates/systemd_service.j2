@@ -1,0 +1,15 @@
+# civil registry service
+[Unit]
+Description= Civil Registry Port 8080 
+After=syslog.target
+
+[Service]
+User={{ service_user }}
+ExecStart=/usr/lib/jvm/java-17-openjdk-amd64/bin/java -jar /usr/local/bin/civil_registry/civil_registry_proxy.jar --spring.config.location=/usr/local/etc/application.yml  --server.port=8080
+SuccessExitStatus=143
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=5
+
+[Install] 
+WantedBy=multi-user.target

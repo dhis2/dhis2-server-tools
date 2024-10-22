@@ -1,0 +1,24 @@
+server:
+  port: 9070
+  address: 0.0.0.0
+  error:
+    whitelabel:
+      enabled: false
+  servlet:
+    session:
+      cookie:
+        same-site: strict
+
+civil-registry-url: http://auth-proxy:4180/fhir
+
+logging:
+  file:
+    name: oauth-route-middleware.log
+
+dataSonnet:
+  dhis2Person: resource:file:/dhis2Person.ds
+
+oauth2:
+  tokenEndpoint: http://identity-provider:8080/realms/civil-registry/protocol/openi    d-connect/token
+  clientId: civil-registry-client
+  clientSecret: ibz2lEXdGe02CJS2N7tY13r6664eJpoX

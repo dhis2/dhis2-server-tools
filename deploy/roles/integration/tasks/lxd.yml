@@ -5,8 +5,7 @@
     ansible_connection: local
   community.general.lxd_container:
     config:
-      boot.autostart.priority: "0"
-      security.protection.delete: "true"
+      boot.autostart.priority: "6"
       user.type: "{{ group_names[0] }}"
     name: "{{ inventory_hostname }}"
     state: started

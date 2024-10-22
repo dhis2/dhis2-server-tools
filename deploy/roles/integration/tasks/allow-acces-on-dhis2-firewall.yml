@@ -1,0 +1,8 @@
+---
+- name: Allow civil registry access to the dhis2 server on port 8080
+  ansible.builtin.ufw:
+    rule: allow
+    port: 8080
+    proto: tcp
+    from_ip: "{{ hostvars[item]['ansible_host'] }}"
+  loop: "{{ groups['integration'] }}"

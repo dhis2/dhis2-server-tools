@@ -3,8 +3,10 @@
   ansible.builtin.include_tasks: "{{ ansible_connection }}.yml"
   when: inventory_hostname in groups['integration']
 
-- name: Deploy jar file 
+- name: Deploy jar file
   ansible.builtin.include_tasks: jar-file-deploy.yml
-   when: inventory_hostname in groups['integration']
+  when: inventory_hostname in groups['integration']
 
-  
+- name: Allow civil regeistry containers access dhis2
+  ansible.builtin.include_tasks: allow-acces-on-dhis2-firewall.yml
+  when: inventory_hostname in groups['instances']
