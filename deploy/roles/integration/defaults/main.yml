@@ -1,2 +1,12 @@
 ---
 # defaults file for roles/integration
+jar_file_path: "/root/"  # Local path of the JAR file
+service_name: "civil_registry_proxy"
+service_user: "civil_registry"
+service_group: "civil_registry""
+java_opts: "-Xms512m -Xmx1024m" 
+working_directory: "/usr/local/bin/"
+service_port: 8080 
+allowed_ips:
+  - "172.19.1.11"   # DHIS2 Server
+  # - "172.19.1.11"    # Reverse Proxy

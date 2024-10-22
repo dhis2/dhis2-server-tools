@@ -1,0 +1,94 @@
+---
+- name: Ensure group exists for the service
+  ansible.builtin.group:
+    name: "{{ service_group }}"
+    state: present
+
+- name: Ensure user exists for the service
+  ansible.builtin.user:
+    name: "{{ service_user }}"
+    group: "{{ service_group }}"
+    shell: /bin/false  # Service user doesn't need shell access
+    system: true        # Mark as a system user
+    create_home: false
+
+- name: "Update and upgrade"
+  ansible.builtin.apt:
+    upgrade: true
+    update_cache: true
+    cache_valid_time: 86400
+
+# install java runtime
+- name: Ensure OpenJDK 17 is installed
+  ansible.builtin.apt:
+    name: openjdk-17-jre-headless
+    state: present
+    update_cache: true
+
+# deployment directory
+- name: Ensure working directory exists
+  ansible.builtin.file:
+    path: "{{ working_directory }}"
+    state: directory
+    owner: "{{ service_user }}"
+    group: "{{ service_group }}"
+    mode: '0755'
+
+# getting war file
+- name: Copy the civil_registry_proxy jar to the server
+  ansible.builtin.copy:
+    src: "{{ jar_file_path }}"
+    dest: "{{ working_directory }}/civil_registry_proxy.jar"
+    owner: root
+    group: root
+    mode: '0644'  # Owner (root) has read and write, group and others have read-only
+
+# Updating permissions
+- name: Set read permission for service user on the JAR file
+  acl:
+    path: "{{ working_directory }}/civil_registry_proxy.jar"
+    entity: "{{ service_user }}"
+    etype: user
+    permissions: r
+
+# systemd service
+- name: Create a systemd service file for civil_registry_proxy
+  ansible.builtin.template:
+    src: systemd_service.j2
+    dest: "/etc/systemd/system/{{ service_name }}.service"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Reload systemd to reflect new service
+  ansible.builtin.command: systemctl daemon-reload
+
+- name: Enable the service to start at boot
+  ansible.builtin.systemd:
+    name: "{{ service_name }}"
+    enabled: true
+
+- name: Start the civil_registry_proxy service
+  ansible.builtin.systemd:
+    name: "{{ service_name }}"
+    state: started
+
+- name: Ensure UFW is installed
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+    update_cache: true
+
+# this is to the tomcat instance , lxd container or server,
+- name: Allow access to port 8080 from allowed IPs
+  ansible.builtin.ufw:
+    rule: allow
+    port: "{{ service_port }}"
+    proto: tcp
+    from_ip: "{{ item }}"
+  with_items: "{{ allowed_ips }}"
+
+- name: Ensure UFW is enabled
+  ansible.builtin.ufw:
+    state: enabled
+    policy: deny
