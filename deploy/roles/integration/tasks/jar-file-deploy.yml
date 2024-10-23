@@ -35,7 +35,7 @@
     mode: '0755'
 
 # getting war file
-- name: Copy the civil_registry_proxy jar to the server
+- name: Copy the civil_registry jar to the server
   ansible.builtin.copy:
     src: "{{ jar_file_path }}"
     dest: "{{ working_directory }}/civil_registry_proxy.jar"
@@ -59,6 +59,14 @@
     mode: '0644'
 
 # systemd service
+- name: Copy dhis2Person.ds to the server
+  ansible.builtin.copy:
+    src: dhis2Person.ds
+    dest: /dhis2Person.ds
+    mode: '0644'
+    owner: root
+    group: root
+
 - name: Create a systemd service file for civil_registry_proxy
   ansible.builtin.template:
     src: systemd_service.j2
@@ -66,6 +74,10 @@
     owner: root
     group: root
     mode: '0644'
+  register: systemd_service_results
+
+- ansible.builtin.debug:
+    msg: systemd_service_results
 
 - name: Reload systemd to reflect new service
   ansible.builtin.command: systemctl daemon-reload
