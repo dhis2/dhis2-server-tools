@@ -3,18 +3,18 @@
   hosts: all
   become: true
   vars:
-     rapidpro_version: 7.0.7
-     rapidpro_url: https://github.com/rapidpro/rapidpro/archive/v{{ rapidpro_version }}.tar.gz
-     rapidpro_home: /opt/rapidpro
-     rapidpro_user: rapidpro
-     rapidpro_group: rapidpro
+    rapidpro_version: 7.0.7
+    rapidpro_url: https://github.com/rapidpro/rapidpro/archive/v{{ rapidpro_version }}.tar.gz
+    rapidpro_home: /opt/rapidpro
+    rapidpro_user: rapidpro
+    rapidpro_group: rapidpro
   tasks:
     - name: Update apt cache
-      apt:
-        update_cache: yes
+      ansible.builtin.apt:
+        update_cache: true
 
     - name: Install required packages
-      apt:
+      ansible.builtin.apt:
         name:
           - python3-dev
           - libmysqlclient-dev
@@ -26,47 +26,51 @@
         state: present
 
     - name: Create rapidpro user and group
-      group:
+      ansible.builtin.group:
         name: "{{ rapidpro_group }}"
         state: present
 
     - name: "Create rapidpro user"
-      user:
+      ansible.builtin.user:
         name: "{{ rapidpro_user }}"
         group: "{{ rapidpro_group }}"
         home: "{{ rapidpro_home }}"
         shell: /bin/bash
-        create_home: yes
-        system: yes
+        create_home: true
+        system: true
         state: present
 
     - name: Install virtualenv
-      pip:
+      ansible.builtin.pip:
         name: virtualenv
         executable: pip3
         state: present
 
     - name: Create virtual environment for RapidPro
-      command: virtualenv -p python3 "{{ rapidpro_home }}/venv"
+      ansible.builtin.command: virtualenv -p python3 "{{ rapidpro_home }}/venv"
       args:
         creates: "{{ rapidpro_home }}/venv"
 
     - name: Download and extract RapidPro
-      get_url:
+      ansible.builtin.get_url:
         url: "{{ rapidpro_url }}"
         dest: /tmp/rapidpro.tar.gz
-        mode: '0644'
+        mode: "0644"
 
-    - command: tar xzf /tmp/rapidpro.tar.gz --strip 1 -C "{{ rapidpro_home }}"
+    - name: Extract RapidPro
+      ansible.builtin.unarchive:
+        src: /tmp/rapidpro.tar.gz
+        dest: "{{ rapidpro_home }}"
+        extra_opts: "--strip 1"
 
     - name: Install RapidPro requirements
-      pip:
+      ansible.builtin.pip:
         requirements: "{{ rapidpro_home }}/requirements/base.txt"
         executable: "{{ rapidpro_home }}/venv/bin/pip"
         state: present
 
     - name: Set file permissions
-      file:
+      ansible.builtin.file:
         path: "{{ item }}"
         owner: "{{ rapidpro_user }}"
         group: "{{ rapidpro_group }}"
@@ -83,27 +87,28 @@
         - "{{ rapidpro_home }}/src/temba/*"
 
     - name: Configure Nginx
-      copy:
+      ansible.builtin.copy:
         src: rapidpro-nginx.conf
         dest: /etc/nginx/sites-available/rapidpro
         owner: root
         group: root
-        mode: '0644'
+        mode: "0644"
 
     - name: Enable Nginx site
-      file:
+      ansible.builtin.file:
         src: /etc/nginx/sites-available/rapidpro
         dest: /etc/nginx/sites-enabled/rapidpro
         state: link
 
     - name: Create supervisor configuration file
-      copy:
+      ansible.builtin.copy:
         src: rapidpro-supervisor.conf
         dest: /etc/supervisor/conf.d/rapidpro.conf
         owner: root
         group: root
-        mode: '0644'
+        mode: "0644"
 
     - name: Reload supervisor
-      supervisorctl:
+      community.general.supervisorctl:
+        name: rapidpro
         state: restarted
