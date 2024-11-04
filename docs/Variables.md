@@ -1,19 +1,22 @@
-# Variables
-The inventory hosts file created from `host.template` contains variables that can be
-customized to fit your specific environment. 
+# Server Tools Variables { #dhis2_server_tools_variables }
+Ansible uses variables to handle system differences. In dhis2-server-tools,
+specific variables are defined PostgreSQL, dhis2 instance, proxy, and monitoring systems. While you
+can define variables in various places like playbooks, roles, or host files, we
+mainly define them in the `dhis2-server-tools/deploy/inventory/hosts` file,
+created from `hosts.template.` Customize these variables to fit your environment.
 
-In most cases, you only need to
-modify only three variables, i.e  `fqdn`, `email` and `timezone`. 
-
-Variables not assigned to any specific group belong to the `all` group. To tie
+In inventory hosts file, hosts are grouped in [group_names], in our case we
+have `[databases],` `[instances],` `[web]` and `[monitor]` groups .Variables not assigned
+to any specific group belong to the `[all]` group. To tie
 variables to a particular group, place them under `[group_name:vars]`, e.g ,
 `[instances:vars]`. If you want a variable to apply to a specific host, append
 it to the host line. For example, to add `database_host` and `dhis2_version` to
 the dhis host in the `instances` group, use the following format:
-   ```
+
+```
 [instances]
 dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.39 
-   ```
+```
  Another option is to create a file in the `inventory/host_vars/` directory
  with the same name as the host in your `inventory/hosts` file. The benefit of
  this approach is that you can encrypt the file using `ansible-vault` for added
@@ -33,7 +36,7 @@ dhis2_version: 2.39
 ```
 
 ## Here's the list of available configuration parameters and their default values
-### general variables 
+### General Variables { #dhis2_server_tools_general_variables } 
 ---
 <table>
   <tr>
@@ -69,7 +72,7 @@ dhis2_version: 2.39
  <tr>
 </table>
 
-### Instance Variables
+### Instance Variables { #dhis2_server_tools_instance_variables }
 <table>
  <tr>
     <th style="text-align: left; vertical-align: top;">Variable</th>
@@ -83,12 +86,6 @@ dhis2_version: 2.39
  <tr>
     <td style="vertical-align: top; text-align: left;"><code>database_host</code></td>
     <td> Host to use as your database server <br> Default=<code>postgres</code> </td>
-  </tr>
-<tr>
-    <td style="vertical-align: top; text-align: left;"><code>JAVA_VERSION</code></td>
-    <td> Host to use as your database server <br>Choices:</strong> <br>
-    <ul><li>8 -- version ≤ 2.35 </li><li>11 -- 2.36 ≤ version ≤ 2.40</li>
-    <li>17 -- version ≥ 2.40</li></ul> </td>
   </tr>
 <tr>
     <td style="vertical-align: top; text-align: left;"><code>dhis2_war_file</code></td>
@@ -109,13 +106,13 @@ dhis2_version: 2.39
     </li><li><code>2.38</code></li></ul> </td>
  <tr>
     <td style="vertical-align: top; text-align: left;"><code>heap_memory_size</code></td>
-    <td> This is tomcat9 Java Heap Memory Size,   <br>Example</strong> <br>
+    <td> This is tomcat  Java Heap Memory Size,   <br>Example</strong> <br>
     <code>heap_memory_size=2G </code> </td>
   </tr> </tr>
   
 </table>
 
-### PostgreSQL Variables
+### PostgreSQL Variables { #dhis2_server_tools_postgresql_variables }
 <table>
  <tr>
     <th style="text-align: left; vertical-align: top;">Variable</th>
@@ -123,7 +120,7 @@ dhis2_version: 2.39
   </tr>
 <tr>
     <td style="vertical-align: top; text-align: left;"><code>postgresql_version</code></td>
-    <td> Version for PostgreSQL to be installed, default: 13 </td>
+    <td> Version for PostgreSQL to be installed, in a fresh install, the is default: `16` </td>
   </tr>
   <tr>
     <td style="vertical-align: top; text-align: left;"><code>pg_max_connections</code></td>
@@ -147,7 +144,7 @@ dhis2_version: 2.39
   </tr>
 </table>
 
-### Proxy Variables
+### Proxy Variables { #dhis2_server_tools_proxy_variables}
 <table>
  <tr>
     <th style="text-align: left; vertical-align: top;">Variable</th>
