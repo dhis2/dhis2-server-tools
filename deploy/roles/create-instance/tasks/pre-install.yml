@@ -1,11 +1,11 @@
 ---
 - name: Generate database password
   ansible.builtin.set_fact:
-    db_password: "{{ db_password | default(lookup('password', '/tmp/' + inventory_hostname, seed=inventory_hostname)) }}" # password in a file on controller
+    db_password: "{{ db_password | default(lookup('password', '/tmp/' + inventory_hostname, seed=inventory_hostname)) }}"   # password in a file on controller
   when:
     - create_db is defined and  create_db | bool
-  # note, after a while, password in /tmp/directory will be deleted and re-running the tools after then, reconfigures dhis.conf with a different password
-  #  the password is usually set in dhis2.conf file 
+# note, after a while, password in /tmp/directory will be deleted and re-running the tools after then, reconfigures dhis.conf with a different password
+# the password is usually set in dhis2.conf file
 
 - name: Setting tomcat verson
   ansible.builtin.set_fact:

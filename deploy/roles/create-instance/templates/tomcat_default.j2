@@ -44,3 +44,8 @@ JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote.local.only=false"
 JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote.authenticate=false"
 JAVA_OPTS="${JAVA_OPTS} -Djava.rmi.server.hostname={{ansible_host}}"
 {% endif %}
+
+# Custom Log4j2.xml
+{# {% if log4j2_xml_check.stat.exists %} #}
+{# log4j2.configurationFile={{ log4j2_xml_path }} #}
+{# {% endif %} #}

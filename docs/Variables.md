@@ -79,6 +79,10 @@ dhis2_version: 2.39
     <th style="text-align: left; vertical-align: top;">Comments</th>
   </tr>
   <tr>
+    <td style="vertical-align: top; text-align: left;"> <code>fqdn</code></td>
+    <td> This is the domain used to access dhis2 application <br>Strictly required for Letsencrypt to work </td>
+  </tr>
+  <tr>
     <td style="vertical-align: top; text-align: left;"><code>create_db</code></td>
     <td> Whether the database should be created or not <br>Choices:</strong>
     <br> <ul><li>True  ← (default) </li><li>False</li></ul> </td>
@@ -94,7 +98,6 @@ dhis2_version: 2.39
     <ul><li><code>"https://releases.dhis2.org/2.38/dhis2-stable-2.38.0.war"</code>
     </li><li><code>/full/path/for/your/dhis2.war</code></li></ul> </td>
   </tr>
-
 <tr>
     <td style="vertical-align: top; text-align: left;"><code>dhis2_version</code></td>
     <td> You can specify just the major version of dhis2 and it will get its
@@ -109,7 +112,6 @@ dhis2_version: 2.39
     <td> This is tomcat  Java Heap Memory Size,   <br>Example</strong> <br>
     <code>heap_memory_size=2G </code> </td>
   </tr> </tr>
-  
 </table>
 
 ### PostgreSQL Variables { #dhis2_server_tools_postgresql_variables }
@@ -149,10 +151,6 @@ dhis2_version: 2.39
  <tr>
     <th style="text-align: left; vertical-align: top;">Variable</th>
     <th style="text-align: left; vertical-align: top;">Comments</th>
-  </tr>
-<tr>
-    <td style="vertical-align: top; text-align: left;"> <code>fqdn</code></td>
-    <td> This is the domain used to access dhis2 application <br>Strictly required for Letsencrypt to work </td>
   </tr>
   <tr>
     <td style="vertical-align: top; text-align: left;"><code>email</code></td>
