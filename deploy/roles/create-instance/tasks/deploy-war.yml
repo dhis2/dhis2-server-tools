@@ -80,7 +80,7 @@
     src: /opt/dhis2/jakarta-dhis2.war
     dest: /var/lib/tomcat{{ tomcat_version }}/webapps/{{ dhis2_base_path | default(inventory_hostname) | to_fixed_string }}
     remote_src: true
-  when: tomcat_version == '10'
+  when: tomcat_version == '10'  # take dhis2_version into consideration, and when its not defined as well
   notify: Restart Tomcat
 
 - name: Extracting dhis2.war file
@@ -88,7 +88,7 @@
     src: /opt/dhis2/dhis2.war
     dest: /var/lib/tomcat{{ tomcat_version }}/webapps/{{ dhis2_base_path | default(inventory_hostname) | to_fixed_string }}
     remote_src: true
-  when: tomcat_version != '10'
+  when: tomcat_version != '10'  # dhis2_version has to be defined and <=2.41
   notify: Restart Tomcat
 
 - name: Glowroot app monitoring

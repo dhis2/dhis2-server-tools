@@ -32,7 +32,7 @@
     state: directory
     owner: "{{ service_user }}"
     group: "{{ service_group }}"
-    mode: '0755'
+    mode: '0750'
 
 # getting war file
 - name: Copy the civil_registry jar to the server
@@ -41,7 +41,7 @@
     dest: "{{ working_directory }}/civil_registry_proxy.jar"
     owner: root
     group: root
-    mode: '0644'  # Owner (root) has read and write, group and others have read-only
+    mode: '0640'  # Owner (root) has read and write, group and others have read-only
 
 - name: Set read permission for service user on the JAR file
   ansible.builtin.acl:
@@ -56,14 +56,14 @@
     dest: /usr/local/etc/application.yml
     owner: root
     group: root
-    mode: '0644'
+    mode: '0640'
 
 # systemd service
 - name: Copy dhis2Person.ds to the server
   ansible.builtin.copy:
     src: dhis2Person.ds
     dest: /dhis2Person.ds
-    mode: '0644'
+    mode: '0640'
     owner: root
     group: root
 
@@ -73,7 +73,7 @@
     dest: "/etc/systemd/system/{{ service_name }}.service"
     owner: root
     group: root
-    mode: '0644'
+    mode: '0640'
   register: systemd_service_results
 
 - ansible.builtin.debug:

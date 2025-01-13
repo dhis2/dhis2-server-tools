@@ -38,8 +38,16 @@
     owner: root
     group: tomcat
   when: db_password is defined
-  ignore_errors: true # ignore errors so it works even wen db_password is not defined
+  ignore_errors: true  # ignore errors so it works even wen db_password is not defined
   notify: Restart Tomcat
+
+- name: Custom log4j2.xml
+  ansible.builtin.template:
+    src: log4j2.xml.j2
+    dest: /opt/dhis2/log4j2.xml
+    mode: "0640"
+    owner: root
+    group: tomcat
 
 - name: Copy server.xml to the instances
   ansible.builtin.copy:

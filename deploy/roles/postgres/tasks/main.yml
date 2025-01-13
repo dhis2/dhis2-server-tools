@@ -2,3 +2,6 @@
 - name: Including tasks | {{ ansible_connection }}
   ansible.builtin.include_tasks: "{{ ansible_connection }}.yml"
   when: inventory_hostname in groups['databases']
+  tags:
+    - postgresql_install
+    - postgresql_config

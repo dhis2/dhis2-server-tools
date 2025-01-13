@@ -23,6 +23,7 @@
     cache_valid_time: 3600
     name:
       - python3-netaddr
+      - python3-tz
       - unzip
     state: present
 

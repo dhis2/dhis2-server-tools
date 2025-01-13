@@ -2,7 +2,8 @@
 <Configuration status="WARN">
     <Appenders>
         <Console name="console" target="SYSTEM_OUT">
-        <PatternLayout pattern="* %-5p %d{ISO8601}{GMT+3} %m (%F [%t]) %X{sessionId} %X{xRequestID}%n"/>
+        {# <PatternLayout pattern="* %-5p %d{ISO8601}{GMT+3} %m (%F [%t]) %X{sessionId} %X{xRequestID}%n"/> #}
+        <PatternLayout pattern="* %-5p %d{ISO8601}{{ '{' }}{{ timezone | timezone_to_gmt }}{{ '}' }} %m (%F [%t]) %X{sessionId} %X{xRequestID}%n"/>
         </Console>
     </Appenders>
 

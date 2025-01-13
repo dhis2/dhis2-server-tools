@@ -43,6 +43,8 @@
     group: root
     mode: "0644"
   notify: Restart Postgres
+  tags:
+    - postgresql_config
 
 - name: Ensure postgresql is running
   become: true
@@ -50,7 +52,7 @@
     name: postgresql
     state: started
     enabled: true
-  # did not come up.
+# did not come up.
 
 - name: Adding root postgresql role
   become: true

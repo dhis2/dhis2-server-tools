@@ -48,5 +48,7 @@
   when:
     - ansible_host != ansible_facts['default_ipv4']['address']
 
-- name: Installing postgreSQL-{{ postgresql_version }} database
+- name: Installing postgreSQL-{{ postgresql_version }}
   ansible.builtin.include_tasks: pg-install.yml
+  tags:
+    - postgresql_config

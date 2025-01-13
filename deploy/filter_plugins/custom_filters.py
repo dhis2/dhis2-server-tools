@@ -1,5 +1,7 @@
+import pytz
 from ansible.module_utils.compat.version import LooseVersion
 from ansible.module_utils.common.text.converters import to_text
+from datetime import datetime
 
 def to_fixed_string(value):
     if isinstance(value, float):
@@ -7,7 +9,7 @@ def to_fixed_string(value):
     return str(value)   
 
 def determine_java_version(dhis2_version, dhis2_auto_upgrade, version_results):
-    ''' Determine java_version based on dhis2_version '''
+    ''' Determine java_version based on dhis2_version variable '''
 
     Version = LooseVersion 
     version_stdout = version_results.get('stdout', '') if version_results else ''
@@ -62,6 +64,25 @@ def postgis_version(distribution_version):
     else:
         return 3
 
+def convert_timezone_to_gmt(timezone_name):
+    try:
+        # Get the timezone object
+        timezone = pytz.timezone(timezone_name)
+        
+        # Get the current time in the specified timezone
+        local_time = datetime.now(timezone)
+        
+        # Get the UTC offset in hours
+        utc_offset_minutes = local_time.utcoffset().total_seconds() / 60
+        utc_offset_hours = int(utc_offset_minutes // 60)
+        utc_offset_remainder = int(utc_offset_minutes % 60)
+        
+        # Format the GMT offset
+        gmt_offset = f"GMT{'+' if utc_offset_hours >= 0 else '-'}{abs(utc_offset_hours):02}:{abs(utc_offset_remainder):02}"
+        return gmt_offset
+    except pytz.UnknownTimeZoneError:
+        return f"Error: Unknown timezone '{timezone_name}'"
+
 class FilterModule(object):
     def filters(self):
         return {
@@ -70,4 +91,5 @@ class FilterModule(object):
             'lowercase': lowercase,
             'postgis_version': postgis_version,
             'tomcat_version': tomcat_version,
+            'timezone_to_gmt': convert_timezone_to_gmt,
             }
