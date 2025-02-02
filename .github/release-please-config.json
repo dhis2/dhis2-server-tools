@@ -6,7 +6,7 @@
     "packages": {
         ".": {
             "release-type": "simple",
-            "package-name": "dhis2.server.tools",
+            "package-name": "dhis2-server-tools",
             "changelog-path": "changelogs/release-changelog.md"
         }
     }
