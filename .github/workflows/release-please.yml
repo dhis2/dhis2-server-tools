@@ -1,0 +1,76 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    # Do not run on fork repos.
+    if: github.repository == 'dhis2/dhis2-server-tools'
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }} # TODO: use a dedicated token
+          config-file: .github/release-please-config.json
+          manifest-file: .github/release-please-manifest.json
+      - name: Prepare outputs
+        id: outputs
+        if: steps.release.outputs.pr != ''
+        run: |
+          echo "pr-updated=true" >> "$GITHUB_OUTPUT"
+          echo "branch=${{ fromJSON(steps.release.outputs.pr).headBranchName }}" >> "$GITHUB_OUTPUT"
+          echo "version=$(echo "${{ fromJSON(steps.release.outputs.pr).title }}" | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+
+    outputs:
+      pr-updated: ${{ steps.outputs.outputs.pr-updated }}
+      branch: ${{ steps.outputs.outputs.branch }}
+      version: ${{ steps.outputs.outputs.version }}
+      tag_name: ${{ steps.outputs.outputs.tag_name }}
+      release_created: ${{ steps.outputs.outputs.release_created }}
+
+  antsibull-changelog:
+    needs: [release-please]
+    if: needs.release-please.outputs.pr-updated
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install antsibull-changelog
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.branch }}
+
+      - name: antsibull-changelog
+        run: antsibull-changelog release --version "${{ needs.release-please.outputs.version }}"
+
+      - name: Check for diff
+        id: antsibull-diff
+        run: |
+          if [[ $(git status --porcelain) ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit & Push
+        if: ${{ steps.antsibull-diff.outputs.changed }}
+        run: |
+          git config user.name "0xafrogeek" # TODO: Change to DHIS2 Server Tools Bot username
+          git config user.email "12378923+0xafrogeek@users.noreply.github.com" # TODO: Change to DHIS2 Server Tools Bot email
+
+          git add changelogs/ CHANGELOG.rst
+          git commit -m "chore(main): changelog for version ${{ needs.release-please.outputs.version }}"
+
+          git push --force origin ${{ needs.release-please.outputs.branch }}
