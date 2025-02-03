@@ -55,9 +55,7 @@ jobs:
           ref: ${{ needs.release-please.outputs.branch }}
 
       - name: antsibull-changelog
-        run: |
-          antsibull-changelog init --is-collection yes
-          antsibull-changelog release --version "${{ needs.release-please.outputs.version }}" --is-collection yes
+        run: antsibull-changelog release --version "${{ needs.release-please.outputs.version }}" --is-collection yes
 
 
       - name: Check for diff
