@@ -67,12 +67,10 @@ jobs:
             antsibull-changelog init --is-collection no
           fi
 
-
-          # Generate the release
           # Generate the release
           antsibull-changelog release \
             --version "${{ needs.release-please.outputs.version }}" \
-            --codename Initial release \
+            --codename "Initial release" \
             --is-collection no
 
       - name: Check for diff
