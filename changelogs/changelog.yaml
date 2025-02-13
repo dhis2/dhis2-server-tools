@@ -1,5 +1,9 @@
 1.0.0:
+  release_date: "2025-02-13"
   changes:
-    minor_changes:
-      - First release (v1.0.0)
-  release_date: "01-02-2025"
+    major_changes:
+      - First stable release of DHIS2 Server Tools with complete deployment and configuration capabilities
+    plugins:
+      lookup:
+        - name: sequence
+          description: generate a list based on a number sequence
