@@ -67,6 +67,7 @@ jobs:
             antsibull-changelog init --is-collection no
           fi
 
+
           # Generate the release
           # Generate the release
           antsibull-changelog release \
