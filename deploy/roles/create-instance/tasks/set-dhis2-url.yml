@@ -7,9 +7,8 @@
     url: "https://releases.dhis2.org/v1/versions/stable.json"
     dest: vars/releases.json
     force: true
-    mode: "0666"
+    mode: "0666"  # the file is public, no need to restrict permissions
   changed_when: false
-  # when: dhis2_war_file is undefined and dhis2_version is defined and dhis2_version | type_debug == "float"
 
 - name: Load releases.json file
   vars:
@@ -17,28 +16,37 @@
   ansible.builtin.include_vars:
     file: releases.json
     name: dhis2_releases
-  # when: dhis2_war_file is undefined and dhis2_version is defined and dhis2_version | type_debug == "float"
 
-# no local connection because dhis2_release_version is per instance.
+- name: Set dhis2_releses versions
+  vars:
+    ansible_connection: local
+  ansible.builtin.set_fact:
+    dhis2_releases_list: "{{ dhis2_releases['versions'] }}"
+
+- name: Sanitize dhis2_version_major
+  ansible.builtin.set_fact:
+    normalized_dhis2_version: "{{ (dhis2_version | normalize_dhis2_version(dhis2_releases_list)) }}"
+
 - name: Set DHIS2 release version
   ansible.builtin.set_fact:
-    dhis2_release_version: "{{ dhis2_releases.versions | selectattr('name', 'eq', ('%.2f' | format(dhis2_version))) | first }}"
-# when: dhis2_releases is defined
+    dhis2_release_version: "{{ (dhis2_releases_list | selectattr('name', 'eq', normalized_dhis2_version['dhis2_version_major']) | list) | first }}"
+
+- name: Set something
+  ansible.builtin.set_fact:
+    latest_patchversion_name: "{{ (dhis2_release_version['patchVersions'] | last)['name'] | default(dhis2_release_version['name']) }}"
 
 - name: Set dhis2_latest_patchversion and sha256
-  vars:
-    ansible_connection: local
   ansible.builtin.set_fact:
     sha256: "{{ dhis2_release_version['sha256'] | default(omit) }}"
-    latest_patchversion: "{{ (dhis2_release_version['patchVersions'] | last).name | default(omit) }}"
-# when: dhis2_release_version is defined
+    latest_patchversion_url: "{{ (dhis2_release_version['patchVersions'] | last)['url'] | default(dhis2_release_version['latestStableUrl']) }}"
+    latest_stable_url: "{{ dhis2_release_version['latestStableUrl'] }}"
+    patchversion_name: "{{ (dhis2_release_version['patchVersions'] | selectattr('name', 'eq', normalized_dhis2_version['dhis2_version_minor']) | first)['name'] | default(latest_patchversion_name) }}"
 
-- name: "Set dhis2_url "
-  vars:
-    ansible_connection: local
+# Use latest_stable_url instead of latest_patchversion_url, since latest_patchversion_url is not set in all dhis2_versions  defined in releases.json file
+- name: Set dhis2__url, defaults to latestPatchVersion
   ansible.builtin.set_fact:
-    dhis2_url: "{{ dhis2_release_version['latestStableUrl'] }}"
+    dhis2_url: "{{ (dhis2_release_version['patchVersions'] | selectattr('name', 'eq', normalized_dhis2_version['dhis2_version_minor']) | first)['url'] | default(latest_stable_url) }}"
 
-- name: Determine java_version using custom filter
+- name: Set java_version
   ansible.builtin.set_fact:
-    java_version: "{{ dhis2_version | determine_java_version(dhis2_auto_upgrade, version_results) }}"
+    java_version: "{{ (normalized_dhis2_version['dhis2_version_major'] | determine_java_version(dhis2_auto_upgrade, version_results)).jdk }}"

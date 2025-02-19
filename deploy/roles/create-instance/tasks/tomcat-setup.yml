@@ -13,7 +13,6 @@
           if (ansible_facts['distribution_version']) == '24.04'
           else ['unzip', 'tomcat9', 'tomcat9-admin', 'openjdk-' + (java_version | default(JAVA_VERSION | string)) + '-jre-headless']
       }}
-    tomcat_version: "{{ '10' if (ansible_facts['distribution_version']) == '24.04' else '9' }}"
 
 - name: Installing java and tomcat and zip
   ansible.builtin.apt:
@@ -48,6 +47,7 @@
     mode: "0640"
     owner: root
     group: tomcat
+  tags: [never]
 
 - name: Copy server.xml to the instances
   ansible.builtin.copy:
@@ -104,6 +104,7 @@
     owner: root
     group: root
   notify: Restart Tomcat
+  tags: [deploy-war]
 
 - name: Open port 8080 (tomcat) access from from proxy
   community.general.ufw:

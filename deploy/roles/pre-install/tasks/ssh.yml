@@ -5,6 +5,10 @@
   ansible.builtin.set_fact:
     ansible_connection: local
 
+- name: Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"
+
 - name: Update and upgrade system packages
   ansible.builtin.apt:
     upgrade: "yes"

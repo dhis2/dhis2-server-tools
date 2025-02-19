@@ -15,12 +15,12 @@
     - vars/vars.yml
   roles:
     - role: postgres
-      tags: [postgres_install]
+      tags: [postgres-install]
     - role: proxy
-      tags: [proxy_install]
+      tags: [proxy-install]
     - role: monitoring
     - role: create-instance
-      tags: [create_instance]
+      tags: [create-instance]
   tasks:
     - name: Install and configure unattended_upgrades
       ansible.builtin.include_tasks: playbooks/unattended_upgrades.yml

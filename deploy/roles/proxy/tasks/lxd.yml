@@ -26,6 +26,10 @@
         parent: "{{ lxd_bridge_interface | default('lxdbr1') }}"
         type: nic
         ipv4.address: "{{ ansible_host | ansible.utils.ipaddr(lxd_network) }}"
+    
+- name: Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"
 
 - name: Get facts
   ansible.builtin.setup:
