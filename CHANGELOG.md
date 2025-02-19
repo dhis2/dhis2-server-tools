@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.1.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.0.0...v1.1.0) (2025-02-19)
+
+
+### Features
+
+* Add support for selecting minor versions ([#43](https://github.com/dhis2/dhis2-server-tools/issues/43)) ([38faeab](https://github.com/dhis2/dhis2-server-tools/commit/38faeab50ebaa993208cad264b627bd75af6730a))
+* Begin support for Java version selection in DHIS2 2.42 ([38faeab](https://github.com/dhis2/dhis2-server-tools/commit/38faeab50ebaa993208cad264b627bd75af6730a))
+* Start separating playbooks (SSL config, instance creation, etc.) ([38faeab](https://github.com/dhis2/dhis2-server-tools/commit/38faeab50ebaa993208cad264b627bd75af6730a))
+* Validate `dhis2_version` input ([38faeab](https://github.com/dhis2/dhis2-server-tools/commit/38faeab50ebaa993208cad264b627bd75af6730a))
+
+
+### Bug Fixes
+
+* Correct timezone settings for host and LXD containers ([38faeab](https://github.com/dhis2/dhis2-server-tools/commit/38faeab50ebaa993208cad264b627bd75af6730a))
+* Ignore `*.template` and `__pycache__/` files ([38faeab](https://github.com/dhis2/dhis2-server-tools/commit/38faeab50ebaa993208cad264b627bd75af6730a))
+
 ## [1.0.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.0.0...v1.0.0) (2025-02-19)
 
 
