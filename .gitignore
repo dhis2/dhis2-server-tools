@@ -8,4 +8,5 @@ releases.json
 deploy/inventory/host_vars/*
 deploy/inventory/group_vars/*
 !deploy/inventory/host_vars/*.template
-!deploy/inventory/group_vars/*.template.war
+!deploy/inventory/group_vars/*.template
+deploy/filter_plugins/__pycache__/

@@ -5,6 +5,10 @@
   ansible.builtin.set_fact:
     ansible_connection: local
 
+- name: Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"
+
 - name: Gathering facts
   ansible.builtin.setup:
     gather_subset:

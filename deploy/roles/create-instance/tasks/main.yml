@@ -1,44 +1,65 @@
 ---
 - name: DHIS2 instance setup with  {{ ansible_connection }}
-  ansible.builtin.include_tasks: "{{ ansible_connection }}.yml"
+  ansible.builtin.include_tasks:
+    file: "{{ ansible_connection }}.yml"
   when: inventory_hostname in groups['instances']
+  tags: [always]
 
 - name: Set dhis2 pre-install variables
   ansible.builtin.include_tasks: pre-install.yml
   when: inventory_hostname in groups['instances']
+  tags: [set-dhis2-url, deploy-war]
 
 - name: Include postgresql tasks
   ansible.builtin.include_tasks: postgresql-db.yml
   when: inventory_hostname in groups['databases']
 
 - name: Set dhis2 url, when dhis2_version is defined
-  ansible.builtin.include_tasks: set-dhis2-url.yml
+  ansible.builtin.include_tasks:
+    file: set-dhis2-url.yml
+    apply:
+      tags: [set-dhis2-url, deploy-war]
   when:
     - dhis2_war_file is undefined
-    - dhis2_version is defined and dhis2_version | type_debug == "float"
+    - dhis2_version is defined and dhis2_version
     - inventory_hostname in groups['instances']
+  tags: [set-dhis2-url, deploy-war]
 
 - name: Include tasks for DHIS2 tomcat setup
   ansible.builtin.include_tasks: tomcat-setup.yml
-  when: inventory_hostname in groups['instances']
+  when:
+    - inventory_hostname in groups['instances']
+    - (dhis2_version is defined and dhis2_version) or (dhis2_war_file is defined and dhis2_war_file)
+  tags: [deploy-war]
 
 - name: Deploy dhis2 war file
-  ansible.builtin.include_tasks: deploy-war.yml
-  when: inventory_hostname in groups['instances']
+  ansible.builtin.include_tasks:
+    file: deploy-war.yml
+    apply:
+      tags: [deploy-war]
+  when:
+    - inventory_hostname in groups['instances']
+    - (dhis2_version is defined and dhis2_version) or (dhis2_war_file is defined and dhis2_war_file)
+  tags: [deploy-war]
 
 - name: Configuring {{ proxy }}
   ansible.builtin.include_tasks:
     file: "proxy/{{ proxy }}.yml"
     apply:
       tags:
-        - proxy_conf
+        - proxy-conf
   when: inventory_hostname in groups['web'] and proxy is defined
-  tags: [proxy_conf]
+  tags: [proxy-conf]
 
 # Todo: A check to ensure this runs only when server_monitoring is munin
 - name: Configuring tomcat monitoring with munin
-  ansible.builtin.include_tasks: tomcat-munin-monitoring.yml
+  ansible.builtin.include_tasks:
+    file: tomcat-munin-monitoring.yml
+    apply:
+      tags: tomcat-munin-monitoring
+  tags: [tomcat-munin-monitoring]
   when:
     - server_monitoring is defined
     - groups['monitoring']  | length > 0
     - inventory_hostname in groups['instances']
+    - (dhis2_version is defined and dhis2_version) or (dhis2_war_file is defined and dhis2_war_file)

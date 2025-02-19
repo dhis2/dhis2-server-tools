@@ -37,6 +37,10 @@
       - network
       - "!min"
 
+- name: Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"
+
 - name: Ensuring container has configured static ip address
   become: true
   vars:

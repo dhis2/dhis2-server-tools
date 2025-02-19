@@ -1,4 +1,8 @@
 ---
+- name: Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"
+
 - name: Get host facts
   ansible.builtin.setup:
     gather_subset:

@@ -1,3 +1,0 @@
----
-- name: Installing tomcat packages and its dependencies
-  apt
