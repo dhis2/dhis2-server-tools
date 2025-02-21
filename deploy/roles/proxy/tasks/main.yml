@@ -1,4 +1,9 @@
 ---
 - name: Including tasks for {{ ansible_connection }}
   ansible.builtin.include_tasks: "{{ ansible_connection }}.yml"
-  when: inventory_hostname in groups['web'] and proxy is defined
+  when: proxy is defined and inventory_hostname in groups['web']
+
+- name: "Installing {{ proxy }}"
+  ansible.builtin.include_tasks: "{{ proxy }}-install.yml"
+  when: proxy is defined and inventory_hostname in groups['web']
+  tags: [nginx-perf-log]

@@ -47,6 +47,3 @@
     wait_for_ipv4_addresses: true
   when:
     - ansible_host != ansible_facts['default_ipv4']['address']
-
-- name: "Installing {{ proxy }} proxy "
-  ansible.builtin.include_tasks: "{{ proxy }}-install.yml"
