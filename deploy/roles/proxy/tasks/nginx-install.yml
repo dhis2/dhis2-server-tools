@@ -45,6 +45,21 @@
     insertafter: types_hash_max_size
   notify: Reload Nginx
 
+- name: Nginx Perfomance Loging
+  ansible.builtin.blockinfile:
+    path: /etc/nginx/nginx.conf
+    block: |
+      # Define a custom log format for performance logging
+              log_format performance '$remote_addr\t$remote_user\t[$time_local]\t"$request"\t'
+                          '$status\t$body_bytes_sent\t"$http_referer"\t"$http_user_agent"\t'
+                          '$request_time';
+      # Set up access log using the "performance" format (equivalent to Apache's perf.log)
+              access_log /var/log/nginx/perf.log performance;
+    marker: "# {mark} PERFORMANCE LOG FORMAT"  # Add a marker to easily identify and update the block
+    insertafter: "http {"
+  tags: [nginx-perf-log]
+  notify: Reload Nginx
+
 - name: Remove default nginx site
   ansible.builtin.file:
     name: /etc/nginx/sites-enabled/default
@@ -77,8 +92,10 @@
     - groups['monitoring'] | length > 0
     - server_monitoring is defined
 
-- name: Include tasks securing-munin
+- name: Include tasks enabling Munin Basic Auth
   ansible.builtin.include_tasks: securing-{{ server_monitoring | trim }}.yml
   when:
     - groups['monitoring'] | length > 0
     - server_monitoring is defined
+
+

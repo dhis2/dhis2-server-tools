@@ -44,7 +44,7 @@
     mode: "0644"
   notify: Restart Postgres
   tags:
-    - postgresql_config
+    - postgresql-config
 
 - name: Ensure postgresql is running
   become: true
