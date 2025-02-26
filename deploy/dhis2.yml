@@ -15,10 +15,11 @@
     - vars/vars.yml
   roles:
     - role: postgres
-      tags: [postgres-install]
+      tags: [postgresql-install]
     - role: proxy
       tags: [proxy-install]
     - role: monitoring
+      tags: monitoring
     - role: create-instance
       tags: [create-instance]
   tasks:

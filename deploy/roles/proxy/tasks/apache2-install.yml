@@ -34,14 +34,14 @@
     cache_valid_time: 3600
     name:
       - apache2
-      - libwww-perl # required for munin monitoring
+      - libwww-perl  # required for munin monitoring
     state: present
 
 - name: Enabling apache2 modules
   community.general.apache2_module:
     name: "{{ item }}"
     state: present
-  loop: "{{ ['ssl', 'cache', 'rewrite', 'proxy_http', 'headers'] }}"
+  loop: ['ssl', 'cache', 'rewrite', 'proxy_http', 'headers']
   notify: Reload Apache2
 
 - name: Remove default apache2 site
@@ -63,14 +63,9 @@
     dest: /etc/apache2/upstream/{{ server_monitoring }}.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
   loop: "{{ munin_users | default([{'name': 'admin', 'password': 'district'}]) }}"
   loop_control:
     label: "{{ item.name }}"
   notify: Reload Apache2
   when: server_monitoring is defined
-
-- name: Include tasks securing-munin
-  ansible.builtin.include_tasks: securing-munin.yml
-  when:
-    - server_monitoring is defined and server_monitoring | trim == 'munin'

@@ -21,7 +21,7 @@
     dest: /etc/apache2/upstream/{{ item | to_fixed_string }}.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
   loop: "{{ groups['instances'] }}"
   notify: Reload Apache2
 
@@ -55,7 +55,7 @@
     dest: /etc/apache2/sites-available/{{ hostvars[item]['fqdn'] | trim }}.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
   loop: "{{ groups['instances'] }}"
   when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
   notify: Reload Apache2
@@ -66,7 +66,7 @@
     dest: /etc/apache2/sites-available/default.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
   loop: "{{ groups['instances'] }}"
   when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (not hostvars[item]['fqdn'] | trim != "")
   notify: Reload Apache2

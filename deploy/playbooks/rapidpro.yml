@@ -55,7 +55,7 @@
       get_url:
         url: "{{ rapidpro_url }}"
         dest: /tmp/rapidpro.tar.gz
-        mode: '0644'
+        mode: '0640'
 
     - command: tar xzf /tmp/rapidpro.tar.gz --strip 1 -C "{{ rapidpro_home }}"
 
@@ -88,7 +88,7 @@
         dest: /etc/nginx/sites-available/rapidpro
         owner: root
         group: root
-        mode: '0644'
+        mode: '0640'
 
     - name: Enable Nginx site
       file:
@@ -102,7 +102,7 @@
         dest: /etc/supervisor/conf.d/rapidpro.conf
         owner: root
         group: root
-        mode: '0644'
+        mode: '0640'
 
     - name: Reload supervisor
       supervisorctl:

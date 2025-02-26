@@ -7,3 +7,11 @@
   ansible.builtin.include_tasks: "{{ proxy }}-install.yml"
   when: proxy is defined and inventory_hostname in groups['web']
   tags: [nginx-perf-log]
+
+- name: Enable munin basic Auth
+  ansible.builtin.include_tasks: securing-munin.yml
+  when:
+    - proxy is defined
+    - inventory_hostname in groups['web']
+    - server_monitoring is defined
+    - server_monitoring | trim == 'munin'

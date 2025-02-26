@@ -22,7 +22,7 @@
     url: "{{ dhis2_url }}"
     dest: /opt/dhis2/dhis2.war
     force: true
-    mode: "0644"
+    mode: "0640"
     # checksum: "sha256:{{ sha256 }}"
   when:
     - patchversion_name is defined
@@ -36,14 +36,14 @@
     timeout: 120
     dest: /opt/dhis2/dhis2.war
     force: true
-    mode: "0644"
+    mode: "0640"
   when: dhis2_war_file is defined and dhis2_war_file | regex_search('(https:\/\/)')
 
 - name: Copy dhis2.war file from ansible controller
   ansible.builtin.copy:
     src: "{{ dhis2_war_file }}"
     dest: /opt/dhis2/dhis2.war
-    mode: "0644"
+    mode: "0640"
   when: dhis2_war_file is defined and dhis2_war_file | regex_search('^(?!.*?https:\/\/).*$')
 
 - name: Clean /var/lib/tomcat{{ tomcat_version }}/webapps

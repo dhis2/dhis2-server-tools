@@ -20,7 +20,7 @@
     enabled: false
     state: stopped
   register: unused_disable
-  failed_when: unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg) # this prevents failing when the service is not found
+  failed_when: unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)  # this prevents failing when the service is not found
 
 - name: Updating and Upgrading
   ansible.builtin.apt:
@@ -32,7 +32,7 @@
   ansible.builtin.apt:
     name:
       - nginx
-      - libwww-perl # required for munin monitoring
+      - libwww-perl   # required for munin monitoring
     state: present
     update_cache: true
     cache_valid_time: 3600
@@ -86,16 +86,8 @@
     dest: /etc/nginx/conf.d/upstream/munin.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
   notify: Reload Nginx
   when:
     - groups['monitoring'] | length > 0
     - server_monitoring is defined
-
-- name: Include tasks enabling Munin Basic Auth
-  ansible.builtin.include_tasks: securing-{{ server_monitoring | trim }}.yml
-  when:
-    - groups['monitoring'] | length > 0
-    - server_monitoring is defined
-
-
