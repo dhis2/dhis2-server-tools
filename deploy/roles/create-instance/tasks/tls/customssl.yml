@@ -11,16 +11,16 @@
 
 - name: Copying TLS key to the proxy
   ansible.builtin.copy:
-    src: customssl.key # ensure the file exists
+    src: customssl.key  # ensure the file exists
     dest: /etc/ssl/{{ hostvars[item]['fqdn'] | trim }}/
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
 
 - name: Copying TLS certificate to the proxy
   ansible.builtin.copy:
-    src: customssl.crt # ensure the file exists
+    src: customssl.crt  # ensure the file exists
     dest: /etc/ssl/{{ hostvars[item]['fqdn'] | trim }}/
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"

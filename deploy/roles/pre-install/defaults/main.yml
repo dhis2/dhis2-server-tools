@@ -43,3 +43,17 @@ ufw_inactive_msg:
   - "    Please enable it to continue with the setup"
   - "    sudo ufw limit 22   # allows ssh connections to the server"
   - "    sudo ufw enable     # starts and enables ufw"
+
+sysctl:
+  - name: fs.aio-max-nr
+    value: 524288
+  - name: fs.inotify.max_queued_events
+    value: 1048576
+  - name: fs.inotify.max_user_instances
+    value: 1024
+  - name: fs.inotify.max_user_watches
+    value: 1048576
+  - name: kernel.dmesg_restrict
+    value: 1
+  - name: vm.max_map_count
+    value: 262144

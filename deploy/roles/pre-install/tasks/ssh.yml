@@ -20,6 +20,6 @@
     update_cache: true
     cache_valid_time: 3600
     name:
-      - python3-netaddr # needed for ansible.utils.ipaddr filter to work
+      - python3-netaddr   # needed for ansible.utils.ipaddr filter to work
       - unzip
     state: present

@@ -4,6 +4,7 @@
     ansible_connection: local
   ansible.builtin.set_fact:
     ansible_connection: local
+  tags: [always]
 
 - name: Ensure timezone is {{ timezone }}
   community.general.timezone:
@@ -42,6 +43,23 @@
     name: lxd
     state: present
 
+- name: Add or modify hard nofile limits for wildcard domain
+  community.general.pam_limits:
+    domain: '*'
+    limit_type: "{{ item }}"
+    limit_item: nofile
+    value: 1000000
+  loop: ['soft', 'hard']
+
+- name: Set multiple sysctl settings
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop: "{{ sysctl }}"
+  tags: [sysctl-conf]
+
 - name: Getting lxc info
   ansible.builtin.command: lxc info
   register: lxc_info_src0
@@ -56,7 +74,7 @@
   ansible.builtin.copy:
     dest: /etc/lxd-preseed.yml
     content: "{{ master }}"
-    mode: "0644"
+    mode: "0640"
 
 - name: Initiating lxd with lxd-preseed.yml
   ansible.builtin.command: lxd init --preseed <
