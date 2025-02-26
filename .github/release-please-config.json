@@ -4,7 +4,7 @@
     "include-v-in-tag": true,
     "packages": {
         ".": {
-            "release-type": "simple",
+            "release-type": "node",
             "package-name": "dhis2-server-tools",
             "changelog-type": "default",
             "versioning": "default",
