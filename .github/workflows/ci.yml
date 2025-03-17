@@ -55,7 +55,12 @@ jobs:
       - name: Run Bandit
         run: |
           pip install bandit==1.7.8 bandit-sarif-formatter==1.1.1 pytz
-          bandit -r . -f json | python -m bandit_sarif_formatter -o bandit-results.sarif || true
+          bandit -r . -f json > bandit-output.json || true
+          if [ -s bandit-output.json ]; then
+            cat bandit-output.json | python -m bandit_sarif_formatter -o bandit-results.sarif
+          else
+            echo "[]" | python -m bandit_sarif_formatter -o bandit-results.sarif
+          fi
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
