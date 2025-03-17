@@ -1,0 +1,16 @@
+---
+- name: Prepare
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Install system dependencies
+      ansible.builtin.apt:
+        name:
+          - python3
+          - python3-pip
+          - curl
+          - ca-certificates
+          - gnupg
+          - lsb-release
+        update_cache: true
+      when: ansible_os_family == "Debian"
