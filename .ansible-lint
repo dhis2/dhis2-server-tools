@@ -1,0 +1,26 @@
+---
+exclude_paths:
+  - .cache/
+  - .github/
+  - molecule/
+  - .ansible-lint
+  - env/
+  - venv/
+  - changelogs/
+  - docs/
+  - "**/.travis.yml"
+  - "**/meta/main.yml"
+  - "**/tests/"
+parseable: true
+
+skip_list:
+  - "204" # Lines should be no longer than 160 chars
+  - "301" # Commands should not change things if nothing needs doing
+  - "303" # Using command rather than module
+  - "306" # Shells that use pipes should set the pipefail option
+  - "yaml[new-line-at-end-of-file]" # Missing new line at end of file
+  - "yaml[line-length]" # Line too long
+
+warn_list:
+  - experimental # all rules tagged as experimental
+  - yaml # Violations reported by yamllint

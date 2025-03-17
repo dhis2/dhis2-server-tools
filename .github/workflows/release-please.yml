@@ -13,29 +13,14 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - uses: googleapis/release-please-action@v4
+      - uses: google-github-actions/release-please-action@v3
         id: release
         with:
+          release-type: simple
+          package-name: dhis2-server-tools
           token: ${{ secrets.GITHUB_TOKEN }}
-          config-file: .github/release-please-config.json
-          manifest-file: .github/release-please-manifest.json
-
-      - name: Debug Release Please outputs
-        run: |
-          echo "PR exists: ${{ steps.release.outputs.pr != '' }}"
-          echo "Release Created: ${{ steps.release.outputs.release_created }}"
-          echo "PR data available: ${{ steps.release.outputs.pr != '' }}"
-
-      - name: Prepare outputs
-        id: outputs
-        if: steps.release.outputs.pr != ''
-        run: |
-          PR_DATA='${{ steps.release.outputs.pr }}'
-          echo "pr-updated=true" >> "$GITHUB_OUTPUT"
-          echo "branch=$(echo "$PR_DATA" | jq -r .headBranchName)" >> "$GITHUB_OUTPUT"
-          echo "version=$(echo "$PR_DATA" | jq -r .title | sed 's/.*: release \(.*\)/\1/')" >> "$GITHUB_OUTPUT"
-
-    outputs:
-      pr-updated: ${{ steps.outputs.outputs.pr-updated }}
-      branch: ${{ steps.outputs.outputs.branch }}
-      version: ${{ steps.outputs.outputs.version }}
+          default-branch: main
+          pull-request-title-pattern: "chore: release v${version}"
+          include-v-in-tag: true
+          command: github-release
+          changelog-types: '[{"type":"feat","section":"Features","hidden":false},{"type":"fix","section":"Bug Fixes","hidden":false},{"type":"chore","section":"Miscellaneous","hidden":false},{"type":"docs","section":"Documentation","hidden":false},{"type":"refactor","section":"Code Refactoring","hidden":false}]'

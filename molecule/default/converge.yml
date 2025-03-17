@@ -1,0 +1,17 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+      when: ansible_os_family == "Debian"
+
+    - name: Install Python
+      ansible.builtin.package:
+        name: python3
+        state: present
+
+    - name: Include dhis2 role
+      ansible.builtin.include_role:
+        name: dhis2
