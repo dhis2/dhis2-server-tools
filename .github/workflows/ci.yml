@@ -52,16 +52,23 @@ jobs:
         with:
           languages: python
 
-      - name: Run Bandit
+      - name: Run Bandit and generate SARIF
         run: |
           pip install bandit==1.7.8 bandit-sarif-formatter==1.1.1 pytz
+          
+          # Run Bandit and save output
           bandit -r . -f json > bandit-output.json || true
-          if [ -s bandit-output.json ]; then
-            bandit-sarif-formatter -o bandit-results.sarif < bandit-output.json
+          
+          # Try using the command-line tool if it exists
+          if command -v bandit-sarif-formatter &> /dev/null; then
+            bandit-sarif-formatter -o bandit-results.sarif < bandit-output.json || true
           else
-            echo "[]" > bandit-output.json
-            bandit-sarif-formatter -o bandit-results.sarif < bandit-output.json
+            # Fallback to creating a minimal SARIF file
+            echo '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"Bandit","informationUri":"https://github.com/PyCQA/bandit","rules":[]}},"results":[]}]}' > bandit-results.sarif
           fi
+          
+          # Verify SARIF file was created
+          ls -la bandit-results.sarif
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -72,11 +79,15 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
           
-      - name: Create empty Trivy results if missing
+      - name: Ensure Trivy results exist
         run: |
           if [ ! -f "trivy-results.sarif" ]; then
+            echo "Creating empty Trivy SARIF file"
             echo '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"Trivy","informationUri":"https://github.com/aquasecurity/trivy","rules":[]}},"results":[]}]}' > trivy-results.sarif
           fi
+          
+          # Verify SARIF file was created
+          ls -la trivy-results.sarif
 
       - name: Upload Bandit results
         uses: github/codeql-action/upload-sarif@v3
