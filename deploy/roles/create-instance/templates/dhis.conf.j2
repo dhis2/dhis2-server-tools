@@ -114,3 +114,12 @@ analytics.table.unlogged = {{ analytics.table.unlogged | default('ON') }}
 
 # System monitoring password
 # system.monitoring.password =
+
+# Enabling metrics endpoint
+{% if server_monitoring  in  ['grafana', 'prometheus', 'grafana/prometheus'] %}
+monitoring.api.enabled = on
+monitoring.jvm.enabled = on
+monitoring.dbpool.enabled = on
+monitoring.uptime.enabled = on
+monitoring.cpu.enabled = on
+{% endif %}

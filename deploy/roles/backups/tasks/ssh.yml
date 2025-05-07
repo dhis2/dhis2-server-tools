@@ -9,7 +9,7 @@
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    mode: "0750"
 
 - name: Configuring s3
   ansible.builtin.include_tasks: s3cfg.yml
@@ -32,7 +32,7 @@
     dest: /usr/local/bin/dhis2-backup
     owner: root
     group: root
-    mode: "0701"
+    mode: "0700"
 
 - name: Add backup script to crontab
   ansible.builtin.cron:

@@ -1,11 +1,17 @@
 # Customize this file to suit your environment
-# S3 configurations
+# linode S3 configurations
 {% if s3_access_key is defined and s3_cluster_id is defined and s3_secret_key is defined %}
 S3CFG=/usr/local/etc/dhis/s3cfg
 {% endif %}
 {% if s3_bucket is defined %}
 S3_BUCKET=s3://{{ s3_bucket }}
 {% endif %}
+
+# Contabo S3 configuration
+  ## coming soon
+
+# AWS S3 configuration
+  ## coming soon
 
 # define your backup directory path
 BACKUP_DIR=/var/pgbackups
@@ -22,7 +28,7 @@ EXCLUDED="-T aggregated_* -T analytics_* -T completeness_* "
 #PASSWORD_FILE="/usr/local/etc/dhis/passwd.pg"
 CIPHER="aes-256-cbc"
 
-# Keep Sunday's backup
+# Backup retention policy 
 DAY_OF_WEEK_TO_KEEP={{ day_of_week_to_keep | default('7') }}
 WEEKS_TO_KEEP={{ weeks_to_keep | default('4') }}
 DAYS_TO_KEEP={{ days_to_keep | default('7') }}

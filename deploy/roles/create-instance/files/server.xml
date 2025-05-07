@@ -19,7 +19,11 @@
     <Executor name="tomcatThreadPool" namePrefix="tomcat-http-" 
            maxThreads="100" minSpareThreads="10" /> 
                     
-    <Connector port="8080" protocol="HTTP/1.1"  proxyPort="443" scheme="https" 
+    <!-- Connector port="8080" protocol="HTTP/1.1"  proxyPort="443" scheme="https" 
+        URIEncoding="UTF-8" 
+        executor="tomcatThreadPool" connectionTimeout="20000" relaxedQueryChars="[,]"/-->
+
+    <Connector port="8080" protocol="HTTP/1.1" scheme="https" 
         URIEncoding="UTF-8" 
         executor="tomcatThreadPool" connectionTimeout="20000" relaxedQueryChars="[,]"/>
  
@@ -42,6 +46,7 @@
             remoteIpHeader="x-forwarded-for"
             remoteIpProxiesHeader="x-forwarded-by"
             protocolHeader="x-forwarded-proto"
+            portHeader="x-forwarded-port"
         />
 
         <!-- Access log processes all example.
@@ -56,7 +61,6 @@
         <Valve className="org.apache.catalina.valves.ErrorReportValve"
                showReport="false"
                showServerInfo="false"/>
-
       </Host>
     </Engine>
   </Service>

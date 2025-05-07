@@ -56,4 +56,4 @@ sysctl:
   - name: kernel.dmesg_restrict
     value: 1
   - name: vm.max_map_count
-    value: 262144
+    value: 2000000

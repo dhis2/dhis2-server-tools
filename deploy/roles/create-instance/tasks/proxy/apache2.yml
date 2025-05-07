@@ -49,7 +49,19 @@
     state: absent
   loop: "{{ found_files['files'] | map(attribute='path') }}"
 
-- name: Copy apache2 site configuration
+- name: Copy static Apache config for instances with FQDN
+  ansible.builtin.copy:
+    src: apache2/static.conf
+    dest: /etc/apache2/static/{{ hostvars[item]['fqdn'] | trim }}.conf
+    group: root
+    owner: root
+    force: false
+    mode: "0640"
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")  # Explore using default here
+  notify: Restart Apache2
+
+- name: Generate dynamic Apache config for instances with FQDN
   ansible.builtin.template:
     src: apache2/site.j2
     dest: /etc/apache2/sites-available/{{ hostvars[item]['fqdn'] | trim }}.conf
@@ -60,7 +72,7 @@
   when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
   notify: Reload Apache2
 
-- name: Default apache2 configuration, fqdn is not defined
+- name: Generate dynamic Apache config for instances without FQDN
   ansible.builtin.template:
     src: apache2/default.j2
     dest: /etc/apache2/sites-available/default.conf
@@ -68,7 +80,18 @@
     group: root
     mode: "0640"
   loop: "{{ groups['instances'] }}"
-  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (not hostvars[item]['fqdn'] | trim != "")
+  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (hostvars[item]['fqdn'] | trim == "")
+  notify: Reload Apache2
+
+- name: Copy static Apache config for instances without FQDN
+  ansible.builtin.copy:
+    src: apache2/default.conf
+    dest: /etc/apache2/static/default.conf
+    owner: root
+    group: root
+    mode: "0640"
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (hostvars[item]['fqdn'] | trim == "")
   notify: Reload Apache2
 
 - name: Start apache2 service

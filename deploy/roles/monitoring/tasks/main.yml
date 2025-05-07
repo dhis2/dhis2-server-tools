@@ -5,10 +5,37 @@
     - server_monitoring is defined
     - inventory_hostname in groups['monitoring']
 
-- name: Include client tasks for {{ server_monitoring }}
-  ansible.builtin.include_tasks: "{{ server_monitoring }}-client.yml"
+- name: Include server tasks for {{ server_monitoring | trim }}
+  ansible.builtin.include_tasks: "{{ server_monitoring | trim }}-server.yml"
+  when:
+    - server_monitoring is defined
+    - inventory_hostname in groups['monitoring']
+
+- name: Installing munin client on nodes
+  ansible.builtin.include_tasks: munin-client.yml
   when:
     - groups['monitoring']  | length > 0
-    - server_monitoring is defined
+    - server_monitoring is defined and server_monitoring == 'munin'
     - inventory_hostname in groups['web'] | union(groups['monitoring']) | union(groups['databases'])
-    # - inventory_hostname in (groups['all'] | difference(groups['instances']))
+
+# grafana tasks
+- name: Grafana/Prmetheus postgres exporter
+  ansible.builtin.include_tasks:
+    file: prometheus-postgres.yml
+  when:
+    - groups['monitoring']  | length > 0
+    # - server_monitoring is defined and server_monitoring == 'grafana'
+    - server_monitoring is defined and server_monitoring in ['grafana', 'prometheus', 'grafana/prometheus']
+    - inventory_hostname in groups['databases']
+
+- name: Grafana prometheus connect
+  ansible.builtin.include_tasks:
+    file: grafana-prometheus-connect.yml
+    apply:
+      tags: [premetheus-connect]
+  tags: [prometheus-connect]
+  when:
+    - groups['monitoring']  | length > 0
+    # - server_monitoring is defined and server_monitoring == 'grafana'
+    - server_monitoring is defined and server_monitoring in ['grafana', 'prometheus', 'grafana/prometheus']
+    - inventory_hostname in groups['monitoring']

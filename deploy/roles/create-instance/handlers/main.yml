@@ -28,11 +28,10 @@
     state: restarted
     daemon_reload: true
 
-- name: Reload Nginx
-  connection: community.general.lxd
+- name: Restart Nginx
   ansible.builtin.service:
     name: nginx
-    state: reloaded
+    state: restarted
 
 - name: Reload Nginx
   ansible.builtin.service:

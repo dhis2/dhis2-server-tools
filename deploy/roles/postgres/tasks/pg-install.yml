@@ -42,8 +42,7 @@
     group: root
     mode: "0644"
   notify: Restart Postgres
-  tags:
-    - postgresql-config
+  tags: [postgresql-conf]
 
 - name: Ensure postgresql is running
   become: true

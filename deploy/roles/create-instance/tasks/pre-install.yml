@@ -4,6 +4,8 @@
     name: "{{ timezone }}"
 
 - name: Ensure secrets directory exists
+  vars:
+    ansible_connection: local
   ansible.builtin.file:
     path: "/etc/ansible/secrets"
     state: directory
