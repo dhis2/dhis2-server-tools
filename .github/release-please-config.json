@@ -4,12 +4,37 @@
     "include-v-in-tag": true,
     "packages": {
         ".": {
-            "release-type": "node",
+            "release-type": "simple",
             "package-name": "dhis2-server-tools",
-            "changelog-type": "default",
-            "versioning": "default",
+            "skip-github-release": false,
             "draft": false,
-            "prerelease": false
+            "prerelease": false,
+            "changelog-sections": [
+                {
+                    "type": "feat",
+                    "section": "Features"
+                },
+                {
+                    "type": "fix",
+                    "section": "Bug Fixes"
+                },
+                {
+                    "type": "chore",
+                    "section": "Miscellaneous"
+                },
+                {
+                    "type": "docs",
+                    "section": "Documentation"
+                },
+                {
+                    "type": "refactor",
+                    "section": "Code Refactoring"
+                }
+            ]
         }
-    }
+    },
+    "pull-request-title-pattern": "chore${scope}: release${component} v${version}",
+    "bootstrap-sha": "HEAD~1",
+    "release-search-depth": 100,
+    "separate-pull-requests": false
 }

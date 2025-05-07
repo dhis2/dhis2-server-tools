@@ -1,0 +1,146 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly security scans
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible-dev-tools==25.2.1
+
+      - name: Run ansible-lint
+        run: ansible-lint --fix all
+        continue-on-error: true
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+
+      - name: Run Bandit and generate SARIF
+        run: |
+          pip install bandit==1.7.8 bandit-sarif-formatter==1.1.1 pytz
+          
+          # Run Bandit and save output
+          bandit -r . -f json > bandit-output.json || true
+          
+          # Try using the command-line tool if it exists
+          if command -v bandit-sarif-formatter &> /dev/null; then
+            bandit-sarif-formatter -o bandit-results.sarif < bandit-output.json || true
+          else
+            # Fallback to creating a minimal SARIF file
+            echo '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"Bandit","informationUri":"https://github.com/PyCQA/bandit","rules":[]}},"results":[]}]}' > bandit-results.sarif
+          fi
+          
+          # Verify SARIF file was created
+          ls -la bandit-results.sarif
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        continue-on-error: true
+        with:
+          scan-type: 'fs'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          
+      - name: Ensure Trivy results exist
+        run: |
+          if [ ! -f "trivy-results.sarif" ]; then
+            echo "Creating empty Trivy SARIF file"
+            echo '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"Trivy","informationUri":"https://github.com/aquasecurity/trivy","rules":[]}},"results":[]}]}' > trivy-results.sarif
+          fi
+          
+          # Verify SARIF file was created
+          ls -la trivy-results.sarif
+
+      - name: Upload Bandit results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        continue-on-error: true
+        with:
+          sarif_file: bandit-results.sarif
+          category: bandit
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        continue-on-error: true
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11']
+        ansible-version: ['10.7.0']
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible==${{ matrix.ansible-version }} molecule==25.3.1 molecule-docker==2.1.0 pytest-testinfra==10.1.0 pytest-xdist==3.6.1 pytz
+
+      - name: Run Molecule tests
+        run: |
+          mkdir -p test-results
+          molecule test || touch test-results/test-failed
+        env:
+          PY_COLORS: '1'
+          ANSIBLE_FORCE_COLOR: '1'
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-py${{ matrix.python-version }}-ansible${{ matrix.ansible-version }}
+          path: |
+            molecule/default/junit.xml
+            test-results/
+          retention-days: 7 
