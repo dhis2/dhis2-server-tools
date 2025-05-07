@@ -1,0 +1,50 @@
+---
+- name: Fetch latest postgres_exporter releases in json format
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/prometheus-community/postgres_exporter/releases/latest
+    return_content: true
+  register: github_release
+
+- name: Download postgres_exporter
+  ansible.builtin.unarchive:
+    src: "{{ (github_release.json.assets | selectattr('name', 'search', '^.*linux-amd64\\.tar\\.gz$') | map(attribute='browser_download_url')) | first }}"
+    dest: "/tmp/"
+    remote_src: true
+    # mode: '0644'
+
+- name: Find the postgres_exporter binary
+  ansible.builtin.find:
+    paths: "/tmp/"
+    use_regex: true
+    patterns: "postgres_exporter"
+    file_type: file
+    recurse: true
+  register: postgres_exporter_binary
+
+- name: Copy postgresql_binary to /usr/local/bin/
+  ansible.builtin.copy:
+    src: "{{ postgres_exporter_binary.files[0].path }}"
+    dest: "/usr/local/bin/"
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0755'
+  when: postgres_exporter_binary.files | length > 0
+
+- name: Include tasks creating posgresql user for monitoring
+  ansible.builtin.include_tasks:
+    file: pg-monitoring-user.yml
+
+- name: Include tasks creating systemd for   PostgreSQL exporter
+  ansible.builtin.include_tasks:
+    file: pg-monitor-systemd-service.yml
+
+- name: Open postgresql prometheus Exporter port  from monitoring server
+  community.general.ufw:
+    rule: allow
+    port: "{{ postgresql_exporter_listening_port | default('9187') }}"
+    src: "{{ hostvars[item]['ansible_host'] }}"
+    proto: tcp
+    comment: "Allow access from prometheus server"
+    state: enabled
+  loop: "{{ groups['monitoring'] }}"

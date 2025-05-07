@@ -34,10 +34,8 @@
     state: enabled
   loop: "{{ groups['monitoring'] }}"
 
-- name: Include tasks for configuring munin on nginx
+- name: Include tasks for munin nginx monitoring
   ansible.builtin.include_tasks: nginx-munin.yml
-  when: inventory_hostname in groups['web']
-
-- name: Include tasks for tomcat{{ tomcat_version | default('9') }}
-  ansible.builtin.include_tasks: tomcat-munin.yml
-  when: inventory_hostname in groups['instances']
+  when:
+    - proxy is defined and proxy == 'nginx' 
+    - inventory_hostname in groups['web']

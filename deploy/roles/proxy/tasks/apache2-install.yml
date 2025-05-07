@@ -1,5 +1,5 @@
 ---
-- name: Open http port 80
+- name: Open http port {{ http_port | default('80') }}
   community.general.ufw:
     rule: allow
     port: "{{ http_port | default('80') }}"
@@ -7,7 +7,7 @@
     comment: http
     state: enabled
 
-- name: Open https port 443
+- name: Open https port {{ https_port | default('443') }}
   community.general.ufw:
     rule: allow
     port: "{{ https_port | default('443') }}"
@@ -49,15 +49,18 @@
     path: /etc/apache2/sites-enabled/000-default.conf
     state: absent
 
-- name: Create apache2 upstream directory
+- name: Ensure Apache config directories exist
   ansible.builtin.file:
-    path: /etc/apache2/upstream
+    path: "{{ item }}"
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    mode: "0750"
+  loop:
+    - '/etc/apache2/upstream'
+    - '/etc/apache2/static/'
 
-- name: Location configs munin
+- name: Location configs {{ server_monitoring }}
   ansible.builtin.template:
     src: apache2/{{ server_monitoring }}.j2
     dest: /etc/apache2/upstream/{{ server_monitoring }}.conf

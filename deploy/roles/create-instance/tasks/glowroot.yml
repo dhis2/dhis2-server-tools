@@ -18,7 +18,7 @@
     recurse: true
     depth: 2
     patterns:
-      - "*.jar" # search all files ending with .jar
+      - "*.jar"  # search all files ending with .jar
     excludes:
       - plugin-pointcuts.jar
   register: glowroot_jar_files

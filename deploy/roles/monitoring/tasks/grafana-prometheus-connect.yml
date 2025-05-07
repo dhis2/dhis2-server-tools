@@ -1,0 +1,29 @@
+---
+- name: Connect to grafana and add prometheus data source
+  ansible.builtin.uri:
+    url: http://127.0.0.1:3000/grafana/api/datasources
+    url_username: admin
+    url_password: admin
+    method: POST
+    body: "{{ lookup('ansible.builtin.file', 'datasource.json') }}"
+    force_basic_auth: true
+    body_format: json
+    status_code: [200, 201, 409]
+    headers:
+      Content-Type: application/json
+
+
+- name: Grafans postgresql dashboards
+  ansible.builtin.uri:
+    url: http://127.0.0.1:3000/grafana/api/dashboards/db
+    url_username: admin
+    url_password: admin
+    method: POST
+    body: "{{ lookup('ansible.builtin.file', item) }}"
+    force_basic_auth: true
+    body_format: json
+    headers:
+      Content-Type: "application/json"
+  loop:
+    - "dashboards.json"
+    - "linux-node.json"

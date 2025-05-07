@@ -35,7 +35,7 @@
     comment: Allow access from {{ item }} monitoring server
     state: enabled
   loop: "{{ groups['monitoring'] }}"
-  
+
 - name: Ensure secrets directory exists
   ansible.builtin.file:
     path: "/etc/ansible/secrets"

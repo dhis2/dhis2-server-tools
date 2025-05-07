@@ -1,0 +1,68 @@
+---
+- name: Generate database password
+  ansible.builtin.set_fact:
+    pg_monitor_password: "{{ db_password | default(lookup('password', '/etc/ansible/secrets/' + 'pg_monitor_password')) }}"   # psd in a file on controller
+
+- name: Create postgres_exporter user
+  become: true
+  become_user: postgres
+  community.general.postgresql_user:
+    name: postgres_exporter
+    password: "{{ pg_monitor_password }}"
+    state: present
+    db: postgres
+
+- name: Grant postgres_exporter user pg_monitor role
+  become: true
+  become_user: postgres
+  community.general.postgresql_membership:
+    db: postgres
+    groups: pg_monitor
+    target_roles: postgres_exporter
+    state: present
+
+- name: Grant connect permission
+  become: true
+  become_user: postgres
+  community.general.postgresql_privs:
+    db: postgres
+    privs: CONNECT
+    roles: postgres_exporter
+    type: database
+    state: present
+
+- name: Grant usage on public schema
+  become: true
+  become_user: postgres
+  community.general.postgresql_privs:
+    db: postgres
+    privs: USAGE
+    roles: postgres_exporter
+    type: schema
+    objs: public
+    state: present
+
+- name: Grant pg_read_all_stats role
+  become: true
+  become_user: postgres
+  community.general.postgresql_membership:
+    db: postgres
+    groups: pg_read_all_stats
+    target_roles: postgres_exporter
+    state: present
+
+- name: Checking postgresql Version
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_info:
+    filter: ver*
+  register: postgresql_version_info
+
+
+- name: Edit pg_hba.conf permissions, allowing instances to connect
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf
+    insertafter: EOF
+    line: local  postgres  postgres_exporter  scram-sha-256
+  notify: Reload Postgresql

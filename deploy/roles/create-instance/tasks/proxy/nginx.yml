@@ -27,6 +27,7 @@
     dest: /etc/nginx/conf.d/upstream/{{ item | to_fixed_string }}.conf
     owner: root
     group: root
+    # force: false, # this file dynamically changes e.g when dhis2_base_path is set
     mode: "0640"
   loop: "{{ groups['instances'] }}"
   notify: Reload Nginx
@@ -50,7 +51,19 @@
     state: absent
   loop: "{{ found_files['files'] | map(attribute='path') }}"
 
-- name: Copy nginx site configuration
+- name: Copy static Nginx config for valid FQDNs
+  ansible.builtin.copy:
+    src: nginx/custom.conf
+    dest: /etc/nginx/static/{{ hostvars[item]['fqdn'] | trim }}.conf
+    group: root
+    owner: root
+    force: false
+    mode: "0640"
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")  # Explore using default here
+  notify: Restart Nginx
+
+- name: Generate Nginx config for valid FQDNs
   ansible.builtin.template:
     src: nginx/site.j2
     dest: /etc/nginx/conf.d/{{ hostvars[item]['fqdn'] | trim }}.conf
@@ -59,9 +72,21 @@
     mode: "0640"
   loop: "{{ groups['instances'] }}"
   when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")  # Explore using default here
-  notify: Reload Nginx
+  notify: Restart Nginx
 
-- name: Default nginx configuration, fqdn is not defined
+- name:  Copy static Nginx config for instances without FQDNs
+  ansible.builtin.copy:
+    src: nginx/default.conf
+    dest: /etc/nginx/static/default.conf
+    owner: root
+    group: root
+    mode: "0640"
+    force: false
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (hostvars[item]['fqdn'] | trim == "")
+  notify: Restart Nginx
+
+- name: Generate dynamic Nginx config for instances without FQDN
   ansible.builtin.template:
     src: nginx/default.j2
     dest: /etc/nginx/conf.d/default.conf
@@ -69,10 +94,10 @@
     group: root
     mode: "0640"
   loop: "{{ groups['instances'] }}"
-  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (not hostvars[item]['fqdn'] | trim != "")
-  notify: Reload Nginx
+  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (hostvars[item]['fqdn'] | trim == "")
+  notify: Restart Nginx
 
-# starting nginx service is it was stopped generaging letsencrypt.
+# starting nginx service as it was stopped generaging letsencrypt.
 - name: Start nginx service
   ansible.builtin.service:
     name: nginx

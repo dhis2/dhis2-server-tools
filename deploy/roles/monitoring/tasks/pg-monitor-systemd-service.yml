@@ -1,0 +1,29 @@
+---
+- name: Create a dedicated system group for PostgreSQL exporter
+  ansible.builtin.group:
+    name: postgres_exporter
+    system: true
+
+- name: Create a dedicated user for the PostgreSQL exporter
+  ansible.builtin.user:
+    name: postgres_exporter
+    shell: /bin/false
+    create_home: false
+    system: true
+    group: postgres_exporter
+
+- name: Create systemd service for postgres_exporter
+  ansible.builtin.template:
+    src: postgres_exporter.service.j2
+    dest: /etc/systemd/system/postgres_exporter.service
+    owner: root
+    group: root
+    mode: '0640'
+  notify: Reload systemd
+
+- name: Enable postgres_exporter service
+  ansible.builtin.systemd:
+    name: postgres_exporter.service
+    enabled: true
+    state: started
+  notify: Restart postgres_exporter

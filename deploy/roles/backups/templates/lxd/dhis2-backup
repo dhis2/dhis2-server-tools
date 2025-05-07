@@ -10,6 +10,10 @@
 # load variables from a file, 
 source /usr/local/etc/dhis/dhis2-env
 
+# Umask 027 ensures that backup directories are created with permissions 750,
+# and files with permissions 640.
+umask 027
+
 function perform_backups()
 {
   SUFFIX=$1

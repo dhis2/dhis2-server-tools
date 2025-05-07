@@ -108,9 +108,9 @@
     mode: u=rwx,g=rwx,o=x
   loop:
     - dhis2-dbactivity
-    - dhis2-deploy-war
     - dhis2-logview
     - dhis2-restoredb
+    # - dhis2-deploy-war
     # - dhis2-query-killer.py
     # - dhis2-tomcat-munin
     # - dhis2-delete-instance
@@ -119,8 +119,8 @@
 - name: Setting up firewall on the host
   ansible.builtin.include_tasks: firewall.yml
 
-- name: Munin Monitoring for the host
-  ansible.builtin.include_tasks: munin-client.yml
+- name: Monitoring for the host | {{ server_monitoring }}
+  ansible.builtin.include_tasks: "{{ server_monitoring }}-client.yml"
 
 # Todo: Check on how to refactor
 - name: Get the list of stopped Containers

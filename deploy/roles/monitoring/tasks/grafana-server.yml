@@ -1,0 +1,104 @@
+---
+- name: Updating and Upgrading packages
+  ansible.builtin.apt:
+    upgrade: "yes"
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Installing prometheus
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name:
+      - prometheus
+      - apt-transport-https
+      - software-properties-common
+      - wget
+
+- name: Ensure the keyring directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Download and add Grafana GPG key
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /etc/apt/trusted.gpg.d/grafana.asc
+    mode: '0644'
+
+- name: Add Grafana APT repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/trusted.gpg.d/grafana.asc] https://apt.grafana.com stable main"
+    state: present
+    filename: grafana
+    update_cache: true
+
+- name: Installing grafana
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name:
+      - grafana
+
+- name: Ensure prmetheus and grafana services are enabled and started
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop:
+    - prometheus
+    - grafana-server
+
+- name: Allow https access from proxy
+  community.general.ufw:
+    rule: allow
+    port: "{{ prometheus_http_port | default('3000') }}"
+    src: "{{ hostvars[item]['ansible_host'] }}"
+    proto: tcp
+    comment: "Allow access from {{ item }} instance "
+    state: enabled
+  loop: "{{ groups['web'] }}"
+
+- name: Ensure root_url is set correctly in grafana.ini
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: server
+    option: root_url
+    value: 'https://{{ fqdn }}/grafana'
+    mode: "0640"
+  notify: Restart Grafana
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
+
+- name: Ensure domain = {{ fqdn }}
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: server
+    option: domain
+    value: "{{ fqdn }}"
+    mode: "0640"
+  notify: Restart Grafana
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
+
+- name: Ensure path is properly set
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: server
+    option: serve_from_sub_path
+    value: 'true'
+    mode: "0640"
+  notify: Restart Grafana
+  loop: "{{ groups['instances'] }}"
+  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
+
+- name: Prometheous scraping configs
+  ansible.builtin.blockinfile:
+    block: "{{ lookup('ansible.builtin.template', 'postgres_exporter.j2') }}"
+    path: "/etc/prometheus/prometheus.yml"
+    insertafter: "scrape_configs:"
+  notify: Reload Prometheus
+
+- name: Flushing Handlers
+  ansible.builtin.meta: flush_handlers

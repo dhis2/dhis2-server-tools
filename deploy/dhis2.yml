@@ -28,12 +28,15 @@
       when:
         - unattended_upgrades is defined
         - unattended_upgrades | bool
+      tags:
+        - unattended-upgrades
   handlers:
     - name: Handlers to restart unattended_upgrades etc
       ansible.builtin.import_tasks: playbooks/handlers.yml
 
 - name: Creating backup script
   hosts: databases
+  tags: backup-script
   gather_facts: false
   become: true
   roles:
