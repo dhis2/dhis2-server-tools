@@ -53,7 +53,7 @@
 
 - name: Copy static Nginx config for valid FQDNs
   ansible.builtin.copy:
-    src: nginx/custom.conf
+    src: nginx/static.conf
     dest: /etc/nginx/static/{{ hostvars[item]['fqdn'] | trim }}.conf
     group: root
     owner: root
@@ -74,7 +74,7 @@
   when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")  # Explore using default here
   notify: Restart Nginx
 
-- name:  Copy static Nginx config for instances without FQDNs
+- name: Copy static Nginx config for instances without FQDNs
   ansible.builtin.copy:
     src: nginx/default.conf
     dest: /etc/nginx/static/default.conf
