@@ -115,36 +115,15 @@ dhis2_version: 2.39
 </table>
 
 ### PostgreSQL Variables { #dhis2_server_tools_postgresql_variables }
-<table>
- <tr>
-    <th style="text-align: left; vertical-align: top;">Variable</th>
-    <th style="text-align: left; vertical-align: top;">Comments</th>
-  </tr>
-<tr>
-    <td style="vertical-align: top; text-align: left;"><code>postgresql_version</code></td>
-    <td> Version for PostgreSQL to be installed, in a fresh install, the is default: `16` </td>
-  </tr>
-  <tr>
-    <td style="vertical-align: top; text-align: left;"><code>pg_max_connections</code></td>
-    <td> Maximum allowed connections to the database </td>
-  </tr>
-   <tr>
-    <td style="vertical-align: top; text-align: left;"><code>pg_shared_buffers</code></td>
-    <td> Shared Buffers for postgresql,<br> recommended <code>0.25 x Available_RAM</code> for PostgreSQL </td>
-  </tr>
-   <tr>
-    <td style="vertical-align: top; text-align: left;"><code>pg_work_mem</code></td>
-    <td> PostgreSQL work memory, <br> Recommended = <code>(0.25 x Available_RAM)/max_connections</code> </td>
-  </tr>
-   <tr>
-    <td style="vertical-align: top; text-align: left;"><code>pg_maintenance_work_mem</code></td>
-    <td> As much as you can reasonably afford.  Helps with index generation during the analytics generation task <br> </td>
-  </tr>
-   <tr>
-    <td style="vertical-align: top; text-align: left;"><code>pg_effective_cache_size</code></td>
-    <td> Approx <code>80% of (Available RAM - maintenance_work_mem - max_connections*work_mem)</code> </td>
-  </tr>
-</table>
+
+| Variable                     | Comments |
+|:-----------------------------|:---------|
+| `postgresql_version`         | PostgreSQL version to install. Default is `16` for fresh installs. |
+| `pg_max_connections`         | Maximum allowed database connections. |
+| `pg_shared_buffers`          | Shared buffers for PostgreSQL. Recommended: `0.25 x Available_RAM`. |
+| `pg_work_mem`                | Work memory per query. Recommended: `(0.25 x Available_RAM) / max_connections`. |
+| `pg_maintenance_work_mem`    | Memory for maintenance tasks like index creation. Allocate as much as reasonably possible. |
+| `pg_effective_cache_size`    | Approx. `80% of (Available_RAM - maintenance_work_mem - max_connections * work_mem)`. |
 
 ### Proxy Variables { #dhis2_server_tools_proxy_variables}
 <table>
@@ -191,6 +170,22 @@ munin_users:
  </tr>
 </table>
 
+| Variable          | Comments |
+|:------------------|:---------|
+| `email`           | Strictly required if you are using Let's Encrypt. |
+| `proxy`           | Proxy software of your choice.<br>**Options**:<br>- nginx ← (default)<br>- apache2 |
+| `SSL_TYPE`        | Choose whether to use `letsencrypt` or a `customssl` certificate.<br>**Options**:<br>- letsencrypt ← (default)<br>- customssl |
+| `munin_base_path` | Base path for accessing Munin, e.g., `https://domain.example.com/munin_base_path`. Defaults to `munin`. |
+| `munin_users`     | A list of users and passwords allowed to log into Munin. See example below. |
+
+**Example:**
+```yaml
+munin_users:
+  - name: admin
+    password: admin_password
+  - name: user2
+    password: user2_passsword
+```
 
 ### backup related Variables
 These variables pertain to the PostgreSQL database host and contain sensitive
@@ -201,34 +196,11 @@ as shown below:
 
 `dhis2-server-tools/deploy/inventory/host_vars/postgres`
 
-<table>
-  <tr>
-    <th style="text-align: left; vertical-align: top;">Variable</th>
-    <th style="text-align: left; vertical-align: top;">Comments</th>
-  </tr>
-  <tr>
-    <td style="vertical-align: top; text-align: left;"> <code>s3_access_key</code></td>
-    <td> This is a unique identifier for cloud user or programmatic entity
-    (like an application) that needs to interact with object storage.  </td>
-  </tr>
-  <tr>
-    <td style="vertical-align: top; text-align: left;"> <code>s3_secret_key</code></td>
-    <td> This is a secret piece of information that is associated with the
-    Access Key. It is used to digitally sign requests made to object storage
-    and maybe other services. This Secret Access Key must be kept confidential,
-    as it's used to authenticate and authorize requests on behalf of the Access
-    Key. </td>
-  </tr>
-  <tr>
-    <td style="vertical-align: top; text-align: left;"> <code>s3_cluster_id</code></td>
-    <td> Cluster URL for Object Storage is unique to each data center,
-    different data-centers have unique cluster IDS, refer to
-    <a href="https://www.linode.com/docs/products/storage/object-storage/guides/urls/#cluster-url-s3-endpoint">Linode Object Storage Guide</a>
-    for Linode. </td>
-  </tr>
-  <tr>
-    <td style="vertical-align: top; text-align: left;"> <code>s3_bucket</code></td>
-    <td> This is a container or storage resource for storing files in the
-    context of object storage</t>
-  </tr>
+| Variable         |Comments |
+|:------------------|:----------|
+| `s3_access_key`  | This is a unique identifier for a cloud user or programmatic entity (like an application) that needs to interact with object storage. |
+| `s3_secret_key`  | This is a secret piece of information associated with the access key. It is used to digitally sign requests made to object storage and possibly other services. This key must be kept confidential, as it authenticates and authorizes requests on behalf of the access key. |
+| `s3_cluster_id`  | Cluster URL for Object Storage is unique to each data center. Different data centers have unique cluster IDs. Refer to [Linode Object Storage Guide](https://www.linode.com/docs/products/storage/object-storage/guides/urls/#cluster-url-s3-endpoint) for Linode. |
+| `s3_bucket`      | This is a container or storage resource for storing files in the context of object storage. |
+
 </table>

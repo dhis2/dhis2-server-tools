@@ -3,24 +3,24 @@ Table of contents
 <!-- vim-markdown-toc GFM -->
 
 * [Introduction](#introduction)
-* [Installation with LXD containers](#install-with-lxd-containers)
+* [Installation with LXD containers](#installation-with-lxd-containers)
 	* [Step 0 — Before you start](#step-0--before-you-start)
-	* [Step 1 — SSH to your server and enable firewall.](#step-1--ssh-to-your-server-and-enable-firewall)
-	* [Step 2 — Grab deployment tools from github](#step-2--grab-deployment-tools-from-github)
-	* [Step 3 —  Create hosts file](#step-3---create-hosts-file)
-	* [Step 4 — Set fqdn, email, timezone](#step-4--set-fqdn-emailtimezone)
+	* [Step 1 — SSH to your server (where you want to install DHIS2) and enable firewall.](#step-1--ssh-to-your-server-where-you-want-to-install-dhis2-and-enable-firewall)
+	* [Step 2 — Grab the deployment tools from github](#step-2--grab-the-deployment-tools-from-github)
+	* [Step 3 —  Create inventory hosts file](#step-3---create-inventory-hosts-file)
+	* [Step 4 — Set fqdn, email, and timezone](#step-4--set-fqdn-email-and-timezone)
 	* [Step 5 — The Install](#step-5--the-install)
 * [Install on physical/virtual servers.](#install-on-physicalvirtual-servers)
-	* [Step 0: Before you start](#step-0-before-you-start)
-	* [Step 1: Access deployment server (ansible controller) via ssh](#step-1-access-deployment-server-ansible-controller-via-ssh)
+	* [Step 0: Before you start, make sure you have the following:](#step-0-before-you-start-make-sure-you-have-the-following)
+	* [Step 1: Access deployment server (ansible-controller) via SSH](#step-1-access-deployment-server-ansible-controller-via-ssh)
 	* [Step 2: Install ansible on the deployment server](#step-2-install-ansible-on-the-deployment-server)
 	* [Step 3: Grab deployment tools from github](#step-3-grab-deployment-tools-from-github)
 	* [Step 4: Create hosts file (from the hosts template)](#step-4-create-hosts-file-from-the-hosts-template)
-	* [Step 5: Set fqdn, email, timezone and `ansible_connection=ssh`](#step-5-set-fqdn-emailtimezone-and-ansible_connectionssh)
+	* [Step 5: Set fqdn, email, timezone and `ansible_connection=ssh`](#step-5-set-fqdn-email-timezone-and-ansible_connectionssh)
 	* [Step 6:  Ensure connection to the managed hosts works](#step-6--ensure-connection-to-the-managed-hosts-works)
 	* [Step 7: Run the playbook](#step-7-run-the-playbook)
-* [Adding an instance](#adding-an-instance)
-* [Using a custom TLS Certificate](#using-a-custom-tls-certificate)
+* [Adding a new instance](#adding-a-new-instance)
+* [Using a Custom TLS Certificate](#using-a-custom-tls-certificate)
 * [Conclusion](#conclusion)
 * [Other important links](#other-important-links)
 
@@ -41,27 +41,27 @@ You can also do a hybrid of both. [Read more on Architectures](./docs/Deployment
 ### Step 0 — Before you start
 Ensure you have:
 - Linux server, minimum 4GB RAM, 2CPU cores
-  - Ubuntu 20.04 or
-  - Ubuntu 22.04 
+  - Ubuntu 22.04 or
+  - Ubuntu 24.04 
 - SSH Access to the server
 - A non-root user with sudo privileges.
 
 ### Step 1 — SSH to your server (where you want to install DHIS2) and enable firewall. 
 - SSH to your server, Secure/harden SSH, allow SSH port on the firewall and
   finally enable the firewall. Be careful not to lock yourself out. Remember to
-  allow your prefered ssh port before enabling the firewall. 
+  allow your preferred ssh port before enabling the firewall. 
   ```
   sudo ufw limit 22 # Assuming you did not change default ssh port (22)
   sudo ufw enable
   ```
 
 ### Step 2 — Grab the deployment tools from github
-- Access the server and clone the deployment tools in your prefered directory by invoking below command
+- Access the server and clone the deployment tools in your preferred directory by invoking below command
   ```
-  git clone https://github.com/dhis2/dhis2-server-tools
+  git clone https://github.com/dhis2/dhis2-server-tools.git
   ```
 
-### Step 3 —  Create hosts file
+### Step 3 —  Create inventory hosts file
 - Create the `hosts` file using the already existing template,
   `hosts.template`. <br>
   Use the command below if you are in the directory you cloned the tools in.
@@ -114,7 +114,7 @@ Ensure you have:
 ### Step 1: Access deployment server (ansible-controller) via SSH 
 - SSH to the ansible-controller, Secure/Harden ssh, allow SSH port on the firewall,
   and finally enable the firewall. Be careful not to lock yourself out.
-  Remember to allow your prefered SSH port before enabling the firewall.
+  Remember to allow your preferred SSH port before enabling the firewall.
 
   ```
   sudo ufw limit 22 #  # Assuming you did not change default SSH port (22)
@@ -130,7 +130,7 @@ Ensure you have:
   ```
 
 ### Step 3: Grab deployment tools from github
--  Access the server and clone the deployment tools in your prefered directory by invoking below command 
+-  Access the server and clone the deployment tools in your preferred directory by invoking below command 
   ```
   git clone https://github.com/dhis2/dhis2-server-tools
   ```
