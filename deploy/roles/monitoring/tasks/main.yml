@@ -30,7 +30,7 @@
 
 - name: Grafana prometheus connect
   ansible.builtin.include_tasks:
-    file: grafana-prometheus-connect.yml
+    file: grafana-dashboards.yml
     apply:
       tags: [premetheus-connect]
   tags: [prometheus-connect]

@@ -11,7 +11,7 @@
   ansible.builtin.lineinfile:
     path: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf
     insertafter: EOF
-    regexp: '^host\s+({{ item }}).*$'
+    regexp: '^host\s+{{ item }}\s+.*$'
     line: host     {{ item }}    {{ item }}  {{ hostvars[item]['ansible_host'] }}/32  scram-sha-256
   loop: "{{ groups['instances'] }}"
   when:

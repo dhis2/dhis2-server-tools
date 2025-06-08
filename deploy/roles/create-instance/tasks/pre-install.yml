@@ -1,4 +1,12 @@
 ---
+- name: Assert running LTS release
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['distribution_version'] in GUEST_OS_LIST
+    fail_msg: "Running distribution {{ ansible_facts['distribution_version'] }} must be in {{ GUEST_OS_LIST }}"
+    quiet: true
+    # success_msg: "Running distribution  correct for {{ dhis2_version }} proceeding with install"
+
 - name: Set timezone to {{ timezone }}
   community.general.timezone:
     name: "{{ timezone }}"

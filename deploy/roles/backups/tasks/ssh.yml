@@ -18,6 +18,15 @@
     - s3_secret_key is defined and (s3_secret_key != None) and s3_secret_key | trim != ""
     - s3_cluster_id is defined and (s3_cluster_id != None) and s3_cluster_id | trim != ""
 
+# restore script need to be copied as well
+- name: Add restore script to the posgresql server
+  ansible.builtin.file:
+    src: ssh/dhis2-restore
+    dest: /usr/local/bin/dhis2-restore
+    owner: root
+    group: root
+    mode: '0700'
+
 - name: Create dhis2-env from template
   ansible.builtin.template:
     src: dhis2-env.j2

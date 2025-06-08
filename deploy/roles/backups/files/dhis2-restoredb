@@ -20,8 +20,18 @@ usage() {
   echo "Options:"
   echo "  -h, --help       Display this help message"
 }
+# Show usage if no args or -h/--help is passed
+if [ "$#" -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+  usage
+  exit 0
+fi
 
-
+# Validate args presence
+if [ -z "$BACKUPFILE" ] || [ -z "$DB" ]; then
+  echo "Error: missing required arguments."
+  usage
+  exit 1
+fi
 
 sudo lxc exec postgres dropdb $DB
 sudo lxc exec postgres -- createdb -O $DB $DB

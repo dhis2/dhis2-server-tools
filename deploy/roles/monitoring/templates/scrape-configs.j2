@@ -1,18 +1,18 @@
 {% for database_host in groups['databases'] %}
-  - job_name: postgres-exporter
+  - job_name: {{ database_host }}
     static_configs:
       - targets:
          - {{ hostvars[database_host]['ansible_host'] }}:9187
 {% endfor %} 
 {% for dhis2_host in groups['instances'] %}
-  - job_name: dhis2
-    metrics_path: /dhis/api/metrics
+  - job_name: {{ hostvars[dhis2_host]['dhis2_base_path'] | default(dhis2_host) | to_fixed_string }}
+    metrics_path: /{{ hostvars[dhis2_host]['dhis2_base_path'] | default(dhis2_host) | to_fixed_string }}/api/metrics
     basic_auth:
       username: admin
       password: district
     static_configs:
       - targets:
-        - {{ hostvars[dhis2_host]['ansible_host'] }}:8081
+        - {{ hostvars[dhis2_host]['ansible_host'] }}:8080
 {% endfor %}
 {% if ansible_connection == "lxd" %}
   - job_name: LXD Host

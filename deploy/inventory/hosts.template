@@ -11,7 +11,7 @@ postgres  ansible_host=172.19.2.20
 
 # dhis2 hosts
 [instances]
-dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.40 proxy_rewrite=True
+dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.40 proxy_rewrite=True analytics_database=doris
 
 # monitoring hosts
 [monitoring]

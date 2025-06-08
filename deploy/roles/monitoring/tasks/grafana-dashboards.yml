@@ -5,7 +5,7 @@
     url_username: admin
     url_password: admin
     method: POST
-    body: "{{ lookup('ansible.builtin.file', 'datasource.json') }}"
+    body: "{{ lookup('ansible.builtin.file', 'datasource.json') | from_json }}"
     force_basic_auth: true
     body_format: json
     status_code: [200, 201, 409]
@@ -19,11 +19,13 @@
     url_username: admin
     url_password: admin
     method: POST
-    body: "{{ lookup('ansible.builtin.file', item) }}"
+    body: "{{ lookup('ansible.builtin.file', item) | from_json }}"
     force_basic_auth: true
     body_format: json
     headers:
       Content-Type: "application/json"
+    status_code: [200, 201]
   loop:
-    - "dashboards.json"
-    - "linux-node.json"
+    - postgres.json
+    - linux-node.json
+    # - dhis2-dashboard.json

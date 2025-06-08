@@ -15,3 +15,4 @@
     - inventory_hostname in groups['web']
     - server_monitoring is defined
     - server_monitoring | trim == 'munin'
+  tags: [securing-munin]

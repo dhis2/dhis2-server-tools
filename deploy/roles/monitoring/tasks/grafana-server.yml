@@ -95,7 +95,7 @@
 
 - name: Prometheous scraping configs
   ansible.builtin.blockinfile:
-    block: "{{ lookup('ansible.builtin.template', 'postgres_exporter.j2') }}"
+    block: "{{ lookup('ansible.builtin.template', 'scrape-configs.j2') }}"
     path: "/etc/prometheus/prometheus.yml"
     insertafter: "scrape_configs:"
   notify: Reload Prometheus

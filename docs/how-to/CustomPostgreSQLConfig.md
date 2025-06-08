@@ -63,9 +63,9 @@ Any setting in `custom` will override values from both `dhispg.conf` and `postgr
 
 | File Path                                    | Managed By | Editable? | Notes                                           |
 | -------------------------------------------- | ---------- | --------- | ----------------------------------------------- |
-| `/etc/postgresql/16/main/postgresql.conf`    | PostgreSQL | ❌         | Includes Ansible-managed configs                |
-| `/etc/postgresql/16/main/conf.d/dhispg.conf` | Ansible    | ❌         | Automatically overwritten on every playbook run |
-| `/etc/postgresql/16/main/conf.d/custom`      | User (you) | ✅         | Safely used for manual overrides                |
+| `/etc/postgresql/16/main/postgresql.conf`    | PostgreSQL | **No**         | Includes Ansible-managed configs                |
+| `/etc/postgresql/16/main/conf.d/dhispg.conf` | Ansible    | **No**         | Automatically overwritten on every playbook run |
+| `/etc/postgresql/16/main/conf.d/custom`      | User (you) | **Yes**         | Safely used for manual overrides                |
 
 ---
 
