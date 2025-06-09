@@ -63,7 +63,15 @@
       tags: tomcat-munin-monitoring
   tags: [tomcat-munin-monitoring]
   when:
-    - server_monitoring is defined
+    - server_monitoring is defined and server_monitoring == 'munin'
     - groups['monitoring']  | length > 0
     - inventory_hostname in groups['instances']
     - (dhis2_version is defined and dhis2_version) or (dhis2_war_file is defined and dhis2_war_file)
+
+- name: Instance monitoring with Prometheus/Grafana
+  ansible.builtin.include_tasks:
+    file: prometheus-grafana.yml
+  when:
+    - server_monitoring is defined and server_monitoring in ['grafana', 'prometheus', 'grafana/prometheus']
+    - groups['monitoring']  | length > 0
+    - inventory_hostname in groups['instances']

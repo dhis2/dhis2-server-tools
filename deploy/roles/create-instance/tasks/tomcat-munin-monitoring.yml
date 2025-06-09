@@ -32,7 +32,7 @@
     port: "{{ munin_node_port | default('4949') }}"
     src: "{{ hostvars[item]['ansible_host'] }}"
     proto: tcp
-    comment: Allow access from {{ item }} monitoring server
+    comment: Allow access from Munin server
     state: enabled
   loop: "{{ groups['monitoring'] }}"
 
