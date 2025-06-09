@@ -1,0 +1,10 @@
+---
+- name: Allow access from Prometheus/Grafana
+  community.general.ufw:
+    rule: allow
+    port: "{{ instance_tomcat_port | default('8080') }}"
+    src: "{{ hostvars[item]['ansible_host'] }}"
+    proto: tcp
+    comment: Allow access from Prometheus/Grafana
+    state: enabled
+  loop: "{{ groups['monitoring'] }}"
