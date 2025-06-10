@@ -64,5 +64,5 @@
   ansible.builtin.lineinfile:
     path: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf
     insertafter: EOF
-    line: local  postgres  postgres_exporter  scram-sha-256
+    line: local  all  exporter_user  peer
   notify: Reload Postgresql
