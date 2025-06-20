@@ -7,7 +7,7 @@
   ansible.builtin.set_fact:
     dhis2_release_version: "{{ (dhis2_releases_list | selectattr('name', 'eq', normalized_dhis2_version['dhis2_version_major']) | list) | first }}"
 
-- name: Set something
+- name: Set patchversion_name
   ansible.builtin.set_fact:
     latest_patchversion_name: "{{ (dhis2_release_version['patchVersions'] | last)['name'] | default(dhis2_release_version['name']) }}"
 

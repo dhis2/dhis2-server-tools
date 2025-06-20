@@ -2,7 +2,7 @@
 ansible_connection: lxd
 
 # default java version
-JAVA_VERSION: 11
+JAVA_VERSION: 17
 
 # default app monitoring
 app_monitoring: glowroot
@@ -11,12 +11,10 @@ app_monitoring: glowroot
 database_host: postgres
 
 # default dhis2_version
-dhis2_version: 2.40
+dhis2_version: 2.42
 
 # required postgresql extensions
 postgresql_version: 16
-
-tomcat_version: 9
 
 postgresql_extensions:
   - postgis

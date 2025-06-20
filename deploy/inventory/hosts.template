@@ -5,17 +5,21 @@
 [web]
 proxy  ansible_host=172.19.2.2
 
+
 # database hosts
 [databases]
 postgres  ansible_host=172.19.2.20
+
 
 # dhis2 hosts
 [instances]
 dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.42 proxy_rewrite=True
 
+
 # monitoring hosts
 [monitoring]
 monitor   ansible_host=172.19.2.30 
+
 
 # integration server/container
 [integration]
@@ -26,20 +30,25 @@ monitor   ansible_host=172.19.2.30
 fqdn=
 # required for LetsEncrypt certificate notification. 
 email=
+
+
 # timedatectl list-timezones to list timezones
 timezone=Africa/Nairobi
 
 # Options: lxd, ssh defaults to lxd. 
 ansible_connection=lxd
 
-# database 
-# this is the host gateway address to the database server if the database is on another network
-# db_gateway_address=172.21.0.2
+
+# Host IP seen by PostgreSQL when DB is on another network (e.g., LXD containers with NAT).
+# Needed for pg_hba.conf since LXD container traffic is NATed and appears to be from Host IP, not container IP
+
+# PostgreSQL version to be installed
 postgresql_version=16
 
 # monitoring
 server_monitoring=munin
 app_monitoring=glowroot
+
 
 # lxd
 lxd_network=172.19.2.1/24 
@@ -50,11 +59,14 @@ guest_os_arch=amd64
 # lxd_source_server=
 # lxd_source_protocol=
 
+
 # Options: nginx, apache2 defaults to nginx
 proxy=nginx
 
+
 # Options: letsencrypt, customssl, selfsigned, default(letsencrypt if fqdn is defined else selfsigned )
 TLS_TYPE=letsencrypt
+
 
 # instances group variables,
 [instances:vars]
@@ -62,10 +74,12 @@ database_host=postgres
 create_db=yes  
 JAVA_VERSION=11 
 
+
 # NOTE: if dhis2_war_file and dhis2_version are both defined, dhis2_war_file takes precedence  
 # dhis2_war_file="https://releases.dhis2.org/40/dhis2-stable-40.4.0.war"
 # dhis2_war_file=/full/path/dhis2.war
 dhis2_version=2.40
+
 
 # whether dhis2 should be upgraded automatically to the latest defined version. 
 dhis2_auto_upgrade=false

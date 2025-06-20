@@ -18,12 +18,19 @@
     path: "/etc/ansible/secrets"
     state: directory
     mode: '0700'
+    owner: "{{ lookup('env', 'USER') }}"
+    group: "{{ lookup('env', 'USER') }}"
+  tags: [db_password_generate]
 
 - name: Generate database password
+  vars:
+    ansible_connection: local
+  become: true
   ansible.builtin.set_fact:
     db_password: "{{ db_password | default(lookup('password', '/etc/ansible/secrets/' + inventory_hostname)) }}"   # psd in a file on controller
   when:
     - create_db is defined and  create_db | bool
+  tags: [db_password_generate]
 
 - name: Setting tomcat verson
   ansible.builtin.set_fact:

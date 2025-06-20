@@ -20,8 +20,8 @@
 
 # restore script need to be copied as well
 - name: Add restore script to the posgresql server
-  ansible.builtin.file:
-    src: ssh/dhis2-restore
+  ansible.builtin.copy:
+    src: ssh/dhis2-restoredb
     dest: /usr/local/bin/dhis2-restore
     owner: root
     group: root

@@ -19,6 +19,22 @@
     - db_gateway_address is undefined
     - item in ansible_play_hosts
   notify: Reload Postgres
+  tags: [never]
+
+- name: Edit pg_hba.conf using community.postgresql.postgresql_pg_hba module
+  community.postgresql.postgresql_pg_hba:
+    dest: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf
+    contype: host
+    users: "{{ item }}"
+    source: "{{ hostvars[item]['ansible_host'] }}/32"
+    databases: "{{ item }}"
+    method: "scram-sha-256"
+  loop: "{{ groups['instances'] }}"
+  when:
+    - inventory_hostname == hostvars[item]['database_host']
+    - db_gateway_address is undefined
+    - item in ansible_play_hosts
+  notify: Reload Postgres
 
 - name: Firewall | Open port 5432 from dhis2 instances
   community.general.ufw:

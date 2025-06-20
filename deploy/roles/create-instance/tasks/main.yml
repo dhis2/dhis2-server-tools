@@ -12,7 +12,7 @@
 - name: Set dhis2 pre-install variables
   ansible.builtin.include_tasks: pre-install.yml
   when: inventory_hostname in groups['instances']
-  tags: [set-dhis2-url, deploy-war]
+  tags: [set-dhis2-url, deploy-war, db_password_generate]
 
 - name: Include postgresql tasks
   ansible.builtin.include_tasks: postgresql-db.yml
