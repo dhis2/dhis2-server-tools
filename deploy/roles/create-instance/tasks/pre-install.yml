@@ -22,6 +22,18 @@
     group: "{{ lookup('env', 'USER') }}"
   tags: [db_password_generate]
 
+- name: Ensure db_password files are owned by {{ lookup('env', 'USER') }}
+  vars:
+    ansible_connection: local
+  become: true
+  ansible.builtin.file:
+    dest:  "{{ item }}"
+    owner: "{{ lookup('env', 'USER') }}"
+    group: "{{ lookup('env', 'USER') }}"
+    mode: '0600'
+  with_fileglob:
+    - /etc/ansible/secrets/*
+
 - name: Generate database password
   vars:
     ansible_connection: local
