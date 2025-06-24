@@ -15,31 +15,36 @@
   vars:
     ansible_connection: local
   ansible.builtin.file:
-    path: "/etc/ansible/secrets"
+    path: "{{ item }}"
     state: directory
     mode: '0700'
     owner: "{{ lookup('env', 'USER') }}"
     group: "{{ lookup('env', 'USER') }}"
   tags: [db_password_generate]
+  loop:
+    - "/opt/ansible/"
+    - "/opt/ansible/secrets/"
 
 - name: Ensure db_password files are owned by {{ lookup('env', 'USER') }}
   vars:
     ansible_connection: local
   become: true
   ansible.builtin.file:
-    dest:  "{{ item }}"
+    dest: "{{ item }}"
     owner: "{{ lookup('env', 'USER') }}"
     group: "{{ lookup('env', 'USER') }}"
     mode: '0600'
+  tags: [db_password_generate]
   with_fileglob:
-    - /etc/ansible/secrets/*
+    - /opt/ansible/secrets/*
+  when: item is file
 
 - name: Generate database password
   vars:
     ansible_connection: local
   become: true
   ansible.builtin.set_fact:
-    db_password: "{{ db_password | default(lookup('password', '/etc/ansible/secrets/' + inventory_hostname)) }}"   # psd in a file on controller
+    db_password: "{{ db_password | default(lookup('password', '/opt/ansible/secrets/' + inventory_hostname)) }}"   # psd in a file on controller
   when:
     - create_db is defined and  create_db | bool
   tags: [db_password_generate]

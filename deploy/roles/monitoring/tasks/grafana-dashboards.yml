@@ -16,8 +16,8 @@
 - name: Grafans postgresql dashboards
   ansible.builtin.uri:
     url: http://127.0.0.1:3000/grafana/api/dashboards/db
-    url_username: admin
-    url_password: admin
+    url_username: "{{ grafana_username | default('admin') }}"
+    url_password: "{{ grafana_password | default('admin') }}"
     method: POST
     body: "{{ lookup('ansible.builtin.file', item) | from_json }}"
     force_basic_auth: true

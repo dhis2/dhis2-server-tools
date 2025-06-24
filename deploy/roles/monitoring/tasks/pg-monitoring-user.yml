@@ -1,7 +1,7 @@
 ---
 - name: Generate database password
   ansible.builtin.set_fact:
-    pg_monitor_password: "{{ db_password | default(lookup('password', '/etc/ansible/secrets/' + 'pg_monitor_password')) }}"   # psd in a file on controller
+    pg_monitor_password: "{{ db_password | default(lookup('password', '/opt/ansible/secrets/' + 'pg_monitor_password')) }}"   # passwd in a file on controller
 
 - name: Create postgres_exporter user
   become: true

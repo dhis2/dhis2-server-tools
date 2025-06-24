@@ -36,15 +36,9 @@
     state: enabled
   loop: "{{ groups['monitoring'] }}"
 
-- name: Ensure secrets directory exists
-  ansible.builtin.file:
-    path: "/etc/ansible/secrets"
-    state: directory
-    mode: '0700'
-
 - name: Generate manager_password
   ansible.builtin.set_fact:
-    manager_passwd: "{{ lookup('password', '/etc/ansible/secrets/' + 'manager_password_' + inventory_hostname) }}"
+    manager_passwd: "{{ lookup('password', '/opt/ansible/secrets/' + 'manager_password_' + inventory_hostname) }}"
 
 # Below tasks JMX monitoring on munin
 - name: Copy tomcat-users.xml file

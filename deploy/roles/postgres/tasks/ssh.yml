@@ -9,7 +9,7 @@
       - network
       - "!min"
 
-- name: Ensure acl packate is installed
+- name: Installing acl package
   become: true
   ansible.builtin.apt:
     name: acl

@@ -27,19 +27,19 @@ def normalize_dhis2_version(dhis2_version, dhis2_releases):
             dhis2_version_minor = dhis2_version
             if dhis2_version_major in version_list:
                 return {
-                        'dhis2_version_major': dhis2_version_major,
-                        'dhis2_version_minor': dhis2_version_minor
+                      'dhis2_version_major': dhis2_version_major,
+                      'dhis2_version_minor': dhis2_version_minor
                         }
             else:
                 raise AnsibleFilterError(
                         f"The version {dhis2_version} is not"
                         f"in released versions, '{version_list}'"
-                       )
+                        )
         else:
             raise AnsibleFilterError(
-                f"The version '{dhis2_version}' is not in a valid format. "
-                "Expected format: 2.major[.minor][.patch]"
-                )
+                    f"The version '{dhis2_version}' is not in a valid format."
+                    "Expected format: 2.major[.minor][.patch]"
+                                     )
 
 
 # precise_version
@@ -84,34 +84,26 @@ def get_dhis2_instance_specs(dhis2_version, dhis2_auto_upgrade, version_results)
     def version_lte(version1, version2):
         return Version(to_text(version2)) >= Version(to_text(version1))
 
-    if (version_gte(version_actual, '2.42') or
-       (version_gte(dhis2_version, '2.42') and
-       str_to_bool(dhis2_auto_upgrade))):
+    if (version_gte(version_actual, '2.42') or (version_gte(dhis2_version, '2.42') and str_to_bool(dhis2_auto_upgrade))):
         return {'jdk': 17,
                 'tomcat': 10,
                 'javax_jakartaee_convert': False,
                 'guest_os': ['24.04'],
                 }
 
-    if (version_eq(version_actual[:4], '2.41') or
-        (version_eq(dhis2_version, '2.41') and
-         str_to_bool(dhis2_auto_upgrade))):
-        return {
-                'jdk': 17,
+    if (version_eq(version_actual[:4], '2.41') or (version_eq(dhis2_version, '2.41') and str_to_bool(dhis2_auto_upgrade))):
+        return {'jdk': 17,
                 'tomcat': 9,
                 'guest_os': ['22.04', '24.04']
                 }
 
-    if (version_gte(version_actual, '2.35') and
-       version_lte(version_actual, '2.40')):
-        return {
-                'jdk': 11,
+    if (version_gte(version_actual, '2.35') and version_lte(version_actual, '2.40')):
+        return {'jdk': 11,
                 'tomcat': 9,
                 'guest_os': ['22.04', '24.04'],
                 }
 
-    return {
-            'jdk': 8,
+    return {'jdk': 8,
             'tomcat': 9,
             'guest_os': ['22.04', '24.04']
             }
@@ -134,8 +126,7 @@ def tomcat_version(distribution_version):
 
 class FilterModule(object):
     def filters(self):
-        return {
-                'get_dhis2_instance_specs': get_dhis2_instance_specs,
+        return {'get_dhis2_instance_specs': get_dhis2_instance_specs,
                 'to_fixed_string': to_fixed_string,
                 'lowercase': lowercase,
                 'tomcat_version': tomcat_version,
