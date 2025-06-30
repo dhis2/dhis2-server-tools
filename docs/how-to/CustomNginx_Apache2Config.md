@@ -1,10 +1,4 @@
-# How to Safely Customize Nginx and Apache Configurations in Ansible-Managed Deployments
-
-This guide outlines how to manually customize **Nginx** and **Apache2** configuration files in systems managed by **Ansible**, without having your changes overwritten during future playbook runs.
-
----
-
-## Nginx Configuration
+### Nginx Configuration
 
 Ansible generates Nginx configuration files based on whether a **Fully Qualified Domain Name (FQDN)** is defined:
 
@@ -15,7 +9,7 @@ Ansible generates Nginx configuration files based on whether a **Fully Qualified
 
 These files are **fully managed by Ansible**, meaning **any manual changes will be lost** when the playbook is re-applied.
 
-### Safe Manual Customization
+#### Safe Manual Customization
 
 Each Ansible-generated config file includes an **explicit static file**, which is created during the initial setup and never modified by Ansible after that.
 
@@ -34,7 +28,7 @@ sudo systemctl reload nginx
 
 ---
 
-## Apache2 Configuration
+### Apache2 Configuration
 
 Apache2 uses a similar setup with a slightly different directory layout:
 
@@ -53,7 +47,7 @@ sudo systemctl reload apache2
 
 ---
 
-## Summary
+#### Summary
 
 | Service | Ansible-Managed File                                           | Static Included File (editable)                         | Notes                         |
 | ------- | -------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------- |

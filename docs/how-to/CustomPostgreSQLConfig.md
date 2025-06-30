@@ -1,13 +1,15 @@
-# How to Manually Override PostgreSQL Parameters (Ansible-Managed Setup)
+### Manually Override PostgreSQL Parameters
 
 In this setup, PostgreSQL configuration is partially managed by **Ansible**. Some configuration files are automatically generated during playbook runs. This guide explains how to safely override PostgreSQL settings without having your changes lost during future deployments.
 
-> **Note**: This example assumes you are using **PostgreSQL version 16**, so all paths reference `/etc/postgresql/16/main/`.
+> **Note**:
+
+> This example assumes you are using **PostgreSQL version 16**, so all paths reference `/etc/postgresql/16/main/`.
 > The actual version depends on the value of the `postgresql_version` variable defined in your Ansible inventory or host vars.
 
 ---
 
-##   Configuration File Structure
+####   Configuration File Structure
 
 * **Ansible-managed file**:
   `/etc/postgresql/16/main/conf.d/dhispg.conf`
@@ -21,7 +23,7 @@ In this setup, PostgreSQL configuration is partially managed by **Ansible**. Som
 
 ---
 
-## Inclusion Order and Override Behavior
+#### Inclusion Order and Override Behavior
 
 PostgreSQL processes configuration files in the following sequence:
 
@@ -34,7 +36,7 @@ Any setting in `custom` will override values from both `dhispg.conf` and `postgr
 
 ---
 
-## Steps to Safely Override Settings
+#### Steps to Safely Override Settings
 
 1. Open or create the custom config file:
 
@@ -59,7 +61,7 @@ Any setting in `custom` will override values from both `dhispg.conf` and `postgr
 
 ---
 
-## Summary Table
+#### Summary Table
 
 | File Path                                    | Managed By | Editable? | Notes                                           |
 | -------------------------------------------- | ---------- | --------- | ----------------------------------------------- |
