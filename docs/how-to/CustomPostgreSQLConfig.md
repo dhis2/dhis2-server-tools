@@ -3,7 +3,7 @@
 In this setup, PostgreSQL configuration is partially managed by **Ansible**. Some configuration files are automatically generated during playbook runs. This guide explains how to safely override PostgreSQL settings without having your changes lost during future deployments.
 
 > **Note**:
-
+>
 > This example assumes you are using **PostgreSQL version 16**, so all paths reference `/etc/postgresql/16/main/`.
 > The actual version depends on the value of the `postgresql_version` variable defined in your Ansible inventory or host vars.
 

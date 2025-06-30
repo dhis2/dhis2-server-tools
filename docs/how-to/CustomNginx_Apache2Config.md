@@ -30,31 +30,34 @@ sudo systemctl reload nginx
 
 ### Apache2 Configuration
 
-Apache2 uses a similar setup with a slightly different directory layout:
+Apache2 uses a similar setup to Nginx, with a slightly different directory structure.
 
-| Role                         | File Path Example                                                                         |
-| ---------------------------- | ----------------------------------------------------------------------------------------- |
-| Ansible-managed config       | `/etc/apache2/sites-enabled/{{ fqdn }}.conf` or `/etc/apache2/sites-enabled/default.conf` |
-| Static file for custom edits | `/etc/apache2/static/{{ fqdn }}.conf` or `/etc/apache2/static/default.conf`               |
+#### Ansible-Managed Files
 
-As with Nginx, the Ansible-managed Apache config explicitly includes the relevant static file. All manual changes should go into this static file, not the Ansible-managed one.
+Ansible generates the main config file based on whether a **Fully Qualified Domain Name (FQDN)** is defined.  
+These files are overwritten on every playbook run — do not edit them manually.
 
-After editing, reload Apache:
+| Condition          | Ansible-Generated File                |
+|--------------------|---------------------------------------|
+| `fqdn` is defined  | `/etc/apache2/conf.d/{{ fqdn }}.conf` |
+| `fqdn` not defined | `/etc/apache2/conf.d/default.conf`    |
+
+#### Static Files for Manual Edits
+
+Each Ansible config includes a static file created at setup and never modified afterward.  
+Place all manual changes here.
+
+| Condition          | Static File (safe for manual edits)     |
+|--------------------|------------------------------------------|
+| `fqdn` is defined  | `/etc/apache2/static/{{ fqdn }}.conf`    |
+| `fqdn` not defined | `/etc/apache2/static/default.conf`       |
+
+> **Note** 
+>
+> Always make manual changes in the static file. These are explicitly included in the main Ansible config.
+
+#### Reload Apache After Edits
 
 ```bash
 sudo systemctl reload apache2
 ```
-
----
-
-#### Summary
-
-| Service | Ansible-Managed File                                           | Static Included File (editable)                         | Notes                         |
-| ------- | -------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------- |
-| Nginx   | `/etc/nginx/conf.d/{{ fqdn }}.conf` or `default.conf`          | `/etc/nginx/static/{{ fqdn }}.conf` or `default.conf`   | Manually reload after editing |
-| Apache2 | `/etc/apache2/sites-enabled/{{ fqdn }}.conf` or `default.conf` | `/etc/apache2/static/{{ fqdn }}.conf` or `default.conf` | Manually reload after editing |
-
----
-
-This setup allows Ansible to manage core configuration while giving you a safe place to apply persistent manual customizations.
-
