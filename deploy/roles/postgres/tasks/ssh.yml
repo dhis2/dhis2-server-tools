@@ -1,8 +1,4 @@
 ---
-- name: Ensure timezone is {{ timezone }}
-  community.general.timezone:
-    name: "{{ timezone }}"
-
 - name: Get host facts
   ansible.builtin.setup:
     gather_subset:
@@ -16,6 +12,10 @@
     state: present
     update_cache: true
   when: inventory_hostname in groups['databases']
+
+- name: Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"
 
 - name: Allow ssh on port 22
   community.general.ufw:

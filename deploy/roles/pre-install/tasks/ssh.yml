@@ -5,10 +5,6 @@
   ansible.builtin.set_fact:
     ansible_connection: local
 
-- name: Ensure timezone is {{ timezone }}
-  community.general.timezone:
-    name: "{{ timezone }}"
-
 - name: Update and upgrade system packages
   ansible.builtin.apt:
     upgrade: "yes"
@@ -23,3 +19,7 @@
       - python3-netaddr   # needed for ansible.utils.ipaddr filter to work
       - unzip
     state: present
+
+- name: Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"

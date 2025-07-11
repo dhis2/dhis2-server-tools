@@ -4,10 +4,6 @@
     GUEST_OS: "{{ ((dhis2_version | normalize_dhis2_version(dhis2_releases_list))['dhis2_version_major'] | get_dhis2_instance_specs(dhis2_auto_upgrade, version_results | default('')))['guest_os'] | first }}"
     GUEST_OS_LIST: "{{ ((dhis2_version | normalize_dhis2_version(dhis2_releases_list))['dhis2_version_major'] | get_dhis2_instance_specs(dhis2_auto_upgrade, version_results | default('')))['guest_os'] }}"
 
-- name: Ensure timezone is {{ timezone }}
-  community.general.timezone:
-    name: "{{ timezone }}"
-
 - name: Get host facts
   ansible.builtin.setup:
     gather_subset:
@@ -21,3 +17,7 @@
     src: "0.0.0.0/0"
     proto: tcp
     comment: Allow ssh access to the instance
+
+- name: Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"

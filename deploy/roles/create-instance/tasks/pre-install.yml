@@ -7,7 +7,7 @@
     quiet: true
     # success_msg: "Running distribution  correct for {{ dhis2_version }} proceeding with install"
 
-- name: Set timezone to {{ timezone }}
+- name: Ensure timezone is {{ timezone }}
   community.general.timezone:
     name: "{{ timezone }}"
 

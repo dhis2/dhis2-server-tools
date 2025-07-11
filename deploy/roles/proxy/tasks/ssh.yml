@@ -1,8 +1,4 @@
 ---
-- name: Ensure timezone is {{ timezone }}
-  community.general.timezone:
-    name: "{{ timezone }}"
-
 - name: Get host facts
   ansible.builtin.setup:
     gather_subset:
@@ -17,3 +13,7 @@
     proto: tcp
     comment: Allow ssh access to the instance
     state: enabled
+
+- name: Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"

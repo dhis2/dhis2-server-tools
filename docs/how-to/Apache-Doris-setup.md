@@ -1,90 +1,143 @@
-# Doris Setup 
-### Pre-requisites
-- Ubuntu24.04 server 
-- ssh access to the server with non root user with sudo privileges 
+# Doris Setup Guide
 
-### Preparing the environment 
-#### LXC Container 
+## Prerequisites
 
-Please set the maximum number of open file descriptors larger than 60000
+- Ubuntu 24.04 Server
+- SSH access using a non-root user with `sudo` privileges
 
-vi /etc/security/limits.conf 
+---
+
+## Step 1: Prepare the Environment
+
+> **Note:**  
+> If Doris is running inside an LXD container, apply the following configurations on the **LXD host**.
+
+### Increase the Number of Open File Descriptors
+
+Edit `/etc/security/limits.conf`:
+
+```bash
+vim /etc/security/limits.conf
+```
+
+Add the following lines:
+
+```
 * soft nofile 1000000
 * hard nofile 1000000
-Start be
-
-Modify the number of virtual memory areas
-
-sysctl -w vm.max_map_count=2000000 # set on the host if using lxd
-
-
-### Step1: Login to the server via ssh and install java8 
-
-```
-ssh server_ip -p <ssh_port>
-sudo apt update -y 
-sudo apt upgrade -y 
-sudo apt install openjdk-17-jre-headless 
 ```
 
-### Step2: Disable swap on the host 
-To disable swap temporarily (swap will be re-enabled after a restart):
+### Increase the Virtual Memory Area Limit
 
-```
-swapoff -a
+```bash
+sysctl -w vm.max_map_count=2000000
 ```
 
-To permanently disable swap, edit /etc/fstab and comment out the swap partition entry, then restart the machine:
+---
 
+## Step 2: Disable Swap on the Host
+
+To temporarily disable swap (reverts on reboot):
+
+```bash
+sudo swapoff -a
 ```
-# /etc/fstab
+
+To disable swap permanently, edit `/etc/fstab` and comment out the swap entry:
+
+```bash
+sudo vim /etc/fstab
+```
+
+Example:
+
+```bash
 # <file system>        <dir>         <type>    <options>             <dump> <pass>
 tmpfs                  /tmp          tmpfs     nodev,nosuid          0      0
 /dev/sda1              /             ext4      defaults,noatime      0      1
-# /dev/sda2              none          swap      defaults              0      0
+# /dev/sda2            none          swap      defaults              0      0
 /dev/sda3              /home         ext4      defaults,noatime      0      2
 ```
 
-### Step3: Add doris User
-  
-```
-sudo adduser --comment "Doris Application User" --home  /usr/local/doris --disabled-login --system doris
-```
-### Step4: switch to doris user  
+Then reboot the machine.
 
-```
-sudo su -l doris -s /bin/bash 
+---
+
+## Step 3: Install Java 17 (Required for Doris 3.0.x)
+
+```bash
+ssh <server_ip> -p <ssh_port>
+sudo apt update && sudo apt upgrade -y
+sudo apt install openjdk-17-jre-headless -y
 ```
 
-### Step5: Download  app binaries application
+---
 
+## Step 4: Create a Dedicated Doris User
+
+```bash
+sudo adduser --comment "Doris Application User" --home /usr/local/doris --disabled-login --system doris
 ```
-# version 3.0.5
+
+---
+
+## Step 5: Switch to the Doris User
+
+```bash
+sudo su -l doris -s /bin/bash
+```
+
+---
+
+## Step 6: Download Doris Binaries
+
+```bash
+# Example: version 3.0.5
 wget https://apache-doris-releases.oss-accelerate.aliyuncs.com/apache-doris-3.0.5-bin-x64.tar.gz
 ```
 
-### Step6: Extract Doris 
+---
 
-```
-tar -xvzf ./apache-doris-3.0.5-bin-x64.tar.gz
+## Step 7: Extract the Archive
+
+```bash
+tar -xvzf apache-doris-3.0.5-bin-x64.tar.gz
 ```
 
-### Step7: Edit both `doris/fe.conf`  and `be.conf` and set `JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"`
+---
 
-```
+## Step 8: Configure `fe.conf` and `be.conf`
+
+Set the `JAVA_HOME` environment variable in both config files:
+
+```bash
+# For Frontend
 vim fe/conf/fe.conf
 ```
 
-start fe
+Add or update:
 
 ```
-./fe/bin/start_fe.sh --daemo
+JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
 ```
 
-### Add systemd services for backeknd and frontend 
-#### frontend  `vim /etc/systemd/system/doris-fe.service`
+Repeat similarly for `be/conf/be.conf`.
 
+---
+
+## Step 9: Start the Frontend
+
+```bash
+./fe/bin/start_fe.sh --daemon
 ```
+
+---
+
+## Step 10: Create systemd Services for Doris
+
+### Doris Frontend (`/etc/systemd/system/doris-fe.service`)
+
+```ini
 [Unit]
 Description=Apache Doris Frontend (FE)
 After=network.target
@@ -93,7 +146,7 @@ After=network.target
 Type=forking
 User=doris
 WorkingDirectory=/usr/local/doris/fe
-ExecStart= /usr/local/doris/fe/bin/start_fe.sh --daemon
+ExecStart=/usr/local/doris/fe/bin/start_fe.sh --daemon
 ExecStop=/usr/local/doris/fe/bin/stop_fe.sh
 Restart=on-failure
 
@@ -101,12 +154,11 @@ Restart=on-failure
 WantedBy=multi-user.target
 ```
 
-#### backend service `/etc/systemd/system/doris-be.service`
+### Doris Backend (`/etc/systemd/system/doris-be.service`)
 
-```
+```ini
 [Unit]
 Description=Apache Doris Backend (BE)
-# After=doris-fe.service
 After=network-online.target
 
 [Service]
@@ -123,40 +175,59 @@ Restart=on-failure
 WantedBy=multi-user.target
 ```
 
+Enable and start both services:
 
-
-### Connecting to apache Doris using mysql ( not strictly required  )
-To register BE node in Doris, you’ll need mysql client to connect to doris 
-Install mysql client with 
-`apt install mysql-client-core-8.0`
-Login with mysql 
-
-`mysql -uroot -P9030 -h127.0.0.1`
-`ALTER SYSTEM ADD BACKEND "127.0.0.1:9050";`
-
-
-### Configure DHIS2 to connect to Dorirs for Analytics 
-
-
+```bash
+sudo systemctl enable doris-fe
+sudo systemctl enable doris-be
+sudo systemctl start doris-fe
+sudo systemctl start doris-be
 ```
+
+---
+
+## Step 11: Connect to Doris via MySQL Client *(Optional)*
+
+You’ll need the MySQL client to register a backend (BE) node:
+
+```bash
+sudo apt install mysql-client-core-8.0
+```
+
+Then connect:
+
+```bash
+mysql -uroot -P9030 -h127.0.0.1
+```
+
+Inside MySQL shell:
+
+```sql
+ALTER SYSTEM ADD BACKEND "127.0.0.1:9050";
+```
+
+---
+
+## Step 12: Configure DHIS2 to Use Doris for Analytics
+
+```properties
 # Analytics database management system
 analytics.database = doris
 
-# Analytics database JDBC driver class
+# JDBC driver
 analytics.connection.driver_class = com.mysql.cj.jdbc.Driver
 
-# Analytics database connection URL
+# Connection URL
 analytics.connection.url = jdbc:mysql://172.19.2.40:9030/analytics
 
-# Analytics database username
+# Authentication
 analytics.connection.username = <doris_user>
-
-# Analytics database password
 analytics.connection.password = <doris_database_password>
 ```
 
-### PosgresqlJAR
+---
 
+## Optional: PostgreSQL JDBC Driver
 
-
+*(Add configuration or usage details here if needed.)*
 

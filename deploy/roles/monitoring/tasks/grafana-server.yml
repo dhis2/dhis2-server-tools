@@ -59,18 +59,7 @@
     comment: "Allow access from {{ item }} instance "
     state: enabled
   loop: "{{ groups['web'] }}"
-
-- name: Ensure root_url is set correctly in grafana.ini
-  community.general.ini_file:
-    path: /etc/grafana/grafana.ini
-    section: server
-    option: root_url
-    value: 'https://{{ fqdn }}/grafana'
-    mode: "0640"
-  notify: Restart Grafana
-  loop: "{{ groups['instances'] }}"
-  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
-
+  
 - name: Ensure domain = {{ fqdn }}
   community.general.ini_file:
     path: /etc/grafana/grafana.ini
@@ -79,8 +68,19 @@
     value: "{{ fqdn }}"
     mode: "0640"
   notify: Restart Grafana
-  loop: "{{ groups['instances'] }}"
-  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
+  # loop: "{{ groups['instances'] }}"
+  # when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
+
+- name: Ensure root_url is set correctly in grafana.ini
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: server
+    option: root_url
+    value: '%(protocol)s://%(domain)s:%(http_port)s/grafana'
+    mode: "0640"
+  notify: Restart Grafana
+  # loop: "{{ groups['instances'] }}"
+  # when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
 
 - name: Ensure path is properly set
   community.general.ini_file:
@@ -90,8 +90,8 @@
     value: 'true'
     mode: "0640"
   notify: Restart Grafana
-  loop: "{{ groups['instances'] }}"
-  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
+  # loop: "{{ groups['instances'] }}"
+  # when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
 
 - name: Prometheous scraping configs
   ansible.builtin.blockinfile:

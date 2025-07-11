@@ -30,9 +30,6 @@
         pool: "{{ lxd_storage_pool_name | default('default') }}"
         type: disk
 
-- name: Ensure timezone is {{ timezone }}
-  community.general.timezone:
-    name: "{{ timezone }}"
 
 - name: Get facts
   ansible.builtin.setup:
@@ -50,3 +47,7 @@
     wait_for_ipv4_addresses: true
   when:
     - ansible_host != ansible_facts['default_ipv4']['address']
+
+- name: Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"

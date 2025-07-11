@@ -38,10 +38,6 @@
       - "!min"
   tags: [always]
 
-- name: Ensure timezone is {{ timezone }}
-  community.general.timezone:
-    name: "{{ timezone }}"
-
 - name: Ensuring container has configured static ip address
   become: true
   vars:
@@ -52,3 +48,7 @@
     wait_for_ipv4_addresses: true
   when:
     - ansible_host != ansible_facts['default_ipv4']['address']
+
+- name: Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"
