@@ -26,6 +26,7 @@
         parent: "{{ lxd_bridge_interface | default('lxdbr1') }}"
         type: nic
         ipv4.address: "{{ ansible_host | ansible.utils.ipaddr(lxd_network) }}"
+  register: create_lxd_container_status
 
 - name: Get facts
   ansible.builtin.setup:
@@ -33,8 +34,7 @@
       - network
       - "!min"
 
-
-- name: Applying container static ip address
+- name: Ensure container has configured static ip address
   become: true
   vars:
     ansible_connection: local
@@ -44,8 +44,16 @@
     wait_for_ipv4_addresses: true
   when:
     - ansible_host != ansible_facts['default_ipv4']['address']
+  register: restart_lxd_container_status
+
+- name: Wait for systemd to be ready
+  ansible.builtin.wait_for:
+    path: /run/systemd/system
+    state: present
+    timeout: 10
+  become: true
+  when: create_lxd_container_status.changed or restart_lxd_container_status.changed
 
 - name: Ensure timezone is {{ timezone }}
   community.general.timezone:
     name: "{{ timezone }}"
-

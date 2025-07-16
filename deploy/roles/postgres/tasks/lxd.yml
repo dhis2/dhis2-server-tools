@@ -30,16 +30,13 @@
         path: /
         pool: "{{ lxd_storage_pool_name | default('default') }}"
         type: disk
+  register: create_lxd_container_status
 
 - name: Get facts
   ansible.builtin.setup:
     gather_subset:
       - network
       - "!min"
-
-- name: Ensure timezone is {{ timezone }}
-  community.general.timezone:
-    name: "{{ timezone }}"
 
 - name: Ensuring container has configured static ip address
   become: true
@@ -51,6 +48,19 @@
     wait_for_ipv4_addresses: true
   when:
     - ansible_host != ansible_facts['default_ipv4']['address']
+  register: restart_lxd_container_status
+
+- name: Wait for systemd to be ready
+  ansible.builtin.wait_for:
+    path: /run/systemd/system
+    state: present
+    timeout: 10
+  become: true
+  when: create_lxd_container_status.changed or restart_lxd_container_status.changed
+
+- name: Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"
 
 - name: Installing postgreSQL-{{ postgresql_version }}
   ansible.builtin.include_tasks: pg-install.yml
