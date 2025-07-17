@@ -100,7 +100,7 @@ Ensure you have:
 - A deployment server - This server is going to your an ansible-controller.<br>DHIS2
   setup on the backend application server will be done from here. We will be using
   deployment server and ansible-controller interchangeably in this guide. 
-  - It should run either Ubuntu 20.04 or 22.04 
+  - It should run either Ubuntu 22.04 or 24.04 
   - It should have working and tested SSH access to the managed hosts (backend
     application servers). SSH key-based authentication is advisable<br> 
     Deployment will be working with SSH connection. 
@@ -108,7 +108,7 @@ Ensure you have:
     ![](./docs/images/distributed-architecture.png?raw=true "Distributed")
 - Backend Servers (managed hosts) - These are the servers that will be running
   your DHIS2 components, i.e database(PostgreSQL, DHIS2, Monitoring, Proxy)
-  - They all should be be running Ubuntu 20.04 or 22.04 
+  - They all should be be running Ubuntu 22.04 or 24.04 
   - Be accessible (via ssh) from the deployment server.
 
 ### Step 1: Access deployment server (ansible-controller) via SSH 

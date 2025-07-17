@@ -1,0 +1,19 @@
+---
+- name: Update and upgrade system packages
+  ansible.builtin.apt:
+    upgrade: "yes"
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure python's netaddr is installed
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name:
+      - python3-netaddr   # needed for ansible.utils.ipaddr filter to work
+      - unzip
+    state: present
+
+- name: Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"
