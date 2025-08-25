@@ -10,33 +10,64 @@
       community.general.lxd_container:
         name: "{{ inventory_hostname }}"
         state: absent
-      when: inventory_hostname in groups['instances'] and instance_state == 'deleted'
+      when: 
+        - inventory_hostname in groups['instances'] 
+        - instance_state is defined 
+        - instance_state == 'deleted'
 
-    # - name: Delete nginx rewrite rule 
+    - name: Set path and regex for {{ proxy }}
+      loop: "{{ groups['instances'] }}"
+      ansible.builtin.set_fact:
+        path: >-
+          {% if proxy == 'nginx' %}
+          /etc/nginx/conf.d/{{ hostvars[item]['fqdn'] | default('default', true) | trim }}.conf
+          {% else %}
+          /etc/apache2/sites-enabled/{{ hostvars[item]['fqdn'] | default('default', true) | trim }}.conf
+          {% endif %}
+        regexp: >-
+          {% if proxy == 'nginx' %}
+          ^\s*include\s+conf\.d/upstream/{{ item }}\.conf;$
+          {% else %}
+          ^\s*IncludeOptional\s+upstream/{{ item }}\.conf
+          {% endif %}
+      when: 
+        - inventory_hostname in groups['web']
+        - hostvars[item]['instance_state'] is defined
+        - hostvars[item]['instance_state'] == "deleted"
+
+    - name: Debug path and regex
+      loop: "{{ groups['instances'] }}"
+      ansible.builtin.debug:
+        msg: "{{ regexp  }}"
+      when: 
+        - inventory_hostname in groups['web']
+        - hostvars[item]['instance_state'] is defined
+        - hostvars[item]['instance_state'] == "deleted"
 
     - name: Delete include location config 
       ansible.builtin.lineinfile:
-        regexp: '^\s*include\s+conf\.d/upstream/{{ hostvars[item].fqdn | trim }}\.conf;$'
-        # regexp: '^ *include +conf\.d/upstream/dhis\.conf;$'
-        path: /etc/nginx/conf.d/{{ hostvars[item]['fqdn'] | trim  }}.conf
-        line: "    include  conf.d/upstream/{{ hostvars[item]['fqdn'] | trim }}.conf;"
-
+        # path: "/etc/{{ proxy }}/conf.d/{{ hostvars[item]['fqdn'] | default('default', true) | trim | default('default', true) }}.conf"
+        path: '{{ path | trim }}'
+        # regexp: '^\s*include\s+conf\.d/upstream/{{ item }}\.conf;$'
+        regexp: '{{ regexp | trim }}'
         state: absent
       loop: "{{ groups['instances'] }}"
       when: 
         - inventory_hostname in groups['web']
-        - hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "") # Explore using default here
+        - hostvars[item]['instance_state'] is defined
         - hostvars[item]['instance_state'] == "deleted"
+        # - hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "") # Explore using default here
 
-    - name: Delete nginx location configuration on nginx
+    - name: Delete {{ proxy }} location configuration
       ansible.builtin.file:
-        path: /etc/nginx/conf.d/upstream/{{ item }}.conf
+        path: /etc/{{ proxy }}/conf.d/upstream/{{ item }}.conf
         state: absent
       loop: "{{ groups['instances'] }}"
       when:
         - inventory_hostname in groups['web']
+        - hostvars[item]['instance_state'] is defined
         - hostvars[item]['instance_state'] == "deleted"
-      notify: Reload Nginx
+      notify: Reload {{ proxy | capitalize }}
 
     - name: Delete database
       become: true
@@ -47,7 +78,8 @@
       loop: "{{ groups['instances'] }}"
       when:
         - inventory_hostname in groups['databases']
-        -  hostvars[item]['instance_state'] == "deleted"
+        - hostvars[item]['instance_state'] is defined
+        - hostvars[item]['instance_state'] == "deleted"
 
     - name: Delete database role
       become: true
@@ -58,22 +90,21 @@
       loop: "{{ groups['instances'] }}"
       when:
         - inventory_hostname in groups['databases']
-        -  hostvars[item]['instance_state'] == 'deleted'
+        - hostvars[item]['instance_state'] is defined
+        - hostvars[item]['instance_state'] == 'deleted'
 
-    - name: hecking postgresql Versions
+    - name: Checking postgresql Versions
       become: true
       become_user: postgres
       community.general.postgresql_info:
         filter: ver*
       register: postgresql_version_info
-      # loop: "{{ groups['instances'] }}"
+      loop: "{{ groups['instances'] }}"
       when:
         - inventory_hostname in groups['databases']
+        - hostvars[item]['instance_state'] is defined
+        - hostvars[item]['instance_state'] == 'deleted'
         # - inventory_hostname == hostvars[item]['database_host']
-
-    - ansible.builtin.debug:
-        msg: "{{ postgresql_version_info }}"
-      when: inventory_hostname in groups['databases']
 
     - name: Delete access entry in postgresql pg_hba.conf
       become: true
@@ -83,12 +114,14 @@
         state: absent
       loop: "{{ groups['instances'] }}"
       when:
+        - postgresql_version_info.version.major is defined
         - inventory_hostname in groups['databases']
-        - hostvars[item]['instance_state'] == 'deleted'
         - inventory_hostname == hostvars[item]['database_host']
+        - hostvars[item]['instance_state'] is defined
+        - hostvars[item]['instance_state'] == 'deleted'
       notify: Reload Postgres
 
-    - name: Firewall | Open port 5432 from dhis2 instances
+    - name: Delete UFW entry line
       community.general.ufw:
         rule: allow
         port: "{{ postgresql_port | default('5432') }}"
@@ -98,14 +131,20 @@
         delete: true
       loop: "{{ groups['instances'] }}"
       when:
-        - hostvars[item]['instance_state'] == 'deleted'
         - inventory_hostname == hostvars[item]['database_host']
         - inventory_hostname in groups['databases']
+        - hostvars[item]['instance_state'] is defined
+        - hostvars[item]['instance_state'] == 'deleted'
 
   handlers:
     - name: Reload Nginx
       ansible.builtin.service:
         name: nginx
+        state: reloaded
+
+    - name: Reload Apache2
+      ansible.builtin.service:
+        name: apache2
         state: reloaded
 
     - name: Reload Postgres

@@ -22,12 +22,14 @@
       tags: monitoring
     - role: create-instance
       tags: [create-instance]
+      when: instance_state is not defined or instance_state != 'deleted'
   tasks:
     - name: Install and configure unattended_upgrades
       ansible.builtin.include_tasks: playbooks/unattended_upgrades.yml
       when:
         - unattended_upgrades is defined
         - unattended_upgrades | bool
+        - instance_state is undefined
       tags:
         - unattended-upgrades
   handlers:

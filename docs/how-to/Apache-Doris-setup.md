@@ -227,7 +227,7 @@ analytics.connection.password = <doris_database_password>
 
 ---
 
-## Optional: PostgreSQL JDBC Driver
+## PostgreSQL JDBC Driver
 
 *(Add configuration or usage details here if needed.)*
 

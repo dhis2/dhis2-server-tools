@@ -34,13 +34,13 @@ Apache2 uses a similar setup to Nginx, with a slightly different directory struc
 
 #### Ansible-Managed Files
 
-Ansible generates the main config file based on whether a **Fully Qualified Domain Name (FQDN)** is defined.  
+Ansible generates the main configuration file based on whether a **Fully Qualified Domain Name (FQDN)** is defined.  
 These files are overwritten on every playbook run — do not edit them manually.
 
 | Condition          | Ansible-Generated File                |
 |--------------------|---------------------------------------|
-| `fqdn` is defined  | `/etc/apache2/conf.d/{{ fqdn }}.conf` |
-| `fqdn` not defined | `/etc/apache2/conf.d/default.conf`    |
+| `fqdn` is defined  | `/etc/apache2/sites-enabled/{{ fqdn }}.conf` |
+| `fqdn` not defined | `/etc/apache2/sites-enabled/default.conf`    |
 
 #### Static Files for Manual Edits
 

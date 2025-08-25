@@ -14,9 +14,12 @@
   when: inventory_hostname in groups['instances']
   tags: [set-dhis2-url, deploy-war, db_password_generate]
 
-- name: Include postgresql tasks
+- name: Creating instance database and database_user
   ansible.builtin.include_tasks: postgresql-db.yml
-  when: inventory_hostname in groups['databases']
+  loop: "{{ groups['instances'] }}"
+  when:
+    - inventory_hostname in groups['databases']
+    - hostvars[item]['instance_state'] is undefined
 
 - name: Set dhis2 url, when dhis2_version is defined
   ansible.builtin.include_tasks:
@@ -52,7 +55,12 @@
     apply:
       tags:
         - proxy-conf
-  when: inventory_hostname in groups['web'] and proxy is defined
+  loop: "{{ groups['instances'] }}"
+  loop_control:
+    loop_var: instance_item
+  when:
+    - inventory_hostname in groups['web'] and proxy is defined
+    - hostvars[instance_item]['instance_state'] is undefined
   tags: [proxy-conf]
 
 # Todo: A check to ensure this runs only when server_monitoring is munin

@@ -13,7 +13,7 @@
     insertafter: EOF
     regexp: '^host\s+{{ item }}\s+.*$'
     line: host     {{ item }}    {{ item }}  {{ hostvars[item]['ansible_host'] }}/32  scram-sha-256
-  loop: "{{ groups['instances'] }}"
+  # loop: "{{ groups['instances'] }}"
   when:
     - inventory_hostname == hostvars[item]['database_host']
     - db_gateway_address is undefined
@@ -29,7 +29,7 @@
     source: "{{ hostvars[item]['ansible_host'] }}/32"
     databases: "{{ item }}"
     method: "scram-sha-256"
-  loop: "{{ groups['instances'] }}"
+  # loop: "{{ groups['instances'] }}"
   when:
     - inventory_hostname == hostvars[item]['database_host']
     - db_gateway_address is undefined
@@ -44,7 +44,7 @@
     proto: tcp
     comment: "Allow access from {{ item }} instance "
     state: enabled
-  loop: "{{ groups['instances'] }}"
+  # loop: "{{ groups['instances'] }}"
   when:
     - item in ansible_play_hosts
     - inventory_hostname == hostvars[item]['database_host']
@@ -57,7 +57,7 @@
     regexp: '^host\s+({{ item }}).*$'
     insertafter: EOF
     line: host     {{ item }}    {{ item }}   {{ db_gateway_address }}/32  scram-sha-256
-  loop: "{{ groups['instances'] }}"
+  # loop: "{{ groups['instances'] }}"
   when:
     - item in ansible_play_hosts
     - inventory_hostname == hostvars[item]['database_host']
@@ -72,7 +72,7 @@
     proto: tcp
     comment: Allow access from {{ db_gateway_address }}
     state: enabled
-  loop: "{{ groups['instances'] }}"
+  # loop: "{{ groups['instances'] }}"
   when:
     - item in ansible_play_hosts
     - inventory_hostname == hostvars[item]['database_host']
@@ -85,7 +85,7 @@
     name: "{{ item }}"
     state: present
     password: "{{ hostvars[item]['db_password'] }}"
-  loop: "{{ groups['instances'] }}"
+  # loop: "{{ groups['instances'] }}"
   when:
     - item in ansible_play_hosts
     - hostvars[item]['db_password'] is defined
@@ -99,27 +99,28 @@
     name: "{{ item }}"
     state: present
     owner: "{{ item }}"
-  loop: "{{ groups['instances'] }}"
+  # loop: "{{ groups['instances'] }}"
   when:
     - item in ansible_play_hosts
     - inventory_hostname == hostvars[item]['database_host']
   notify: Reload Postgres
 
-- name: Creating postgis,btree_gin and pg_trgm extensions
+- name: creating postgis,btree_gin and pg_trgm extensions
   become: true
   become_user: postgres
   community.general.postgresql_ext:
-    db: "{{ item.0 }}"
-    name: "{{ item.1 }}"
+    db: "{{ loop_item.0 }}"
+    name: "{{ loop_item.1 }}"
   with_nested:
     - "{{ groups['instances'] }}"
     - "{{ postgresql_extensions }}"
   when:
-    - item.0 in ansible_play_hosts
-    - hostvars[item.0]['db_password'] is defined
-    - inventory_hostname == hostvars[item.0]['database_host']
+    - loop_item.0 in ansible_play_hosts
+    - hostvars[loop_item.0]['db_password'] is defined
+    - inventory_hostname == hostvars[loop_item.0]['database_host']
   loop_control:
-    label: "{{ item.1 }}"
+    loop_var: loop_item
+    label: "{{ loop_item.1 }}"
   notify: Reload Postgres
 
 - name: Flushing Handlers
