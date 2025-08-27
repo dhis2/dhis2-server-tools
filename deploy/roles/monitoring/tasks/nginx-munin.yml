@@ -1,5 +1,5 @@
 ---
-- name: Enable nginx modules for munin monitoring
+- name: Enable nginx modules required for munin monitoring
   ansible.builtin.file:
     src: "/usr/share/munin/plugins/{{ item }}"
     dest: "/etc/munin/plugins/{{ item }}"

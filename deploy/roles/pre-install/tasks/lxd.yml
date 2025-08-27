@@ -43,7 +43,7 @@
     name: lxd
     state: present
 
-- name: Add or modify hard nofile limits for wildcard domain
+- name: Modify nofile limits defaults
   community.general.pam_limits:
     domain: '*'
     limit_type: "{{ item }}"
