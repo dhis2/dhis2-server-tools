@@ -16,10 +16,8 @@
 
 - name: Creating instance database and database_user
   ansible.builtin.include_tasks: postgresql-db.yml
-  loop: "{{ groups['instances'] }}"
   when:
     - inventory_hostname in groups['databases']
-    - hostvars[item]['instance_state'] is undefined
 
 - name: Set dhis2 url, when dhis2_version is defined
   ansible.builtin.include_tasks:

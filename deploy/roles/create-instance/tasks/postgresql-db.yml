@@ -13,8 +13,9 @@
     insertafter: EOF
     regexp: '^host\s+{{ item }}\s+.*$'
     line: host     {{ item }}    {{ item }}  {{ hostvars[item]['ansible_host'] }}/32  scram-sha-256
-  # loop: "{{ groups['instances'] }}"
+  loop: "{{ groups['instances'] }}"
   when:
+    - hostvars[item]['instance_state'] is undefined
     - inventory_hostname == hostvars[item]['database_host']
     - db_gateway_address is undefined
     - item in ansible_play_hosts
@@ -29,8 +30,9 @@
     source: "{{ hostvars[item]['ansible_host'] }}/32"
     databases: "{{ item }}"
     method: "scram-sha-256"
-  # loop: "{{ groups['instances'] }}"
+  loop: "{{ groups['instances'] }}"
   when:
+    - hostvars[item]['instance_state'] is undefined
     - inventory_hostname == hostvars[item]['database_host']
     - db_gateway_address is undefined
     - item in ansible_play_hosts
@@ -44,8 +46,9 @@
     proto: tcp
     comment: "Allow access from {{ item }} instance "
     state: enabled
-  # loop: "{{ groups['instances'] }}"
+  loop: "{{ groups['instances'] }}"
   when:
+    - hostvars[item]['instance_state'] is undefined
     - item in ansible_play_hosts
     - inventory_hostname == hostvars[item]['database_host']
     - db_gateway_address is undefined
@@ -57,8 +60,9 @@
     regexp: '^host\s+({{ item }}).*$'
     insertafter: EOF
     line: host     {{ item }}    {{ item }}   {{ db_gateway_address }}/32  scram-sha-256
-  # loop: "{{ groups['instances'] }}"
+  loop: "{{ groups['instances'] }}"
   when:
+    - hostvars[item]['instance_state'] is undefined
     - item in ansible_play_hosts
     - inventory_hostname == hostvars[item]['database_host']
     - db_gateway_address is defined
@@ -72,8 +76,9 @@
     proto: tcp
     comment: Allow access from {{ db_gateway_address }}
     state: enabled
-  # loop: "{{ groups['instances'] }}"
+  loop: "{{ groups['instances'] }}"
   when:
+    - hostvars[item]['instance_state'] is undefined
     - item in ansible_play_hosts
     - inventory_hostname == hostvars[item]['database_host']
     - db_gateway_address is defined
@@ -85,8 +90,9 @@
     name: "{{ item }}"
     state: present
     password: "{{ hostvars[item]['db_password'] }}"
-  # loop: "{{ groups['instances'] }}"
+  loop: "{{ groups['instances'] }}"
   when:
+    - hostvars[item]['instance_state'] is undefined
     - item in ansible_play_hosts
     - hostvars[item]['db_password'] is defined
     - inventory_hostname == hostvars[item]['database_host']
@@ -99,8 +105,9 @@
     name: "{{ item }}"
     state: present
     owner: "{{ item }}"
-  # loop: "{{ groups['instances'] }}"
+  loop: "{{ groups['instances'] }}"
   when:
+    - hostvars[item]['instance_state'] is undefined
     - item in ansible_play_hosts
     - inventory_hostname == hostvars[item]['database_host']
   notify: Reload Postgres

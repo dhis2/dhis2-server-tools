@@ -11,8 +11,8 @@
     msg:
       - UFW is disabled !!
       - Please enable it to continue with the setup
-      - sudo ufw limit 22 # allows ssh connections to the server
-      - sudo ufw enable # starts and enables ufw
+      - sudo ufw limit 22   # allows ssh connections to the server
+      - sudo ufw enable   # starts and enables ufw
   when: "'inactive' in ufw_check.stdout"
 
 - name: End play if firewall is n not enabled
@@ -55,8 +55,8 @@
       -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport {{ hostvars[host]['https_port'] | default('443') }} -j  DNAT --to-destination {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['https_port'] | default('443') }}
       {% endif %}
       {% endfor %}
-      # Enable masquerade on host network for internet connection.
-      -A POSTROUTING -s {{ lxd_network }} ! -d {{ lxd_network }} -j MASQUERADE
+      # Enable masquerade on host network for internet connection, not required, handled in lxd
+      # -A POSTROUTING -s {{ lxd_network }} ! -d {{ lxd_network }} -j MASQUERADE
       COMMIT
   notify: Reload UFW
   when: proxy is defined

@@ -127,8 +127,10 @@
   ansible.builtin.command: lxc list status=stopped -c=n -f=csv
   register: stopped_containers
   changed_when: false
+  tags: [never]
 
 - name: Remove stopped LXC containers
   ansible.builtin.command: lxc rm {{ item }}
   with_items: "{{ stopped_containers.stdout_lines }}"
   when: item is in groups['all']
+  tags: [never]
