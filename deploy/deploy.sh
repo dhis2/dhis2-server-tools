@@ -75,7 +75,6 @@ then
       *)
          if (( $(echo "${distro_version} > 22.04" | bc -l) )); then
             echo "Installing ansible on ${distro_name} ${distro_version} ..."
-           echo "Please note that your distro is not either Ubuntu 20.04 or 22.04, the setup in your system is experimental i.e not tested extensively"
            ansible_install_other
         else
           echo "Your distro  ${distro_name} ${distro_version}  is not supported"

@@ -28,6 +28,7 @@
       dest: /etc/munin/munin.conf
     - src: hosts.conf.j2
       dest: "{{ munin_conf_d_directory }}/hosts.conf"
+  tags: [create-instance]
 
 - name: "Copy munin configuration for its access via apache2 proxy "
   ansible.builtin.template:

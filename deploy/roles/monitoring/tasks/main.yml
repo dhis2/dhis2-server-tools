@@ -7,6 +7,7 @@
 
 - name: Include server tasks for {{ server_monitoring | trim }}
   ansible.builtin.include_tasks: "{{ server_monitoring | trim }}-server.yml"
+  tags: [create-instance]
   when:
     - server_monitoring is defined
     - inventory_hostname in groups['monitoring']

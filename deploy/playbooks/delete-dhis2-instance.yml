@@ -15,6 +15,38 @@
         - instance_state is defined 
         - instance_state == 'deleted'
 
+    - name: Build proxy cleanup map (per deleted instance)
+      ansible.builtin.set_fact:
+        proxy_cleanup: "{{ proxy_cleanup | default({}) | combine({
+          item: {
+            'path': (proxy == 'nginx') | ternary(
+            '/etc/nginx/conf.d/' ~ (hostvars[item]['fqdn'] | default('default', true) | trim) ~ '.conf',
+            '/etc/apache2/sites-enabled/' ~ (hostvars[item]['fqdn'] | default('default', true) | trim) ~ '.conf'
+          ),
+            'regexp': (proxy == 'nginx') | ternary( '^\\s*include\\s+conf\\.d/upstream/' ~ item ~ '\\.conf;$', '^\\s*IncludeOptional\\s+upstream/' ~ item ~ '\\.conf'
+          ) } }) }}"
+      loop: "{{ groups['instances'] }}"
+      when:
+        - inventory_hostname in groups['web']
+        - hostvars[item]['instance_state'] is defined
+        - hostvars[item]['instance_state'] == 'deleted'
+
+    - name: Debug proxy_cleanup
+      ansible.builtin.debug:
+        msg: "{{ proxy_cleanup  }}"
+      when: 
+        - inventory_hostname in groups['web']
+
+    - name: Remove upstream includes for deleted instances
+      ansible.builtin.lineinfile:
+        path: "{{ item.value.path }}"
+        regexp: "{{ item.value.regexp }}"
+        state: absent
+      loop: "{{ proxy_cleanup | dict2items }}"
+      when:
+        - proxy_cleanup is defined
+        - inventory_hostname in groups['web']
+
     - name: Set path and regex for {{ proxy }}
       loop: "{{ groups['instances'] }}"
       ansible.builtin.set_fact:
@@ -34,21 +66,11 @@
         - inventory_hostname in groups['web']
         - hostvars[item]['instance_state'] is defined
         - hostvars[item]['instance_state'] == "deleted"
-
-    - name: Debug path and regex
-      loop: "{{ groups['instances'] }}"
-      ansible.builtin.debug:
-        msg: "{{ regexp  }}"
-      when: 
-        - inventory_hostname in groups['web']
-        - hostvars[item]['instance_state'] is defined
-        - hostvars[item]['instance_state'] == "deleted"
+      tags: [ never ]
 
     - name: Delete include location config 
       ansible.builtin.lineinfile:
-        # path: "/etc/{{ proxy }}/conf.d/{{ hostvars[item]['fqdn'] | default('default', true) | trim | default('default', true) }}.conf"
         path: '{{ path | trim }}'
-        # regexp: '^\s*include\s+conf\.d/upstream/{{ item }}\.conf;$'
         regexp: '{{ regexp | trim }}'
         state: absent
       loop: "{{ groups['instances'] }}"
@@ -56,7 +78,7 @@
         - inventory_hostname in groups['web']
         - hostvars[item]['instance_state'] is defined
         - hostvars[item]['instance_state'] == "deleted"
-        # - hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "") # Explore using default here
+      tags: [ never ]
 
     - name: Delete {{ proxy }} location configuration
       ansible.builtin.file:
@@ -135,7 +157,19 @@
         - inventory_hostname in groups['databases']
         - hostvars[item]['instance_state'] is defined
         - hostvars[item]['instance_state'] == 'deleted'
+    - name: Delete host monitoring on munin server
+      ansible.builtin.template:
+        src: ../roles/monitoring/templates/hosts.conf.j2
+        dest: /etc/munin/munin-conf.d/hosts.conf
+        owner: root
+        group: root
+        mode: "0644"
+      when:
+        - server_monitoring is defined
+        - server_monitoring == "munin"
+        - inventory_hostname in groups['monitoring']
 
+      
   handlers:
     - name: Reload Nginx
       ansible.builtin.service:
