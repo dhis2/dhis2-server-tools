@@ -43,3 +43,6 @@
   become: true
   roles:
     - role: backups
+
+- import_playbook: playbooks/delete-dhis2-instance.yml
+  tags: [never, delete-instance]

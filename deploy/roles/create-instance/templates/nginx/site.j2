@@ -3,7 +3,7 @@
 # during future Ansible runs.
 
 # Please place any custom configurations in the following file
-# /etc/nginx/custom/{{ fqdn }}.conf 
+# /etc/nginx/custom/{{  hostvars[item]['fqdn']  }}.conf 
 
 # configurations within that file will be included in this nginx configuration.
 
@@ -50,60 +50,67 @@ server {
   listen {{ https_port | default('443') }} ssl;
   server_name {{ hostvars[item]['fqdn'] | trim }};
   # ssl settings 
-  ssl_certificate     /etc/ssl/selfsigned/selfsigned.crt;
-  ssl_certificate_key /etc/ssl/selfsigned/selfsigned.key;
+  ssl_certificate   /etc/ssl/selfsigned/selfsigned.crt;
+  ssl_certificate_key   /etc/ssl/selfsigned/selfsigned.key;
   {%endif-%}
   ssl_stapling on;
   ssl_stapling_verify  on;
 
-  # please write your custom changes to the static/{{ fqdn }}.conf; and
+  # please write your custom changes to the static/{{ hostvars[item]['fqdn'] }}.conf; and
   # will be kept across subsequent ansible runs 
-  include static/{{ fqdn }}.conf;
-
-  # include instance location configs 
-{% for instance in groups['instances']  if (hostvars[instance]['fqdn'] is defined) and
-(hostvars[instance]['fqdn'] | trim  == hostvars[item]['fqdn'] | trim ) and
-'ROOT' not in groups['instances']  | map('extract', hostvars, 'dhis2_base_path') | map('default', 'None') and
-(hostvars[instance]['proxy_rewrite'] | default(false) == true or hostvars[instance]['proxy_rewrite'] | default('false') == "true") %}
+{% for instance in groups['instances']
+   if (hostvars[instance]['fqdn'] | default('') | trim) == (hostvars[item]['fqdn'] | default('') | trim)
+   and (hostvars[instance]['fqdn'] | default('') | trim) and (hostvars[instance]['instance_state'] is undefined) %}
 {% if loop.first %}
-  rewrite ^/$ /{{ hostvars[instance]['dhis2_base_path']  | default(instance)| to_fixed_string }}; 
-{%endif%}
-{%endfor%}
+  include static/{{ hostvars[instance]['fqdn'] | trim }}.conf;
+{% endif %}
+{% endfor %}
 
-  {% for instance  in groups['instances'] if (hostvars[instance]['fqdn'] is defined) and 
-  (hostvars[instance]['fqdn'] | trim == hostvars[item]['fqdn'] | trim ) -%}
-    include  conf.d/upstream/{{ instance | to_fixed_string }}.conf;
-  {%endfor%}
-  # include server  monitoring location configs 
-  {% if server_monitoring is defined -%}
-  {% set server_monitoring_lower = server_monitoring | lower | trim -%}
-  {% if server_monitoring_lower == 'munin' -%}
+  # rewrite rule
+{% for instance in groups['instances']
+   if (hostvars[instance]['fqdn'] | default('') | trim == hostvars[item]['fqdn'] | trim)
+   and (hostvars[instance]['instance_state'] is not defined)
+   and (hostvars[instance]['dhis2_base_path'] | default('') != 'ROOT')
+   and (hostvars[instance]['proxy_rewrite'] | default(false) in [true, 'true']) %}
+  {% if loop.first %}
+  rewrite ^/$ /{{ hostvars[instance]['dhis2_base_path'] | default(instance) | to_fixed_string }};
+  {% endif %}
+{% endfor %}
+
+   # Location configuration for  the instances 
+{% for instance in groups['instances']
+     if (hostvars[instance]['fqdn'] | default('') | trim == hostvars[item]['fqdn'] | trim)
+     and (hostvars[instance]['instance_state'] is undefined) %}
+    include conf.d/upstream/{{ instance | to_fixed_string }}.conf;
+{% endfor %}
+
+{% set monitoring = (server_monitoring | default('') | lower | trim) %}
+  # Location configs for server monitoring 
+{% if monitoring == 'munin' %}
   include conf.d/upstream/munin.conf;
-  {# {% elif server_monitoring_lower == 'grafana' %} #}
-  {% elif server_monitoring  in  ['grafana', 'prometheus', 'grafana/prometheus'] -%}
+{% elif monitoring in ['grafana', 'prometheus', 'grafana/prometheus'] %}
   include conf.d/upstream/grafana.conf;
-  {% else %}
-  # server_monitoring is defined but doesn't match glowroot or prometheus
-  # Add a default include or log a warning if needed
+{% elif monitoring %}
+  # server_monitoring is set but not recognized: {{ server_monitoring }}
   # Example: include conf.d/upstream/default.conf;
-  {% endif %}
-  {% else %}
-  # server_monitoring is not defined
-  # Handle the case where server_monitoring is not set
+{% else %}
+  # server_monitoring is not defined or empty
   # Example: include conf.d/upstream/default.conf;
-  {% endif %}
-
-{% for instance  in groups['instances'] if (hostvars[instance]['fqdn'] is defined) and
-(hostvars[instance]['fqdn'] | trim  == hostvars[item]['fqdn'] | trim ) and 
-'ROOT' not in groups['instances'] | map('extract', hostvars, 'dhis2_base_path') | map('default', 'None') %}
+{% endif %}
+  # Return 444 if nothing is served  on '/'
+  {% for instance in groups['instances']
+   if (hostvars[instance]['fqdn'] | default('') | trim == hostvars[item]['fqdn'] | trim)
+   and ('ROOT' not in groups['instances']
+          | map('extract', hostvars, 'dhis2_base_path')
+          | map('default', 'None')) %}
 {% if loop.first %}
-location / {
-  return 444;
-  }
-{%endif%}
-{%endfor%}
-
-  if ($host != "{{ hostvars[item]['fqdn'] | trim }}") {
+  location / {
     return 444;
+  }
+{% endif %}
+{% endfor %}
+
+if ($host != "{{ hostvars[item]['fqdn'] | trim }}") {
+  return 444;
     }
 }

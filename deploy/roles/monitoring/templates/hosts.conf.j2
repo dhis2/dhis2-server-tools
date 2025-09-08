@@ -1,6 +1,6 @@
-{% for host in ansible_play_hosts_all if hostvars[host].instance_state is not defined %}
-[{{ host if host != '127.0.0.1' else 'host' }}]
-    address {{ hostvars[host]['ansible_host'] | default(lxd_network.split('/')[0]) }}
+{% for host in ansible_play_hosts_all if  host != '127.0.0.1'  and  hostvars[host]["instance_state"] is not defined %}
+[{{ host }}]
+    address {{ hostvars[host]['ansible_host']  }}
     use_node_name yes
 {% endfor %}
 

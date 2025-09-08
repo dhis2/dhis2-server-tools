@@ -6,7 +6,7 @@
 
 - name: Set LetsEcrypt mail
   ansible.builtin.set_fact:
-    mail: "{{ email if email | default('mail.example.com') is match('^(?!.*\\.example\\.com$)[\\w\\.-]+@[\\w\\.-]+\\.\\w+$') else 'admin@' + hostvars[item]['fqdn'].split('.')[-2:] | join('.') }}"
+    mail: "{{ email if email | default('mail.example.com') is match('^(?!.*\\.example\\.com$)[\\w\\.-]+@[\\w\\.-]+\\.\\w+$') else ('admin@' + hostvars[item]['fqdn'].split('.')[-2:] | join('.')) }}"
 
 - name: Generate TLS/SSL Certificate with certbot
   become: true

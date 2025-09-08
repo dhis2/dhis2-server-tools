@@ -58,7 +58,7 @@
     state: directory
   notify: Restart Tomcat
 
-- name: Create systemd override file for tomcat{{ tomcat_version }}
+- name: Create systemd override file for tomcat
   ansible.builtin.template:
     src: tomcat_overrides.j2
     dest: /etc/systemd/system/tomcat{{ tomcat_version }}.service.d/override.conf

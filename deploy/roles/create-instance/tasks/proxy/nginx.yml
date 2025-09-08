@@ -19,7 +19,9 @@
 - name: Include TLS configurarion tasks
   ansible.builtin.include_tasks: "tls/{{ TLS_TYPE | default('letsencrypt') }}.yml"
   loop: "{{ groups['instances'] }}"
-  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
+  when:
+    - hostvars[item]['fqdn'] | default('', true) | trim
+    - hostvars[item]['instance_state'] is undefined
 
 - name: Instance location configuration
   ansible.builtin.template:
@@ -31,18 +33,22 @@
     mode: "0640"
   loop: "{{ groups['instances'] }}"
   notify: Reload Nginx
+  when:
+    - hostvars[item]['instance_state'] is undefined
 
 - name: Include selfsigned TLS Certificate tasks, fqdn is not defined
   ansible.builtin.include_tasks: ./tls/selfsigned.yml
   loop: "{{ groups['instances'] }}"
-  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (not hostvars[item]['fqdn'] | trim != "")
+  when:
+    - not (hostvars[item]['fqdn'] | default('', true) | trim)
+    - hostvars[item]['instance_state'] is undefined
 
 - name: Find files to delete in /etc/nginx/conf.d/
   ansible.builtin.find:
     paths: /etc/nginx/conf.d/
     patterns: '*'
     file_type: file
-    excludes: "{{ groups['instances'] | map('extract', hostvars, 'fqdn') | map('default', 'default') | map('regex_replace', '^\\s+|\\s+$', '') | unique | map('regex_replace', '^$', 'default') | map('regex_replace', '(.+)', '\\1.conf') | list }}"
+    excludes: "{{ groups['instances'] | map('extract', hostvars, 'fqdn') | map('default', 'default', true) | map('regex_replace', '^\\s+|\\s+$', '') | unique | map('regex_replace', '^$', 'default') | map('regex_replace', '(.+)', '\\1.conf') | list }}"
   register: found_files
 
 - name: Clean /etc/nginx/conf.d/ directory
@@ -60,7 +66,9 @@
     force: false
     mode: "0640"
   loop: "{{ groups['instances'] }}"
-  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")  # Explore using default here
+  when:
+    - hostvars[item]['fqdn'] | default('', true) | trim
+    - hostvars[item]['instance_state'] is undefined
   notify: Restart Nginx
 
 - name: Generate Nginx config for valid FQDNs
@@ -71,7 +79,9 @@
     group: root
     mode: "0640"
   loop: "{{ groups['instances'] }}"
-  when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")  # Explore using default here
+  when:
+    - hostvars[item]['fqdn'] | default('', true) | trim
+    - hostvars[item]['instance_state'] is undefined
   notify: Restart Nginx
 
 - name: Copy static Nginx config for instances without FQDNs
@@ -83,7 +93,9 @@
     mode: "0640"
     force: false
   loop: "{{ groups['instances'] }}"
-  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (hostvars[item]['fqdn'] | trim == "")
+  when:
+    - not (hostvars[item]['fqdn'] | default('', true) | trim)
+    - hostvars[item]['instance_state'] is undefined
   notify: Restart Nginx
 
 - name: Generate dynamic Nginx config for instances without FQDN
@@ -94,7 +106,9 @@
     group: root
     mode: "0640"
   loop: "{{ groups['instances'] }}"
-  when: hostvars[item]['fqdn'] is undefined or hostvars[item]['fqdn'] == None or (hostvars[item]['fqdn'] | trim == "")
+  when:
+    - not (hostvars[item]['fqdn'] | default('', true) | trim)
+    - hostvars[item]['instance_state'] is undefined
   notify: Restart Nginx
 
 # starting nginx service as it was stopped generaging letsencrypt.

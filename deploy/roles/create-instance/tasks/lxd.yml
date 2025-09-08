@@ -37,7 +37,7 @@
     gather_subset:
       - network
       - "!min"
-  tags: [always]
+  tags: [always] # TODO why is always needed here 
 
 - name: Ensuring container has configured static ip address
   become: true

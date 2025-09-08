@@ -1,5 +1,5 @@
 ---
-- name: Dowload dhis2 releasese.json file
+- name: Download dhis2 releases.json file
   ansible.builtin.include_tasks:
     file: dhis2-releases.yml
 
@@ -53,12 +53,8 @@
     apply:
       tags:
         - proxy-conf
-  loop: "{{ groups['instances'] }}"
-  loop_control:
-    loop_var: instance_item
   when:
     - inventory_hostname in groups['web'] and proxy is defined
-    - hostvars[instance_item]['instance_state'] is undefined
   tags: [proxy-conf]
 
 # Todo: A check to ensure this runs only when server_monitoring is munin

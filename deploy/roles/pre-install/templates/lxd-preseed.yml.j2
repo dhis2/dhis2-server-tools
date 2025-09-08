@@ -12,7 +12,7 @@ storage_pools:
 - config: {}
   description: ""
   name: default
-  driver: dir
+  driver: "{{ lxd_storage_driver | default('dir') }}"
 profiles:
 - config:
     environment.TZ: "{{ timezone }}"

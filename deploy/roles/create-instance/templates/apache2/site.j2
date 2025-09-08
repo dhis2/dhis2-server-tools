@@ -3,7 +3,7 @@
 # during future Ansible runs.
 
 # Please place any custom configurations in the following file
-# /etc/apache2/static/{{ fqdn }}.conf 
+# /etc/apache2/static/{{ hostvars[item]['fqdn'] }}.conf 
 
 # configurations within that file will be included in this apache2 configuration.
 
@@ -71,18 +71,25 @@
        RewriteRule ^.(.*) - [L,F]
 
        # Include static configurations, 
-       IncludeOptional   static/{{ fqdn }}.conf
-      
-        # RewriteRule   ^/$  /dhis/  [R]
-{% for instance in groups['instances']  if (hostvars[instance]['fqdn'] is defined)  and
-(hostvars[instance]['fqdn'] | trim  == hostvars[item]['fqdn'] | trim ) and 
-'ROOT' not in groups['instances'] | map('extract', hostvars, 'dhis2_base_path') | map('default', 'None') and
-(hostvars[instance]['proxy_rewrite'] | default(false) == true or 
-hostvars[instance]['proxy_rewrite'] | default('false') == "true") %}
+{% for instance in groups['instances']
+   if (hostvars[instance]['fqdn'] | default('') | trim) == (hostvars[item]['fqdn'] | default('') | trim)
+   and (hostvars[instance]['fqdn'] | default('') | trim) and (hostvars[instance]['instance_state'] is undefined) %}
 {% if loop.first %}
+       IncludeOptional   static/{{ hostvars[instance]['fqdn'] | trim }}.conf
+{% endif %}
+{% endfor %}
+
+# rewrite rule
+{% for instance in groups['instances']
+   if (hostvars[instance]['fqdn'] | default('') | trim == hostvars[item]['fqdn'] | trim)
+   and (hostvars[instance]['instance_state'] is not defined)
+   and (hostvars[instance]['dhis2_base_path'] | default('') != 'ROOT')
+   and (hostvars[instance]['proxy_rewrite'] | default(false) in [true, 'true']) %}
+  {% if loop.first %}
        RewriteRule   ^/$  /{{ hostvars[instance]['dhis2_base_path'] | default(instance) | to_fixed_string }}/  [R]
-{%endif%}
-{%endfor%}
+  {% endif %}
+{% endfor %}
+
        #===========================================================
        # tomcat backends.  These configs are read from files in
        # <server-root>/upstream directory
@@ -93,11 +100,13 @@ hostvars[instance]['proxy_rewrite'] | default('false') == "true") %}
        #  ProxyPass "http://192.168.0.11:8080/test1"
        #  ProxyPassReverse "http://192.168.0.11:8080/test1"
        # </Location>
-       #===========================================================
-       {% for instance  in groups['instances'] if (hostvars[instance]['fqdn'] is defined) and 
-       (hostvars[instance]['fqdn'] | trim == hostvars[item]['fqdn'] | trim  )  -%}
+      #===========================================================
+
+      # Location configuration for  the instances 
+{% for instance in groups['instances'] if (hostvars[instance]['fqdn']| default('') | trim == hostvars[item]['fqdn'] | trim) and (hostvars[instance]['instance_state'] is undefined) %}
        IncludeOptional upstream/{{ instance | to_fixed_string }}.conf
-       {%endfor%}
+{% endfor %}
+
        IncludeOptional  upstream/munin.conf
 
        #===========================================================

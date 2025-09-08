@@ -31,12 +31,6 @@
         - hostvars[item]['instance_state'] is defined
         - hostvars[item]['instance_state'] == 'deleted'
 
-    - name: Debug proxy_cleanup
-      ansible.builtin.debug:
-        msg: "{{ proxy_cleanup  }}"
-      when: 
-        - inventory_hostname in groups['web']
-
     - name: Remove upstream includes for deleted instances
       ansible.builtin.lineinfile:
         path: "{{ item.value.path }}"
@@ -46,39 +40,6 @@
       when:
         - proxy_cleanup is defined
         - inventory_hostname in groups['web']
-
-    - name: Set path and regex for {{ proxy }}
-      loop: "{{ groups['instances'] }}"
-      ansible.builtin.set_fact:
-        path: >-
-          {% if proxy == 'nginx' %}
-          /etc/nginx/conf.d/{{ hostvars[item]['fqdn'] | default('default', true) | trim }}.conf
-          {% else %}
-          /etc/apache2/sites-enabled/{{ hostvars[item]['fqdn'] | default('default', true) | trim }}.conf
-          {% endif %}
-        regexp: >-
-          {% if proxy == 'nginx' %}
-          ^\s*include\s+conf\.d/upstream/{{ item }}\.conf;$
-          {% else %}
-          ^\s*IncludeOptional\s+upstream/{{ item }}\.conf
-          {% endif %}
-      when: 
-        - inventory_hostname in groups['web']
-        - hostvars[item]['instance_state'] is defined
-        - hostvars[item]['instance_state'] == "deleted"
-      tags: [ never ]
-
-    - name: Delete include location config 
-      ansible.builtin.lineinfile:
-        path: '{{ path | trim }}'
-        regexp: '{{ regexp | trim }}'
-        state: absent
-      loop: "{{ groups['instances'] }}"
-      when: 
-        - inventory_hostname in groups['web']
-        - hostvars[item]['instance_state'] is defined
-        - hostvars[item]['instance_state'] == "deleted"
-      tags: [ never ]
 
     - name: Delete {{ proxy }} location configuration
       ansible.builtin.file:
@@ -91,30 +52,6 @@
         - hostvars[item]['instance_state'] == "deleted"
       notify: Reload {{ proxy | capitalize }}
 
-    - name: Delete database
-      become: true
-      become_user: postgres
-      community.postgresql.postgresql_db:
-        name: "{{ item }}"
-        state: absent
-      loop: "{{ groups['instances'] }}"
-      when:
-        - inventory_hostname in groups['databases']
-        - hostvars[item]['instance_state'] is defined
-        - hostvars[item]['instance_state'] == "deleted"
-
-    - name: Delete database role
-      become: true
-      become_user: postgres
-      community.general.postgresql_user:
-        name: "{{ item }}"
-        state: absent
-      loop: "{{ groups['instances'] }}"
-      when:
-        - inventory_hostname in groups['databases']
-        - hostvars[item]['instance_state'] is defined
-        - hostvars[item]['instance_state'] == 'deleted'
-
     - name: Checking postgresql Versions
       become: true
       become_user: postgres
@@ -126,7 +63,6 @@
         - inventory_hostname in groups['databases']
         - hostvars[item]['instance_state'] is defined
         - hostvars[item]['instance_state'] == 'deleted'
-        # - inventory_hostname == hostvars[item]['database_host']
 
     - name: Delete access entry in postgresql pg_hba.conf
       become: true

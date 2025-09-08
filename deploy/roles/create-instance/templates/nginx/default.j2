@@ -32,28 +32,32 @@ server {
   listen {{ https_port | default('443') }} ssl;
   server_name _;
   include static/default.conf;
-{% for instance in groups['instances']  if 'ROOT' not in groups['instances'] |
-map('extract', hostvars, 'dhis2_base_path') | map('default', 'None') and
-(hostvars[instance]['proxy_rewrite'] | default(false) == true or
-hostvars[instance]['proxy_rewrite'] | default('false') == "true") %} 
-{% if loop.first %}
-  # in case your want '/' access re-written to /{{ hostvars[instance]['dhis2_base_path']  | default(instance) | to_fixed_string }}; 
-  rewrite ^/$ /{{ hostvars[instance]['dhis2_base_path']  | default(instance) | to_fixed_string }}; 
-{%endif%}
-{%endfor%}
-# Location configuration 
-  {% for instance  in groups['instances'] if (hostvars[instance]['fqdn'] is undefined)
-  or hostvars[instance]['fqdn'] == None or  (not hostvars[instance]['fqdn'] | trim != "") -%}
-  # location configs for dhis2 instance
+
+  {% for instance in groups['instances']
+   if (hostvars[instance]['instance_state'] is not defined)
+   and (hostvars[instance]['proxy_rewrite'] | default(false) in [true, 'true'])
+   and not (hostvars[instance]['fqdn'] | default('', true) | trim) and ('ROOT' not in groups['instances'] |
+        map('extract', hostvars, 'dhis2_base_path') |
+        map('default', 'None')) %}
+  {% if loop.first %}
+  # in case you want '/' access re-written to /{{ hostvars[instance]['dhis2_base_path'] | default(instance) | to_fixed_string }}
+  rewrite ^/$ /{{ hostvars[instance]['dhis2_base_path'] | default(instance) | to_fixed_string }};
+  {% endif %}
+{% endfor %}
+
+# location configs for dhis2 instances
+{% for instance  in groups['instances']  if (hostvars[instance]['instance_state'] is not defined) 
+and not (hostvars[instance]['fqdn'] | default('', true) | trim) %} 
   include  conf.d/upstream/{{ instance | to_fixed_string }}.conf;
-  {%endfor%}
+{%endfor%}
 
 {% if server_monitoring is defined -%}
 {% set server_monitoring_lower = server_monitoring | lower | trim %}
 {% if server_monitoring_lower == 'munin' %}
-  # location config for munin server monitoring
+# location config for munin server backend
   include conf.d/upstream/munin.conf;
   {% elif server_monitoring  in  ['grafana', 'prometheus', 'grafana/prometheus'] -%}
+# Location configuration for grafana backend
   include conf.d/upstream/grafana.conf;
   {% else %}
   # server_monitoring is defined but doesn't match glowroot or prometheus

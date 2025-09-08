@@ -18,9 +18,9 @@
 - name: Configuring s3
   ansible.builtin.include_tasks: s3cfg.yml
   when:
-    - s3_access_key is defined and (s3_access_key != None) and s3_access_key | trim != ""
-    - s3_secret_key is defined and (s3_secret_key != None) and s3_secret_key | trim != ""
-    - s3_cluster_id is defined and (s3_cluster_id != None) and s3_cluster_id | trim != ""
+    - s3_access_key | default('') | trim | length > 0
+    - s3_secret_key | default('') | trim | length > 0
+    - s3_cluster_id | default('') | trim | length > 0
 
 - name: Create dhis2-env from template
   ansible.builtin.template:
