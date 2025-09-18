@@ -92,10 +92,8 @@ server {
   include conf.d/upstream/grafana.conf;
 {% elif monitoring %}
   # server_monitoring is set but not recognized: {{ server_monitoring }}
-  # Example: include conf.d/upstream/default.conf;
 {% else %}
   # server_monitoring is not defined or empty
-  # Example: include conf.d/upstream/default.conf;
 {% endif %}
   # Return 444 if nothing is served  on '/'
   {% for instance in groups['instances']

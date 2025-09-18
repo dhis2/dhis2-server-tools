@@ -59,8 +59,8 @@
     comment: "Allow access from {{ item }} instance "
     state: enabled
   loop: "{{ groups['web'] }}"
-  
-- name: Ensure domain = {{ fqdn }}
+ 
+- name: Ensure domain is properly configured
   community.general.ini_file:
     path: /etc/grafana/grafana.ini
     section: server
@@ -68,6 +68,7 @@
     value: "{{ fqdn }}"
     mode: "0640"
   notify: Restart Grafana
+  when: fqdn is defined 
   # loop: "{{ groups['instances'] }}"
   # when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
 

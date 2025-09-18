@@ -51,24 +51,18 @@ and not (hostvars[instance]['fqdn'] | default('', true) | trim) %}
   include  conf.d/upstream/{{ instance | to_fixed_string }}.conf;
 {%endfor%}
 
-{% if server_monitoring is defined -%}
-{% set server_monitoring_lower = server_monitoring | lower | trim %}
-{% if server_monitoring_lower == 'munin' %}
-# location config for munin server backend
+{% set monitoring = (server_monitoring | default('') | lower | trim) %}
+{% if monitoring == 'munin' %}
+  # Location config for Munin server backend
   include conf.d/upstream/munin.conf;
-  {% elif server_monitoring  in  ['grafana', 'prometheus', 'grafana/prometheus'] -%}
-# Location configuration for grafana backend
+{% elif monitoring in ['grafana', 'prometheus', 'grafana/prometheus'] %}
+  # Location config for Grafana/Prometheus backend
   include conf.d/upstream/grafana.conf;
-  {% else %}
-  # server_monitoring is defined but doesn't match glowroot or prometheus
-  # Add a default include or log a warning if needed
-  # Example: include conf.d/upstream/default.conf;
-  {% endif %}
-  {% else %}
-    # server_monitoring is not defined
-    # Handle the case where server_monitoring is not set
-    # Example: include conf.d/upstream/default.conf;
-  {% endif %}
+{% elif monitoring %}
+  # server_monitoring is defined but not recognized:  {{ server_monitoring }}
+{% else %}
+  # server_monitoring is not defined or empty
+{% endif %}
 
 {% for instance  in groups['instances'] if 'ROOT' not in groups['instances'] |
     map('extract', hostvars, 'dhis2_base_path') | map('default', 'None') %}

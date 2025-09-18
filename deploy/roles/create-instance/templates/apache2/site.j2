@@ -107,7 +107,18 @@
        IncludeOptional upstream/{{ instance | to_fixed_string }}.conf
 {% endfor %}
 
+{% set monitoring = (server_monitoring | default('') | lower | trim) %}
+       # Location configs for server monitoring 
+{% if monitoring == 'munin' %}
        IncludeOptional  upstream/munin.conf
+{% elif monitoring in ['grafana', 'prometheus', 'grafana/prometheus'] %}
+       IncludeOptional  upstream/grafana.conf
+{% elif monitoring %}
+  # server_monitoring is set but not recognized: {{ server_monitoring }}
+{% else %}
+  # server_monitoring is not defined or empty
+{% endif %}
+
 
        #===========================================================
        # Restrictions on other locations

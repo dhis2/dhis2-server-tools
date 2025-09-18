@@ -7,6 +7,7 @@ connection.dialect = org.hibernate.dialect.PostgreSQLDialect
 # JDBC driver class
 connection.driver_class = org.postgresql.Driver
 
+{# # TODO: Maybe looping is not needed here #}
 # Database connection URL
 {% for host in groups['databases'] %}
     {% if hostvars[inventory_hostname]['database_host'] == host %}
@@ -124,7 +125,7 @@ monitoring.uptime.enabled = on
 monitoring.cpu.enabled = on
 {% endif %}
 
-{% if analytics_database |  default('')  == 'doris' %}
+{% if apache_doris_db | default('') and dhis_version_major >= 2.42 %}
 # Analytics database management system
 analytics.database = doris
 
@@ -132,11 +133,11 @@ analytics.database = doris
 analytics.connection.driver_class = com.mysql.cj.jdbc.Driver
 
 # Analytics database connection URL
-analytics.connection.url = jdbc:mysql://172.19.2.40:9030/analytics
+analytics.connection.url = jdbc:mysql://{{ hostvars[apache_doris_db]['ansible_host'] }}:9030/analytics
 
 # Analytics database username
-analytics.connection.username = <doris_user>
+analytics.connection.username = {{ hostvars[apache_doris_db]['apache_doris_db_user'] | default('doris_user')  }}
 
 # Analytics database password
-analytics.connection.password = <doris_database_password>
+analytics.connection.password =  {{ hostvars[apache_doris_db]['apache_doris_db_password'] | default(lookup('password', '/opt/ansible/secrets/' + 'apache_doris_db_password')) }}
 {% endif %}

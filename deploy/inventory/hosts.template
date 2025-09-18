@@ -31,13 +31,11 @@ fqdn=
 # required for LetsEncrypt certificate notification. 
 email=
 
-
 # timedatectl list-timezones to list timezones
 timezone=Africa/Nairobi
 
 # Options: lxd, ssh defaults to lxd. 
 ansible_connection=lxd
-
 
 # Host IP seen by PostgreSQL when DB is on another network (e.g., LXD containers with NAT).
 # Needed for pg_hba.conf since LXD container traffic is NATed and appears to be from Host IP, not container IP
@@ -53,12 +51,17 @@ app_monitoring=glowroot
 # lxd
 lxd_network=172.19.2.1/24 
 lxd_bridge_interface=lxdbr1
-# lxd_storage_driver=dir
+ansible_lxd_host={{ inventory_hostname }}
+ansible_lxd_executable=/bin/bash
+# Options: dir,zfs link: https://documentation.ubuntu.com/lxd/latest/reference/storage_drivers/ 
+lxd_storage_driver=dir 
+# Options: 22.04,24.04
 guest_os=22.04
 # Options: amd64,arm64,armhf, defaults_to amd64
-guest_os_arch=amd64
+guest_os_arch=amd64 
 # lxd_source_server=
 # lxd_source_protocol=
+# lxd_storage_driver=dir
 
 
 # Options: nginx, apache2 defaults to nginx

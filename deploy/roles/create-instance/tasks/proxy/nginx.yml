@@ -71,7 +71,7 @@
     - hostvars[item]['instance_state'] is undefined
   notify: Restart Nginx
 
-- name: Generate Nginx config for valid FQDNs
+- name: Generate Nginx config for instances valid FQDNs
   ansible.builtin.template:
     src: nginx/site.j2
     dest: /etc/nginx/conf.d/{{ hostvars[item]['fqdn'] | trim }}.conf

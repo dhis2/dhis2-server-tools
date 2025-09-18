@@ -88,7 +88,7 @@ then
 fi
 
 # deploying dhis2 
-if [ $(cat inventory/hosts  | grep -Po '(?<=ansible_connection=)([a-z].*)') == "lxd" ]
+if [ $(cat inventory/hosts  |grep -Po '^ansible_connection=\K[a-z].*') == "lxd" ]
   then
      # deploying dhis2 in lxd containers
      echo "Deploying dhis2 with lxd ..."

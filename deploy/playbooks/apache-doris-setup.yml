@@ -1,0 +1,311 @@
+---
+- name: Install and configure Apache Doris on Ubuntu 24.04
+  hosts: doris
+  become: true
+  vars:
+    doris_version: "3.0.5"
+    doris_user: "doris"
+    doris_home: "/usr/local/doris"
+    java_home: "/usr/lib/jvm/java-17-openjdk-amd64"
+    doris_download_url: "https://apache-doris-releases.oss-accelerate.aliyuncs.com/apache-doris-{{ doris_version }}-bin-x64.tar.gz"
+
+  tasks:
+    - name: Ensure system is updated
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: dist
+        cache_valid_time: 3600
+
+    - name: Set file descriptor limits
+      ansible.builtin.lineinfile:
+        path: /etc/security/limits.conf
+        owner: root
+        group: root
+        mode: '0600'
+        line: "{{ item }}"
+        create: true
+      loop:
+        - "* soft nofile 1000000"
+        - "* hard nofile 1000000"
+
+    - name: Increase virtual memory area limit
+      ansible.posix.sysctl:
+        name: vm.max_map_count
+        value: "2000000"
+        state: present
+        reload: true
+
+    - name: Disable swap temporarily
+      vars:
+        ansible_connection: local
+      ansible.builtin.command: swapoff -a
+      when: ansible_swaptotal_mb | int > 0
+      delegate_to: 127.0.0.1
+
+    - name: Disable swap permanently in fstab
+      vars:
+        ansible_connection: local
+      ansible.builtin.replace:
+        path: /etc/fstab
+        regexp: '^([^#].*swap.*)$'
+        replace: '# \1'
+
+    - name: Install Java 17 runtime
+      ansible.builtin.apt:
+        name: openjdk-17-jre-headless
+        state: present
+
+    - name: Create Doris system user
+      ansible.builtin.user:
+        name: "{{ doris_user }}"
+        comment: "Doris Application User"
+        home: "{{ doris_home }}"
+        shell: /bin/bash
+        system: true
+        create_home: true
+
+    - name: Download Doris binaries
+      become: true
+      become_user: "{{ doris_user }}"
+      ansible.builtin.get_url:
+        url: "{{ doris_download_url }}"
+        dest: "{{ doris_home }}/apache-doris-{{ doris_version }}.tar.gz"
+        mode: '0644'
+
+    - name: Extract Doris binaries into {{ doris_home }}
+      become_user: "{{ doris_user }}"
+      become: true
+      unarchive:
+        src: "{{ doris_home }}/apache-doris-{{ doris_version }}.tar.gz"
+        dest: "{{ doris_home }}"
+        remote_src: true
+        extra_opts: [--strip-components=1]
+        creates: "{{ doris_home }}/fe"
+
+    - name: Configure JAVA_HOME in fe.conf
+      ansible.builtin.lineinfile:
+        path: "{{ doris_home }}/fe/conf/fe.conf"
+        mode: '0600'
+        regexp: '^JAVA_HOME='
+        line: 'JAVA_HOME="{{ java_home }}"'
+        create: true
+
+    - name: Configure JAVA_HOME in be.conf
+      ansible.builtin.lineinfile:
+        path: "{{ doris_home }}/be/conf/be.conf"
+        mode: '0600'
+        regexp: '^JAVA_HOME='
+        line: 'JAVA_HOME="{{ java_home }}"'
+        create: true
+
+    - name: Create systemd unit for Doris Frontend
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/doris-fe.service
+        group: root
+        owner: root
+        mode: '0600'
+        content: |
+          [Unit]
+          Description=Apache Doris Frontend (FE)
+          After=network.target
+
+          [Service]
+          Type=forking
+          User={{ doris_user }}
+          WorkingDirectory={{ doris_home }}/fe
+          ExecStart={{ doris_home }}/fe/bin/start_fe.sh --daemon
+          ExecStop={{ doris_home }}/fe/bin/stop_fe.sh
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Create systemd unit for Doris Backend
+      ansible.builtin.copy:
+        group: root
+        owner: root
+        mode: '0600'
+        dest: /etc/systemd/system/doris-be.service
+        content: |
+          [Unit]
+          Description=Apache Doris Backend (BE)
+          After=network-online.target
+
+          [Service]
+          Type=forking
+          User={{ doris_user }}
+          LimitCORE=infinity
+          LimitNOFILE=200000
+          WorkingDirectory={{ doris_home }}/be
+          ExecStart={{ doris_home }}/be/bin/start_be.sh --daemon
+          ExecStop={{ doris_home }}/be/bin/stop_be.sh
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Enable and start Doris FE
+      ansible.builtin.systemd:
+        name: doris-fe
+        enabled: true
+        state: started
+
+    - name: Enable and start Doris BE
+      ansible.builtin.systemd:
+        name: doris-be
+        enabled: true
+        state: started
+
+    - name: Ensure PyMySQL is installed (required for community.mysql modules)
+      ansible.builtin.apt:
+        name: python3-pymysql
+        state: present
+
+    - name: Install MySQL client (optional, for connecting to Doris)
+      ansible.builtin.apt:
+        name: mysql-client-core-8.0
+        state: present
+
+    - name: Wait for Doris FE port to be available
+      ansible.builtin.wait_for:
+        host: "127.0.0.1"
+        port: 9030
+        delay: 5
+        timeout: 60
+
+    - name: Register Doris BE with FE
+      community.mysql.mysql_query:
+        login_user: root
+        login_host: 127.0.0.1
+        login_port: 9030
+        query: "ALTER SYSTEM ADD BACKEND '127.0.0.1:9050';"
+      failed_when: false
+      # changed_when: "'already exists' not in query_result.msg"
+
+
+    - name: Wait for Doris backend to report alive
+      community.mysql.mysql_query:
+        login_user: root
+        login_host: 127.0.0.1
+        login_port: 9030
+        query: "SHOW BACKENDS;"
+      register: be_status
+      until: "'true' in (be_status.query_result | to_json)"
+      retries: 30    # wait up to 30 * 10s = 5 minutes
+      delay: 10
+      tags: [never]
+
+    - name: Extra buffer for Doris BE to fully initialize
+      pause:
+        seconds: 10
+
+    - name: Ensure analytics database exists
+      community.mysql.mysql_db:
+        name: analytics
+        state: present
+        login_user: root
+        # login_password: "{{ mysql_root_password }}"
+        login_host: 127.0.0.1
+        login_port: 9030
+
+    - name: Ensure DB user exists and has privileges on analytics
+      community.mysql.mysql_query:
+        login_user: root
+        # login_password: "{{ mysql_root_password }}"
+        login_host: 127.0.0.1
+        login_port: 9030
+        query: |
+          CREATE USER IF NOT EXISTS '{{ apache_doris_db_user | default("doris_user") }}'@'%'
+          IDENTIFIED BY '{{ apache_doris_db_password | default(lookup("password", "/opt/ansible/secrets/apache_doris_db_password length=24 chars=ascii_letters,digits")) }}';
+          GRANT ALL ON analytics.* TO '{{ apache_doris_db_user | default("doris_user") }}'@'%';
+      tags: [never]
+
+    - name: Ensure Doris user exists
+      community.mysql.mysql_query:
+        login_user: root
+        login_password: "{{ mysql_root_password | default(omit)}}"
+        login_host: 127.0.0.1
+        login_port: 9030
+        query: >
+          CREATE USER IF NOT EXISTS
+          '{{ apache_doris_db_user | default("doris_user") }}'@'%'
+          IDENTIFIED BY '{{ apache_doris_db_password |
+            default(lookup("password",
+            "/opt/ansible/secrets/apache_doris_db_password length=24 chars=ascii_letters,digits")) }}';
+
+    - name: Ensure Doris DB admin user has full privileges on analytics
+      community.mysql.mysql_query:
+        login_user: root
+        login_password: "{{ mysql_root_password | default(omit) }}"
+        login_host: 127.0.0.1
+        login_port: 9030
+        query: >
+          GRANT ALL ON *.*.* TO '{{ apache_doris_db_user | default("doris_user") }}'@'%';
+
+# GRANT SELECT_PRIV, LOAD_PRIV, ALTER_PRIV, CREATE_PRIV, DROP_PRIV
+# ON internal.analytics.* TO '{{ apache_doris_db_user | default("doris_user") }}'@'%';
+
+    - name: Ensure JDBC directories exist (FE and BE)
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /usr/local/doris/fe/jdbc_drivers
+        - /usr/local/doris/be/jdbc_drivers
+
+    - name: Download PostgreSQL JDBC driver
+      ansible.builtin.get_url:
+        url: https://jdbc.postgresql.org/download/postgresql-42.7.8.jar
+        owner: doris
+        group: doris
+        dest: /tmp/postgresql-42.7.8.jar
+        mode: '0644'
+
+    - name: Copy JDBC driver to FE and BE
+      ansible.builtin.copy:
+        src: /tmp/postgresql-42.7.8.jar
+        owner: doris
+        group: doris
+        dest: "{{ item }}/postgresql.jar"
+        remote_src: true
+        mode: '0644'
+      loop:
+        - /usr/local/doris/fe/jdbc_drivers/
+        - /usr/local/doris/be/jdbc_drivers
+
+    # - name: Confingure dhis2 config,
+    - name: Insert Doris config into dhis.conf
+      ansible.builtin.blockinfile:
+        path: /etc/dhis/dhis.conf
+        marker: "# {mark} ANSIBLE MANAGED DORIS CONFIG"
+        block: |
+            # Analytics database management system
+            analytics.database = doris
+            analytics.connection.driver_class = com.mysql.cj.jdbc.Driver
+            analytics.connection.url = jdbc:mysql://{{ hostvars[item]['apache_doris_db']['ansible_host'] }}:9030/analytics
+            analytics.connection.username = {{ hostvars[item]['apache_doris_db_user'] | default('doris_user') }}
+            analytics.connection.password = {{ hostvars[item]['apache_doris_db_password'] | default(lookup('password', '/opt/ansible/secrets/apache_doris_db_password')) }}
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+      tags: [never]
+
+    - name: Firewall | Open port 5432 from doris instances
+      community.general.ufw:
+        rule: allow
+        port: "{{ postgresql_port | default('5432') }}"
+        src: "{{ hostvars[ hostvars[item]['apache_doris_db']]['ansible_host'] }}"
+        proto: tcp
+        comment: "Allow access from {{ item }} instance "
+        state: enabled
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] | default(false)
+        - hostvars[item]['instance_state'] is undefined
+      tags: [never]
