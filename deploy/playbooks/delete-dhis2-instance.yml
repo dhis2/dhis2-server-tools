@@ -27,7 +27,7 @@
           ) } }) }}"
       loop: "{{ groups['instances'] }}"
       when:
-        - inventory_hostname in groups['web']
+        - inventory_hostname in groups['web'] # targets proxy
         - hostvars[item]['instance_state'] is defined
         - hostvars[item]['instance_state'] == 'deleted'
 
@@ -47,7 +47,7 @@
         state: absent
       loop: "{{ groups['instances'] }}"
       when:
-        - inventory_hostname in groups['web']
+        - inventory_hostname in groups['web'] # targets proxy
         - hostvars[item]['instance_state'] is defined
         - hostvars[item]['instance_state'] == "deleted"
       notify: Reload {{ proxy | capitalize }}
@@ -73,7 +73,7 @@
       loop: "{{ groups['instances'] }}"
       when:
         - postgresql_version_info.version.major is defined
-        - inventory_hostname in groups['databases']
+        - inventory_hostname in groups['databases'] # targets PostgreSQL database
         - inventory_hostname == hostvars[item]['database_host']
         - hostvars[item]['instance_state'] is defined
         - hostvars[item]['instance_state'] == 'deleted'

@@ -38,7 +38,8 @@ timezone=Africa/Nairobi
 ansible_connection=lxd
 
 # Host IP seen by PostgreSQL when DB is on another network (e.g., LXD containers with NAT).
-# Needed for pg_hba.conf since LXD container traffic is NATed and appears to be from Host IP, not container IP
+# Needed for pg_hba.conf since LXD container traffic is NATed and appears to be from Host IP, not container IP, 
+# db_gateway_address=
 
 # PostgreSQL version to be installed
 postgresql_version=16

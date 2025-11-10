@@ -60,6 +60,7 @@ ansible_install_other() {
   sudo apt -yq update
   sudo apt install -yq  git
   sudo apt install -yq software-properties-common
+  sudo apt-add-repository --yes --update ppa:ansible/ansible
   sudo apt install -yq ansible
   sudo apt install -yq sshpass 
 }
