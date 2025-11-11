@@ -26,15 +26,18 @@
       tags: [set-dhis2-url, deploy-war]
   when:
     - dhis2_war_file is undefined
-    - dhis2_version is defined and dhis2_version
+    - dhis2_version is defined and (dhis2_version | string | trim | length > 0)
     - inventory_hostname in groups['instances']
+    # - dhis2_version is defined and dhis2_version
   tags: [set-dhis2-url, deploy-war]
 
 - name: Include tasks for DHIS2 tomcat setup
   ansible.builtin.include_tasks: tomcat-setup.yml
   when:
     - inventory_hostname in groups['instances']
-    - (dhis2_version is defined and dhis2_version) or (dhis2_war_file is defined and dhis2_war_file)
+    - >
+        (dhis2_version | default('') | string | trim | length > 0) or
+        (dhis2_war_file | default('') | string | trim | length > 0)
   tags: [deploy-war]
 
 - name: Deploy dhis2 war file
@@ -44,7 +47,10 @@
       tags: [deploy-war]
   when:
     - inventory_hostname in groups['instances']
-    - (dhis2_version is defined and dhis2_version) or (dhis2_war_file is defined and dhis2_war_file)
+    - >
+       (dhis2_version | default('') | string | trim | length > 0) or
+       (dhis2_war_file | default('') | string | trim | length > 0)
+    # - (dhis2_version is defined and dhis2_version) or (dhis2_war_file is defined and dhis2_war_file)
   tags: [deploy-war]
 
 - name: Configuring {{ proxy }}
@@ -68,7 +74,10 @@
     - server_monitoring is defined and server_monitoring == 'munin'
     - groups['monitoring']  | length > 0
     - inventory_hostname in groups['instances']
-    - (dhis2_version is defined and dhis2_version) or (dhis2_war_file is defined and dhis2_war_file)
+    - >
+       (dhis2_version | default('') | string | trim | length > 0) or
+       (dhis2_war_file | default('') | string | trim | length > 0)
+    # - (dhis2_version is defined and dhis2_version) or (dhis2_war_file is defined and dhis2_war_file)
 
 - name: Instance monitoring with Prometheus/Grafana
   ansible.builtin.include_tasks:

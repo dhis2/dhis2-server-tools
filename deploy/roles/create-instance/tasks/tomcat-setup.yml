@@ -8,11 +8,21 @@
 - name: Define the package list
   ansible.builtin.set_fact:
     package_list: >
-      {{
-          ['unzip', 'tomcat10', 'tomcat10-admin', 'openjdk-' + (java_version | default(JAVA_VERSION | string)) + '-jre-headless', 'tomcat-jakartaee-migration']
-          if (ansible_facts['distribution_version']) == '24.04'
-          else ['unzip', 'tomcat9', 'tomcat9-admin', 'openjdk-' + (java_version | default(JAVA_VERSION | string)) + '-jre-headless']
-      }}
+        {{
+        [
+          'unzip',
+          'tomcat10',
+          'tomcat10-admin',
+          'openjdk-' + ((java_version | default(JAVA_VERSION)) | string) + '-jre-headless',
+          'tomcat-jakartaee-migration'
+        ]
+        if ansible_facts['distribution_version'] == '24.04'
+        else [
+          'unzip',
+          'tomcat9',
+          'tomcat9-admin',
+          'openjdk-' + ((java_version | default(JAVA_VERSION)) | string) + '-jre-headless'
+        ] }}
 
 - name: Installing java and tomcat and zip
   ansible.builtin.apt:

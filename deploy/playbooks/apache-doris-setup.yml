@@ -334,7 +334,7 @@
 
     - name: Ensure analytics database exists
       community.mysql.mysql_db:
-        name: analytics
+        name: { instance_doris_ddb }
         state: present
         login_user: root
         # login_password: "{{ mysql_root_password }}"

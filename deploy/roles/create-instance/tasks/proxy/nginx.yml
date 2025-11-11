@@ -20,8 +20,9 @@
   ansible.builtin.include_tasks: "tls/{{ TLS_TYPE | default('letsencrypt') }}.yml"
   loop: "{{ groups['instances'] }}"
   when:
-    - hostvars[item]['fqdn'] | default('', true) | trim
+    - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
+    # - hostvars[item]['fqdn'] | default('', true) | trim
 
 - name: Instance location configuration
   ansible.builtin.template:
@@ -40,7 +41,7 @@
   ansible.builtin.include_tasks: ./tls/selfsigned.yml
   loop: "{{ groups['instances'] }}"
   when:
-    - not (hostvars[item]['fqdn'] | default('', true) | trim)
+    - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
 
 - name: Find files to delete in /etc/nginx/conf.d/
@@ -67,8 +68,9 @@
     mode: "0640"
   loop: "{{ groups['instances'] }}"
   when:
-    - hostvars[item]['fqdn'] | default('', true) | trim
+    - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
+    # - hostvars[item]['fqdn'] | default('', true) | trim
   notify: Restart Nginx
 
 - name: Generate Nginx config for instances valid FQDNs
@@ -80,8 +82,9 @@
     mode: "0640"
   loop: "{{ groups['instances'] }}"
   when:
-    - hostvars[item]['fqdn'] | default('', true) | trim
+    - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
+    # - hostvars[item]['fqdn'] | default('', true) | trim
   notify: Restart Nginx
 
 - name: Copy static Nginx config for instances without FQDNs
@@ -94,8 +97,9 @@
     force: false
   loop: "{{ groups['instances'] }}"
   when:
-    - not (hostvars[item]['fqdn'] | default('', true) | trim)
+    - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
+    # - not (hostvars[item]['fqdn'] | default('', true) | trim)
   notify: Restart Nginx
 
 - name: Generate dynamic Nginx config for instances without FQDN
@@ -107,8 +111,9 @@
     mode: "0640"
   loop: "{{ groups['instances'] }}"
   when:
-    - not (hostvars[item]['fqdn'] | default('', true) | trim)
+    - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
+    # - not (hostvars[item]['fqdn'] | default('', true) | trim)
   notify: Restart Nginx
 
 # starting nginx service as it was stopped generaging letsencrypt.
