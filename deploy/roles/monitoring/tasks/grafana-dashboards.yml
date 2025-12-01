@@ -1,9 +1,37 @@
 ---
+- name: Set grafana credentials file path
+  ansible.builtin.set_fact:
+    grafana_creds_file: /opt/ansible/secrets/grafana_admin_password
+
+- name: Check if grafana credentials file exists
+  ansible.builtin.stat:
+    path: "{{ grafana_creds_file }}"
+  register: grafana_creds_stat
+  delegate_to: 127.0.0.1
+
+- name: Read existing grafana password
+  when: grafana_creds_stat.stat.exists
+  block:
+    - name: Slurp grafana credentials
+      ansible.builtin.slurp:
+        src: "{{ grafana_creds_file }}"
+      register: grafana_creds_content
+      delegate_to: 127.0.0.1
+
+    - name: Set grafana password from file
+      ansible.builtin.set_fact:
+        grafana_admin_password: "{{ grafana_creds_content.content | b64decode | trim }}"
+
+- name: Set default password for initial setup
+  when: not grafana_creds_stat.stat.exists
+  ansible.builtin.set_fact:
+    grafana_admin_password: "admin"
+
 - name: Connect to grafana and add prometheus data source
   ansible.builtin.uri:
     url: http://127.0.0.1:3000/grafana/api/datasources
     url_username: admin
-    url_password: admin
+    url_password: "{{ grafana_admin_password }}"
     method: POST
     body: "{{ lookup('ansible.builtin.file', 'datasource.json') | from_json }}"
     force_basic_auth: true
@@ -12,12 +40,11 @@
     headers:
       Content-Type: application/json
 
-
-- name: Grafans postgresql dashboards
+- name: Grafana postgresql dashboards
   ansible.builtin.uri:
     url: http://127.0.0.1:3000/grafana/api/dashboards/db
-    url_username: "{{ grafana_username | default('admin') }}"
-    url_password: "{{ grafana_password | default('admin') }}"
+    url_username: admin
+    url_password: "{{ grafana_admin_password }}"
     method: POST
     body: "{{ lookup('ansible.builtin.file', item) | from_json }}"
     force_basic_auth: true
@@ -28,4 +55,34 @@
   loop:
     - postgres.json
     - linux-node.json
-    # - dhis2-dashboard.json
+
+- name: Secure grafana admin password
+  when: not grafana_creds_stat.stat.exists
+  block:
+    - name: Generate secure random password
+      ansible.builtin.set_fact:
+        grafana_new_password: "{{ lookup('ansible.builtin.password', '/dev/null', length=32, chars=['ascii_letters', 'digits']) }}"
+
+    - name: Change grafana admin password
+      ansible.builtin.uri:
+        url: http://127.0.0.1:3000/grafana/api/user/password
+        url_username: admin
+        url_password: admin
+        method: PUT
+        body:
+          oldPassword: admin
+          newPassword: "{{ grafana_new_password }}"
+        force_basic_auth: true
+        body_format: json
+        status_code: [200]
+        headers:
+          Content-Type: application/json
+
+    - name: Store grafana admin password
+      ansible.builtin.copy:
+        content: "{{ grafana_new_password }}"
+        dest: "{{ grafana_creds_file }}"
+        mode: "0600"
+        owner: "{{ lookup('env', 'USER') }}"
+        group: "{{ lookup('pipe', 'id -gn') | trim }}"
+      delegate_to: 127.0.0.1
