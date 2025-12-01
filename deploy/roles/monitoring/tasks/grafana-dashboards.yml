@@ -63,6 +63,15 @@
       ansible.builtin.set_fact:
         grafana_new_password: "{{ lookup('ansible.builtin.password', '/dev/null', length=32, chars=['ascii_letters', 'digits']) }}"
 
+    - name: Store grafana admin password
+      ansible.builtin.copy:
+        content: "{{ grafana_new_password }}"
+        dest: "{{ grafana_creds_file }}"
+        mode: "0600"
+        owner: "{{ lookup('env', 'USER') }}"
+        group: "{{ lookup('pipe', 'id -gn') | trim }}"
+      delegate_to: 127.0.0.1
+
     - name: Change grafana admin password
       ansible.builtin.uri:
         url: http://127.0.0.1:3000/grafana/api/user/password
@@ -77,12 +86,3 @@
         status_code: [200]
         headers:
           Content-Type: application/json
-
-    - name: Store grafana admin password
-      ansible.builtin.copy:
-        content: "{{ grafana_new_password }}"
-        dest: "{{ grafana_creds_file }}"
-        mode: "0600"
-        owner: "{{ lookup('env', 'USER') }}"
-        group: "{{ lookup('pipe', 'id -gn') | trim }}"
-      delegate_to: 127.0.0.1
