@@ -1,10 +1,12 @@
 .idea/
 .DS_Store
 .vscode/
+.ansible/
 hosts
 releases.json
 env/
 venv/
+.venv/
 
 # Ignore all files in deploy/inventory/host_vars/ and deploy/inventory/group_vars/ 
 # but allow .template files

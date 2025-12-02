@@ -12,15 +12,13 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - uses: google-github-actions/release-please-action@v3
+      - uses: googleapis/release-please-action@v4
         id: release
         with:
-          release-type: simple
-          package-name: dhis2-server-tools
           token: ${{ secrets.GITHUB_TOKEN }}
-          default-branch: main
-          pull-request-title-pattern: "chore: release v${version}"
-          include-v-in-tag: true
-          command: github-release
-          changelog-types: '[{"type":"feat","section":"Features","hidden":false},{"type":"fix","section":"Bug Fixes","hidden":false},{"type":"chore","section":"Miscellaneous","hidden":false},{"type":"docs","section":"Documentation","hidden":false},{"type":"refactor","section":"Code Refactoring","hidden":false}]'
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
