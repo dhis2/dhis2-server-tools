@@ -26,7 +26,8 @@ munin_hosts:
 
 munin_alerts: []
 # munin node defaults
-munin_node_bind_host: "*"
+# Bind to internal IP for better security
+munin_node_bind_host: "{{ ansible_host }}"
 munin_node_bind_port: "4949"
 munin_node_host_name: ""
 
@@ -55,7 +56,8 @@ munin_node_install_plugins: []
 
 # Plugin configuration options (the key is the plugin heading, items within will
 # be options for the plugin).
-munin_node_config: {}
+munin_node_config:
+  {}
   # "ps_test": {
   #   "env.regex": "bash",
   #   "env.name": "bash"

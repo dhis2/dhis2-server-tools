@@ -65,8 +65,7 @@ cidr_deny {{ denied_cidr }}
     cidr_allow {{ hostvars[host]['ansible_host'] }}/32
 {% endfor %}
 
-# Which address to bind to;
-{# host {{ munin_node_bind_host }} #}
-host *
+# Which address to bind to (internal network)
+host {{ munin_node_bind_host | default(ansible_host) }}
 # And which port
 port {{ munin_node_bind_port }}
