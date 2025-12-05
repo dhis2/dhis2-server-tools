@@ -1,11 +1,14 @@
 ---
+# Ensures dhis2_version is valid
 - name: Sanitize dhis2_version_major
   ansible.builtin.set_fact:
     normalized_dhis2_version: "{{ (dhis2_version | normalize_dhis2_version(dhis2_releases_list)) }}"
 
+# Sets dhis_version_major and dhis2_version_minor
 - name: Set DHIS2 release version
   ansible.builtin.set_fact:
     dhis2_release_version: "{{ (dhis2_releases_list | selectattr('name', 'eq', normalized_dhis2_version['dhis2_version_major']) | list) | first }}"
+    dhis2_version_major: "{{ normalized_dhis2_version['dhis2_version_major'] }}"
 
 - name: Set patchversion_name
   ansible.builtin.set_fact:

@@ -57,11 +57,16 @@ allow {{ allowed_ip }}
 # cidr_allow 192.0.2.0/24
 # cidr_deny  192.0.2.42/32
 {% for host in groups['monitoring'] %}
-    cidr_allow {{ hostvars[host]['ansible_host'] }}/32
+cidr_allow {{ hostvars[host]['ansible_host'] }}/32
 {% endfor %}
 
 # Which address to bind to;
 {# host {{ munin_node_bind_host }} #}
-host *
+{% if inventory_hostname == '127.0.0.1' %}
+host {{ lxd_network.split('/')[0] }}
+{% else %}
+host {{ ansible_host }}
+{% endif %}
+
 # And which port
 port {{ munin_node_bind_port | default('4949') }}

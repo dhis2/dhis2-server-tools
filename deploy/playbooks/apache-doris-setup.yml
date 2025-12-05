@@ -113,10 +113,13 @@
         - inventory_hostname == hostvars[item]['apache_doris_db']
 
     - name: Install Java 17 runtime
+      loop: "{{ groups['instances'] }}"
       ansible.builtin.apt:
         name: openjdk-17-jre-headless
         state: present
-      when: inventory_hostname == "doris"
+      when: 
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
 
     - name: Create Doris system user
       ansible.builtin.user:
@@ -334,7 +337,7 @@
 
     - name: Ensure analytics database exists
       community.mysql.mysql_db:
-        name: { instance_doris_ddb }
+        name: analytics
         state: present
         login_user: root
         # login_password: "{{ mysql_root_password }}"
@@ -392,7 +395,6 @@
 # ON internal.analytics.* TO '{{ apache_doris_db_user | default("doris_user") }}'@'%';
 
     - name: Ensure JDBC directories exist (FE and BE)
-      when: inventory_hostname == "doris"
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
@@ -400,18 +402,22 @@
       loop:
         - /usr/local/doris/fe/jdbc_drivers
         - /usr/local/doris/be/jdbc_drivers
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
 
     - name: Download PostgreSQL JDBC driver
-      when: inventory_hostname == "doris"
       ansible.builtin.get_url:
         url: https://jdbc.postgresql.org/download/postgresql-42.7.8.jar
         owner: doris
         group: doris
         dest: /tmp/postgresql-42.7.8.jar
         mode: '0644'
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
 
     - name: Copy JDBC driver to FE and BE
-      when: inventory_hostname == "doris"
       ansible.builtin.copy:
         src: /tmp/postgresql-42.7.8.jar
         owner: doris
@@ -422,14 +428,17 @@
       loop:
         - /usr/local/doris/fe/jdbc_drivers/
         - /usr/local/doris/be/jdbc_drivers
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
 
     - name: Debug
       loop: "{{ groups['instances'] }}"
       ansible.builtin.debug:
         msg: "{{ hostvars[hostvars[item]['apache_doris_db']]['ansible_host'] }}"
       when:
-        - hostvars[hostvars[item]['apache_doris_db']] is defined
         - hostvars[item]['apache_doris_db'] is defined
+        - hostvars[hostvars[item]['apache_doris_db']] is defined
         - inventory_hostname == item
 
     # - name: Confingure dhis2 config,
@@ -446,11 +455,54 @@
             analytics.connection.password = {{ hostvars[item]['apache_doris_db_password'] | default(lookup('password', '/opt/ansible/secrets/apache_doris_db_password')) }}
       loop: "{{ groups['instances'] }}"
       when:
-        - hostvars[hostvars[item]['apache_doris_db']] is defined
         - hostvars[item]['apache_doris_db'] is defined
+        - hostvars[hostvars[item]['apache_doris_db']] is defined
         - inventory_hostname == item
         # -  inventory_hostname in groups['instances']
       # tags: [never]
+
+    - name: Checking postgresql Version
+      loop: "{{ groups['instances'] }}"
+      become: true
+      become_user: postgres
+      community.postgresql.postgresql_info:
+        filter: ver*
+      register: postgresql_version_info
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - hostvars[hostvars[item]['apache_doris_db']] is defined
+        - inventory_hostname == hostvars[item]['database_host']
+      tags:
+        - pg_version
+
+    - name: Debug PG version
+      loop: "{{ groups['instances'] }}"
+      loop_control:
+        index_var: idx
+      ansible.builtin.debug:
+        msg: "{{ item }} → {{ postgresql_version_info.results[idx].version.major }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - hostvars[hostvars[item]['apache_doris_db']] is defined
+        - inventory_hostname == hostvars[item]['database_host']
+      tags:
+        - pg_version
+
+    - name: Edit postgresql pg_hba.conf
+      loop: "{{ groups['instances'] }}"
+      loop_control:
+        index_var: idx
+      ansible.builtin.lineinfile:
+        path: /etc/postgresql/{{ postgresql_version_info.results[idx].version.major }}/main/pg_hba.conf
+        regexp: "^(host|hostssl)\\s+{{ item }}\\s+{{ hostvars[item]['apache_doris_db'] }}\\s+{{ hostvars[ hostvars[item]['apache_doris_db'] ]['ansible_host'] }}(/32)?\\s+.*$"
+        insertafter: EOF
+        line: hostssl     {{ item }}    {{ item }}  {{  hostvars[hostvars[item]['apache_doris_db']]['ansible_host'] }}/32  scram-sha-256
+      when: 
+        - hostvars[item]['apache_doris_db'] is defined
+        - hostvars[hostvars[item]['apache_doris_db']] is defined
+        - inventory_hostname == hostvars[item]['database_host']
+      tags:
+        - pg_version
 
     - name: Firewall | Open port 5432 from doris instances
       community.general.ufw:
@@ -458,10 +510,10 @@
         port: "{{ postgresql_port | default('5432') }}"
         src: "{{ hostvars[hostvars[item]['apache_doris_db']]['ansible_host'] }}"
         proto: tcp
-        comment: "Allow access from {{ item }} instance "
+        comment: "Allow access from {{  hostvars[hostvars[item]['apache_doris_db']]['ansible_host'] }} instance "
         state: enabled
       loop: "{{ groups['instances'] }}"
       when:
-        - hostvars[hostvars[item]['apache_doris_db']] is defined
         - hostvars[item]['apache_doris_db'] is defined
+        - hostvars[hostvars[item]['apache_doris_db']] is defined
         - inventory_hostname == hostvars[item]['database_host']

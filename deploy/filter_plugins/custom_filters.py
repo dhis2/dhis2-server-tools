@@ -8,6 +8,7 @@ from ansible.errors import (
 )
 
 
+# ensures dhis2_version is correct e.g 2.42 and not 2.43.b
 def normalize_dhis2_version(dhis2_version, dhis2_releases):
     version_list = [item['name'] for item in dhis2_releases]
     pattern = r'^\d+(\.\d+)*$'
@@ -18,7 +19,7 @@ def normalize_dhis2_version(dhis2_version, dhis2_releases):
                     'dhis2_version_minor': None
                     }
         else:
-            raise AnsibleFilterError(f"The version {dhis2_version} is not in"
+            raise AnsibleFilterError(f"The version {dhis2_version} is not in "
                                      f"released versions, '{version_list}'"
                                      )
     elif isinstance(dhis2_version, str):
@@ -26,19 +27,16 @@ def normalize_dhis2_version(dhis2_version, dhis2_releases):
             dhis2_version_major = ('.'.join(dhis2_version.split('.')[:2]))
             dhis2_version_minor = dhis2_version
             if dhis2_version_major in version_list:
-                return {
-                      'dhis2_version_major': dhis2_version_major,
-                      'dhis2_version_minor': dhis2_version_minor
+                return {'dhis2_version_major': dhis2_version_major,
+                        'dhis2_version_minor': dhis2_version_minor
                         }
             else:
-                raise AnsibleFilterError(
-                        f"The version {dhis2_version} is not"
-                        f"in released versions, '{version_list}'"
-                        )
+                raise AnsibleFilterError(f"The version {dhis2_version} is not "
+                                         f"in released versions, '{version_list}'"
+                                         )
         else:
-            raise AnsibleFilterError(
-                    f"The version '{dhis2_version}' is not in a valid format."
-                    "Expected format: 2.major[.minor][.patch]"
+            raise AnsibleFilterError(f"The version '{dhis2_version}' is not in a valid format. "
+                                     f"Expected format: 2.major[.minor][.patch]"
                                      )
 
 

@@ -37,14 +37,18 @@
     dest: /opt/dhis2/dhis2.war
     force: true
     mode: "0640"
-  when: dhis2_war_file is defined and dhis2_war_file | regex_search('(https:\/\/)')
+  when:
+    - dhis2_war_file is defined
+    - (dhis2_war_file | regex_search('^(https?|ftp|file):\/\/')) is not none
 
 - name: Copy dhis2.war file from ansible controller
   ansible.builtin.copy:
     src: "{{ dhis2_war_file }}"
     dest: /opt/dhis2/dhis2.war
     mode: "0640"
-  when: dhis2_war_file is defined and dhis2_war_file | regex_search('^(?!.*?https:\/\/).*$')
+  when:
+    - dhis2_war_file is defined
+    - (dhis2_war_file | regex_search('^(https?|ftp|file):\/\/')) is none
 
 - name: Clean /var/lib/tomcat{{ tomcat_version }}/webapps
   ansible.builtin.file:

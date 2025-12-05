@@ -24,6 +24,11 @@ connection.password = {{ db_password }}
 # Database schema behavior, can be 'validate', 'update', 'create', 'create-drop'
 connection.schema = update
 
+{% if dhis2_version_major is defined and dhis2_version_major | float >= 2.38 %}
+# Database datasource pool type. Supported pool types are: hikari (default), c3p0 (deprecated), unpooled
+db.pool.type = hikari
+{% endif %}
+
 # Max size of connection pool (default: 80)
 # connection.pool.max_size = 80
 
@@ -125,19 +130,20 @@ monitoring.uptime.enabled = on
 monitoring.cpu.enabled = on
 {% endif %}
 
-{% if apache_doris_db | default('') and dhis_version_major >= 2.42 %}
+{# {% if dhis2_version_major is defined and dhis2_version_major | float >= 2.42 %} #}
+{% if 
+    dhis2_version_major is defined 
+    and dhis2_version_major | float >= 2.42
+    and apache_doris_db is defined
+    and apache_doris_db in hostvars
+    and hostvars[apache_doris_db].ansible_host is defined
+%}
+# BEGIN ANSIBLE MANAGED DORIS CONFIG
 # Analytics database management system
 analytics.database = doris
-
-# Analytics database JDBC driver class
 analytics.connection.driver_class = com.mysql.cj.jdbc.Driver
-
-# Analytics database connection URL
-analytics.connection.url = jdbc:mysql://{{ hostvars[apache_doris_db]['ansible_host'] }}:9030/analytics
-
-# Analytics database username
-analytics.connection.username = {{ hostvars[apache_doris_db]['apache_doris_db_user'] | default('doris_user')  }}
-
-# Analytics database password
-analytics.connection.password =  {{ hostvars[apache_doris_db]['apache_doris_db_password'] | default(lookup('password', '/opt/ansible/secrets/' + 'apache_doris_db_password')) }}
+analytics.connection.url = jdbc:mysql://{{ hostvars[apache_doris_db]['ansible_host'] }}:9030/analytics 
+analytics.connection.username = {{ apache_doris_db_user | default('doris_user') }}
+analytics.connection.password = {{ apache_doris_db_password | default(lookup('password', '/opt/ansible/secrets/apache_doris_db_password')) }}
+# END ANSIBLE MANAGED DORIS CONFIG
 {% endif %}
