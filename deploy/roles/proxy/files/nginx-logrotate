@@ -11,7 +11,7 @@
     dateext
     dateyesterday
 
-    create 0640 www-data adm
+    create 0640 www-data www-data
     sharedscripts
     postrotate
         if [ -s /run/nginx.pid ]; then
