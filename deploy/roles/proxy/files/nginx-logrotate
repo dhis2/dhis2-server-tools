@@ -1,0 +1,23 @@
+/var/log/nginx/*.log {
+    daily
+    size 100M
+    maxage 60
+    rotate 999
+    missingok
+    notifempty
+
+    compress
+    delaycompress
+    dateext
+    dateyesterday
+
+    create 0640 www-data adm
+    sharedscripts
+    postrotate
+        if [ -s /run/nginx.pid ]; then
+            kill -USR1 "$(cat /run/nginx.pid)" || true
+        elif command -v nginx >/dev/null 2>&1; then
+            nginx -s reopen || true
+        fi
+    endscript
+}

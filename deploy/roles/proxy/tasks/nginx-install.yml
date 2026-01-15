@@ -37,6 +37,14 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Install nginx logrotate configuration
+  ansible.builtin.copy:
+    src: nginx-logrotate
+    dest: /etc/logrotate.d/nginx
+    owner: root
+    group: root
+    mode: "0644"
+
 - name: Disabling nginx version show
   ansible.builtin.lineinfile:
     dest: /etc/nginx/nginx.conf
