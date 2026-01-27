@@ -1,0 +1,11 @@
+<LifecycleConfiguration>
+  <Rule>
+    <ID>ExpireOldFiles</ID>
+    <Prefix></Prefix>
+    <Status>Enabled</Status>
+    <Expiration>
+      <Days>30</Days>
+    </Expiration>
+  </Rule>
+</LifecycleConfiguration>
+

@@ -22,7 +22,6 @@
   when:
     - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
-    # - hostvars[item]['fqdn'] | default('', true) | trim
 
 - name: Instance location configuration
   ansible.builtin.template:
@@ -70,7 +69,6 @@
   when:
     - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
-    # - hostvars[item]['fqdn'] | default('', true) | trim
   notify: Restart Nginx
 
 - name: Generate Nginx config for instances valid FQDNs
@@ -84,7 +82,6 @@
   when:
     - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
-    # - hostvars[item]['fqdn'] | default('', true) | trim
   notify: Restart Nginx
 
 - name: Copy static Nginx config for instances without FQDNs
@@ -99,7 +96,6 @@
   when:
     - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
-    # - not (hostvars[item]['fqdn'] | default('', true) | trim)
   notify: Restart Nginx
 
 - name: Generate dynamic Nginx config for instances without FQDN
@@ -113,7 +109,6 @@
   when:
     - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
-    # - not (hostvars[item]['fqdn'] | default('', true) | trim)
   notify: Restart Nginx
 
 # starting nginx service as it was stopped generaging letsencrypt.

@@ -1,19 +1,34 @@
 #!/usr/bin/env bash
-set -e 
+set -eo pipefail
 
-# Check the version of Ubuntu running
-distro_name=$(lsb_release -i | cut -f2)
-distro_version=$(lsb_release -r | cut -f2)
+# Show help
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    echo "Usage: sudo ./deploy.sh"
+    echo ""
+    echo "Deploys DHIS2 using Ansible, either in LXD containers or over SSH."
+    echo "Requires ufw firewall to be enabled before running."
+    exit 0
+fi
 
-# UFW status 
-UFW_STATUS=$(sudo ufw status |grep Status|cut -d ' ' -f 2)
+# Check the version of Ubuntu running using /etc/os-release
+if [[ -f /etc/os-release ]]; then
+    source /etc/os-release
+    distro_name=$ID
+    distro_version=$VERSION_ID
+else
+    distro_name=$(lsb_release -i | cut -f2)
+    distro_version=$(lsb_release -r | cut -f2)
+fi
+
+# UFW status
+UFW_STATUS=$(ufw status | grep Status | cut -d ' ' -f 2)
 
 # ensure firewall is running on the host
-if [[ $UFW_STATUS == "inactive" ]]; then
+if [[ "$UFW_STATUS" == "inactive" ]]; then
     echo ""
     echo "============================= ERROR ================================="
     echo "ufw firewall needs to be enabled in order to perform the installation."
-    echo "Use Bellow commands to allow your ssh port (default=22) and enable the firewall"
+    echo "Use the commands below to allow your ssh port (default=22) and enable the firewall"
     echo "sudo ufw limit 22/tcp"
     echo "sudo ufw enable"
     echo "sudo ./deploy.sh"
@@ -26,87 +41,65 @@ hosts_file="inventory/hosts"
 if [ ! -f "$hosts_file" ]; then
     echo "$hosts_file file does not exist, creating one from hosts.template"
     cp inventory/hosts.template inventory/hosts
+    chown "${SUDO_USER:-$USER}" inventory/hosts
+    chmod 600 inventory/hosts
     echo ""
-    echo ""
-    sleep 2
+elif [ "$(stat -c '%a' "$hosts_file")" != "600" ]; then
+    echo "Fixing permissions on $hosts_file"
+    chown "${SUDO_USER:-$USER}" inventory/hosts
+    chmod 600 inventory/hosts
 fi
 
-# install ansible on Ubuntu 20.04 
-ansible_install_2004() {
-  sudo apt -yq update
-  sudo apt install -yq  git
-  sudo apt install -yq software-properties-common   
-  sudo apt-add-repository --yes --update ppa:ansible/ansible
-  sudo apt install -yq sshpass 
-  sudo apt install -yq  ansible
-  }
-# install ansible on Ubuntu-22.04
-  ansible_install_2204() {
-  # disables needrestart dialog on ubuntu 22.04 
-  if [ -f "/etc/needrestart/needrestart.conf" ]; then
-  sed -i 's/#$nrconf{restart} = '"'"'i'"'"';/$nrconf{restart} = '"'"'a'"'"';/g' /etc/needrestart/needrestart.conf 
-  sed -i "s/#\$nrconf{kernelhints} = -1;/\$nrconf{kernelhints} = -1;/g" /etc/needrestart/needrestart.conf  
-  fi
-  sudo apt -yq update
-  sudo apt install -yq  git
-  sudo apt install -yq software-properties-common
-  sudo apt-add-repository --yes --update ppa:ansible/ansible
-  sudo apt install -yq sshpass 
-  sudo apt install -yq ansible
+# Install ansible on Ubuntu
+ansible_install() {
+    # Disable needrestart dialog on Ubuntu 22.04+
+    if [[ -f "/etc/needrestart/needrestart.conf" ]]; then
+        sed -i 's/#$nrconf{restart} = '"'"'i'"'"';/$nrconf{restart} = '"'"'a'"'"';/g' /etc/needrestart/needrestart.conf
+        sed -i "s/#\$nrconf{kernelhints} = -1;/\$nrconf{kernelhints} = -1;/g" /etc/needrestart/needrestart.conf
+    fi
+    sudo apt -yq update
+    sudo apt install -yq git software-properties-common sshpass
+    sudo apt-add-repository --yes --update ppa:ansible/ansible
+    sudo apt install -yq ansible
 }
 
-# this is for other releases, -- but they have to be newer that ubuntu 20.04
-ansible_install_other() {
-  sudo apt -yq update
-  sudo apt install -yq  git
-  sudo apt install -yq software-properties-common
-  sudo apt-add-repository --yes --update ppa:ansible/ansible
-  sudo apt install -yq ansible
-  sudo apt install -yq sshpass 
-}
-
-if ! command -v ansible &> /dev/null
-then
-    case ${distro_version} in
-      "20.04")
-        echo "Installing ansible on ${distro_name} ${distro_version} LTS ..."
-        ansible_install_2004
-        ;;
-      "22.04")
-        echo "Installing ansible on ${distro_name} ${distro_version} LTS ..."
-        ansible_install_2204
-        ;;
-      *)
-         if (( $(echo "${distro_version} > 22.04" | bc -l) )); then
-            echo "Installing ansible on ${distro_name} ${distro_version} ..."
-           ansible_install_other
-        else
-          echo "Your distro  ${distro_name} ${distro_version}  is not supported"
-          exit 1
-        fi 
-        ;;
-      esac
+if ! command -v ansible &> /dev/null; then
+    # Check minimum version requirement (20.04)
+    # Compare versions by removing dots and comparing as integers (e.g., 20.04 -> 2004)
+    min_version="2004"
+    current_version="${distro_version//./}"
+    if [[ "$current_version" -lt "$min_version" ]]; then
+        echo "Your distro ${distro_name} ${distro_version} is not supported (minimum: 20.04)"
+        exit 1
+    fi
+    echo "Installing ansible on ${distro_name} ${distro_version} ..."
+    ansible_install
     sudo -E apt-get -yq autoclean
-    # install community general collections 
+    # Install community general collections
     ansible-galaxy collection install community.general
 fi
 
-# deploying dhis2 
-if [ $(cat inventory/hosts  |grep -Po '^ansible_connection=\K[a-z].*') == "lxd" ]
-  then
-     # deploying dhis2 in lxd containers
-     echo "Deploying dhis2 with lxd ..."
-     # Ensure you community general callections are upgraded, 
-     ansible-galaxy collection install community.general --upgrade
-     sudo ansible-playbook dhis2.yml
-  else
-     # deploying dhis2 over ssh
-     echo "Deploy dhis2 over ssh ..."
-     read -p "Enter ssh user: " ssh_user
-     # Check if group exists and add user silently
-      if ! getent group 'lxd' >/dev/null 2>&1; then
-        usermod -a -G "lxd" "$ssh_user"
-      fi
-     # usermod -a -G lxd $ssh_user
-     su -c "ansible-playbook  dhis2.yml -kK" $ssh_user
+# Deploying dhis2
+connection_type=$(awk -F= '/^ansible_connection=/{print $2}' inventory/hosts 2>/dev/null || echo "")
+if [[ "$connection_type" == "lxd" ]]; then
+    # Deploying dhis2 in lxd containers
+    echo "Deploying dhis2 with lxd ..."
+    # Ensure community general collections are upgraded
+    ansible-galaxy collection install community.general --upgrade
+    sudo ansible-playbook dhis2.yml
+else
+    # Deploying dhis2 over ssh
+    echo "Deploy dhis2 over ssh ..."
+    read -p "Enter ssh user: " ssh_user
+    # Check if group exists and add user silently
+    if [[ -z "$ssh_user" ]]; then
+        echo "Error: SSH user cannot be empty"
+        exit 1
+    fi
+    if getent group 'lxd' >/dev/null 2>&1; then
+        sudo usermod -a -G "lxd" "$ssh_user"
+    fi
+    # Ensure community general collections are upgraded
+    ansible-galaxy collection install community.general --upgrade
+    su -c "ansible-playbook dhis2.yml -kK" "$ssh_user"
 fi

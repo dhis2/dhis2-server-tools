@@ -1,0 +1,216 @@
+#!/usr/bin/env bash
+#
+# pg_multi_backup.sh
+# Multi-server, multi-database PostgreSQL backup script using pg_service.conf
+# Author: Tito Kipkurgat (edited for you)
+# License: public domain
+#
+
+# Force non-interactive mode - fail if password prompt would be needed
+exec < /dev/null
+
+export PGCONNECT_TIMEOUT=10
+set -euo pipefail
+
+# --------- configuration loader ----------
+# load environment variables
+source /usr/local/etc/dhis/dhis2-env-new
+
+# Setup logging
+LOG_DIR=${LOG_DIR:-/var/log/pg_backup}
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/pg_backup_$(date +%Y%m%d).log"
+
+# --------- helpers ----------
+log() {
+    local msg="$(date '+%F %T') $*"
+    echo "$msg" | tee -a "$LOG_FILE"
+}
+
+fail() {
+    log "[ERROR] $*"
+    exit 1
+}
+
+info() {
+    log "[INFO] $*"
+}
+
+# Where to find your pg_service.conf (change here if you keep it elsewhere)
+export PGSERVICEFILE=${PGSERVICEFILE:-/usr/local/etc/dhis/pg_service.conf}
+
+# Basic safety & umask (directories 750, files 640)
+umask ${UMASK:-027}
+
+# create a temp dir for in_progress files (will be cleaned on exit)
+TMPDIR=$(mktemp -d /tmp/pgmulti_backup.XXXXXX)
+trap 'rm -rf "$TMPDIR"' EXIT
+
+# Validate required binaries
+for cmd in pg_dump psql gzip openssl rsync find; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    fail "Required command not found: $cmd"
+  fi
+done
+
+# Validate PGSERVICEFILE
+if [ ! -f "$PGSERVICEFILE" ]; then
+  fail "pg_service.conf not found at PGSERVICEFILE=$PGSERVICEFILE"
+fi
+
+# Validate backup dir
+if [ -z "${BACKUP_DIR:-}" ]; then
+  fail "BACKUP_DIR is not set in your dhis2-env"
+fi
+mkdir -p "$BACKUP_DIR"
+
+# Convenience defaults (if not set in env)
+SERVICES=${SERVICES:-""}   # e.g. "prod dev"
+DAY_OF_WEEK_TO_KEEP=${DAY_OF_WEEK_TO_KEEP:-7}
+WEEKS_TO_KEEP=${WEEKS_TO_KEEP:-4}
+DAYS_TO_KEEP=${DAYS_TO_KEEP:-7}
+EXCLUDED=${EXCLUDED:-""}   # e.g. "-T aggregated_* -T analytics_* -T completeness_*"
+CIPHER=${CIPHER:-aes-256-cbc}
+
+# ---------- core function ----------
+perform_backups() {
+  SUFFIX="$1"
+  DB_BACKUP_DIR="$BACKUP_DIR/db-backup"
+  AUDIT_BACKUP_DIR="$BACKUP_DIR/audit-backup"
+
+  TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+  FINAL_BACKUP_DIR="$DB_BACKUP_DIR/${TIMESTAMP}${SUFFIX}"
+  FINAL_AUDIT_DIR="$AUDIT_BACKUP_DIR/${TIMESTAMP}${SUFFIX}"
+
+  info "Creating backup directories: $FINAL_BACKUP_DIR and $FINAL_AUDIT_DIR"
+  mkdir -p "$FINAL_BACKUP_DIR" "$FINAL_AUDIT_DIR"
+
+  # Loop over services (each service is a server defined in pg_service.conf)
+  for SERVICE in $SERVICES; do
+    # Test connection first
+    info "Testing connection to service: $SERVICE"
+    if ! timeout 10 bash -c "PGSERVICE=$SERVICE psql -w -d postgres -c 'SELECT 1' >/dev/null 2>&1"; then
+      log "ERROR: Cannot connect to service '$SERVICE'. Check pg_service.conf and credentials."
+      # Show the actual error
+      PGSERVICE=$SERVICE psql -w -d postgres -c "SELECT 1" 2>&1 | head -10
+      continue  # Skip this service
+    fi
+    info "Connection to $SERVICE: OK"
+
+    # Expand dynamic DB list variable: DBLIST_<service>
+    DBVAR="DBLIST_${SERVICE}"
+    DBLIST=${!DBVAR:-}
+
+    # Expand encrypted list variable: ENCRYPTED_BACKUPS_<service>
+    ENCVAR="ENCRYPTED_BACKUPS_${SERVICE}"
+    ENCLIST=${!ENCVAR:-}
+
+    if [ -z "$DBLIST" ]; then
+      info "No DB list defined for service '$SERVICE' (variable $DBVAR empty). Skipping."
+      continue
+    fi
+
+    info "== Backing up service: $SERVICE (databases: $DBLIST) =="
+    for DB in $DBLIST; do
+      # prepare names
+      SAFE_DBNAME=${DB//[^a-zA-Z0-9._-]/_}
+      OUT_BASE="${SERVICE}_${SAFE_DBNAME}_${TIMESTAMP}"
+      OUT_PLAIN="$FINAL_BACKUP_DIR/${OUT_BASE}.sql.gz"
+      OUT_AUDIT="$FINAL_AUDIT_DIR/audit_${SERVICE}_${SAFE_DBNAME}.sql.gz"
+
+      # 1) audit-only export (if audit table exists; export only rows)
+      info "Backing up audit table for $DB on service $SERVICE"
+      if PGSERVICE=$SERVICE pg_dump --no-password -a -t audit -d "$DB" 2>/dev/null | gzip > "$TMPDIR/audit_${OUT_BASE}.sql.gz.in_progress"; then
+        mv "$TMPDIR/audit_${OUT_BASE}.sql.gz.in_progress" "$OUT_AUDIT"
+        info "Audit export saved: $OUT_AUDIT"
+
+        # Attempt to truncate audit table (best effort)
+        if ! echo "TRUNCATE TABLE audit;" | PGSERVICE=$SERVICE psql -w -d "$DB" >/dev/null 2>&1; then
+          log "Warning: failed to truncate audit table on $SERVICE/$DB (continuing)."
+        else
+          info "Audit table truncated on $SERVICE/$DB"
+        fi
+      else
+        log "No audit table exported for $SERVICE/$DB (maybe not present) or an error occurred."
+      fi
+
+      # 2) full plain SQL backup (compressed)
+      info "Performing full SQL dump for $DB on $SERVICE"
+      if PGSERVICE=$SERVICE pg_dump --no-password -O -Fp $EXCLUDED -d "$DB" 2> "$TMPDIR/pgdump_${OUT_BASE}.stderr" | gzip > "$TMPDIR/${OUT_BASE}.sql.gz.in_progress"; then
+        mv "$TMPDIR/${OUT_BASE}.sql.gz.in_progress" "$OUT_PLAIN"
+        info "Database dump saved: $OUT_PLAIN"
+      else
+        log "Failed to produce plain backup for $SERVICE/$DB"
+        if [ -f "$TMPDIR/pgdump_${OUT_BASE}.stderr" ]; then
+          log "Error details:"
+          cat "$TMPDIR/pgdump_${OUT_BASE}.stderr" | tee -a "$LOG_FILE"
+        fi
+        continue
+      fi
+
+      # 3) optional per-service encrypted backups list
+      if [ -n "$ENCLIST" ] && [[ " $ENCLIST " == *" $DB "* ]]; then
+        if [ -z "${PASSWORD_FILE:-}" ] || [ ! -f "$PASSWORD_FILE" ]; then
+          log "Encryption requested for $DB but PASSWORD_FILE is not set or not found; skipping encryption."
+        else
+          OUT_ENC="${OUT_PLAIN}.enc"
+          info "Encrypting $OUT_PLAIN -> $OUT_ENC"
+          if openssl enc -${CIPHER} -salt -in "$OUT_PLAIN" -out "$TMPDIR/${OUT_BASE}.sql.gz.enc.in_progress" -pass file:"$PASSWORD_FILE"; then
+            mv "$TMPDIR/${OUT_BASE}.sql.gz.enc.in_progress" "$OUT_ENC"
+            rm -f "$OUT_PLAIN"
+            info "Encrypted backup created: $OUT_ENC"
+          else
+            log "Encryption failed for $OUT_PLAIN"
+          fi
+        fi
+      fi
+
+    done # DB loop
+
+    # Optional: backup globals (roles, tablespaces) once per service
+    if [ "${BACKUP_GLOBALS:-1}" -eq 1 ]; then
+      OUT_GLOBALS="$FINAL_BACKUP_DIR/${SERVICE}_globals_${TIMESTAMP}.sql.gz"
+      info "Backing up globals for service $SERVICE"
+      if PGSERVICE=$SERVICE pg_dumpall --no-password -g | gzip > "$TMPDIR/${SERVICE}_globals_${TIMESTAMP}.sql.gz.in_progress"; then
+        mv "$TMPDIR/${SERVICE}_globals_${TIMESTAMP}.sql.gz.in_progress" "$OUT_GLOBALS"
+        info "Globals saved: $OUT_GLOBALS"
+      else
+        log "Warning: globals backup failed for $SERVICE"
+      fi
+    fi
+
+  done # SERVICE loop
+
+  # optional remote sync
+  if [ -n "${REMOTE:-}" ]; then
+    info "Syncing backups to remote: $REMOTE"
+    rsync -av --delete "$BACKUP_DIR/" "$REMOTE"
+  fi
+
+  info "perform_backups($SUFFIX) finished"
+}
+
+# ---------- retention / schedule logic ----------
+# create top-level folders
+mkdir -p "$BACKUP_DIR/db-backup" "$BACKUP_DIR/audit-backup"
+
+DAY_OF_MONTH=$(date +%d)
+DAY_OF_WEEK=$(date +%u) # 1..7
+EXPIRED_DAYS=$((WEEKS_TO_KEEP * 7 + 1))
+
+# monthly
+if [ "$DAY_OF_MONTH" = "01" ]; then
+  # remove old monthly dirs older than 60 days (adjust as you like)
+  find "$BACKUP_DIR/db-backup" -maxdepth 1 -name "*-monthly" -mtime +60 -exec rm -rf {} \; || true
+  perform_backups "-monthly"
+fi
+
+# weekly
+if [ "$DAY_OF_WEEK" = "$DAY_OF_WEEK_TO_KEEP" ]; then
+  find "$BACKUP_DIR/db-backup" -maxdepth 1 -name "*-weekly" -mtime +"$EXPIRED_DAYS" -exec rm -rf {} \; || true
+  perform_backups "-weekly"
+fi
+
+# daily cleanup then perform daily
+find "$BACKUP_DIR/db-backup" -maxdepth 1 -name "*-daily" -mtime +"$DAYS_TO_KEEP" -exec rm -rf {} \; || true
+perform_backups "-daily"

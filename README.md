@@ -32,15 +32,15 @@ This is a quick DHIS2 install guide using [ansible](https://www.ansible.com/). A
 one or more dhis2 instances running, configured with postgreSQL database and
 nginx or apache2 proxy. Out of the box, you'll benefit from comprehensive application and server resource monitoring with Glowroot APM (Application Performance Monitoring) and a Munin instance. 
 
-At the moment, the tools support two deployment architectures:- 
-- [Installation on a single server](#install-on-a-single-server)
-- [Installation on multiple servers](#install-on-multiple-servers)
+At the moment, the tools support two deployment architectures:
+- [Installation with LXD containers](#installation-with-lxd-containers) (single server)
+- [Installation on physical/virtual servers](#install-on-physicalvirtual-servers) (multiple servers)
 
 You can also do a hybrid of both. [Read more on Architectures](./docs/Deployment-Architectures.md)
 ## Installation with LXD containers
 ### Step 0 — Before you start
 Ensure you have:
-- Linux server, minimum 4GB RAM, 2CPU cores
+- Linux server, minimum 4GB RAM, 2 CPU cores
   - Ubuntu 22.04 or
   - Ubuntu 24.04 
 - SSH Access to the server
@@ -87,8 +87,7 @@ Ensure you have:
   cd dhis2-server-tools/deploy/
   sudo ./deploy.sh
   ```
-- After the script finishes running (without errors), access your dhis2, glowroot and munin monitoring instances with your domain (fqdn) set in [Step 5 — The
-  Install](#step-5--the-install). If your setup is without fqdn, use your servers' IP address<br>
+- After the script finishes running (without errors), access your DHIS2, Glowroot and Munin monitoring instances with your domain (fqdn) set in [Step 4](#step-4--set-fqdn-email-and-timezone). If your setup is without fqdn, use your server's IP address.<br>
   ```
   https://your-domain/dhis
   https://your-domain/dhis-glowroot
@@ -97,7 +96,7 @@ Ensure you have:
 
 ## Install on physical/virtual servers.
 ### Step 0: Before you start, make sure you have the following:
-- A deployment server - This server is going to your an ansible-controller.<br>DHIS2
+- A deployment server - This server is going to be your ansible-controller.<br>DHIS2
   setup on the backend application server will be done from here. We will be using
   deployment server and ansible-controller interchangeably in this guide. 
   - It should run either Ubuntu 22.04 or 24.04 
@@ -108,7 +107,7 @@ Ensure you have:
     ![](./docs/images/distributed-architecture.png?raw=true "Distributed")
 - Backend Servers (managed hosts) - These are the servers that will be running
   your DHIS2 components, i.e database(PostgreSQL, DHIS2, Monitoring, Proxy)
-  - They all should be be running Ubuntu 22.04 or 24.04 
+  - They all should be running Ubuntu 22.04 or 24.04 
   - Be accessible (via ssh) from the deployment server.
 
 ### Step 1: Access deployment server (ansible-controller) via SSH 
@@ -117,14 +116,14 @@ Ensure you have:
   Remember to allow your preferred SSH port before enabling the firewall.
 
   ```
-  sudo ufw limit 22 #  # Assuming you did not change default SSH port (22)
+  sudo ufw limit 22 # Assuming you did not change default SSH port (22)
   sudo ufw enable
   ```
 
 ### Step 2: Install ansible on the deployment server
   ```
   sudo apt -y update
-  sudo apt install -y  software-properties-common
+  sudo apt install -y software-properties-common
   sudo apt-add-repository --yes --update ppa:ansible/ansible
   sudo apt install -y ansible
   ```
@@ -152,8 +151,7 @@ Ensure you have:
 
 ### Step 6:  Ensure connection to the managed hosts works
 - [Read More on how you can configure SSH](./docs/SSH-Connection.md)
-- You will need to setup SSH connection from your deployment server to your backend application
-servers. 
+- You will need to setup SSH connection from your deployment server to your backend application servers. 
 - Both password or key-based authentication would work. Key-based authentication
   is encouraged if you want your deployment to run fully automated (no prompts
   for SSH passwords). Use ansible ping module to test your connection to all the
@@ -178,7 +176,7 @@ servers.
   </tr>
   <td>
   <code>-k or --ask-pass </code><span>&#8212;</span> prompts for SSH password <br>
-  <code>-K or --ask-become-pass</code>&#8212;</span> enables sudo password prompt, you can set <code>ansible_sudo_pass=STRONG_PASSWORD</code> to avoid prompts <br>
+  <code>-K or --ask-become-pass</code><span>&#8212;</span> enables sudo password prompt, you can set <code>ansible_sudo_pass=STRONG_PASSWORD</code> to avoid prompts <br>
   <code>-u</code><span>&#8212;</span> username for SSH connection </td> </tr>
 </table>
 
@@ -186,10 +184,8 @@ NOTE:
 - When your SSH connection is based on keys, there's no need for the `-k` flag
 - If you don't specify an SSH username, it will automatically use currently logged in username.
 
-- After the script finishes running (without errors), access your dhis2,
-  glowroot and munin monitoring instances with your domain (fqdn) set in [Step 5 — The
-  Install](#step-5--the-install). If your setup is without
-  fqdn, use your servers' IP address<br>
+- After the playbook finishes running (without errors), access your DHIS2,
+  Glowroot and Munin monitoring instances with your domain (fqdn) set in [Step 5](#step-5-set-fqdn-email-timezone-and-ansible_connectionssh). If your setup is without fqdn, use your server's IP address.<br>
   ```
   https://your-domain/dhis
   https://your-domain/dhis-glowroot
@@ -216,7 +212,7 @@ NOTE:
 
 ## Using a Custom TLS Certificate 
 
-- Your will need to have two files, named  `customssl.crt` and `customssl.key` <br>
+- You will need to have two files, named `customssl.crt` and `customssl.key`.<br>
   `customssl.crt` should contain the main certificate concatenated with intermediate and
    root certificates.
 -  Copy these two files into `dhis2-server-tools/deploy/roles/proxy/files/` directory, preserving their names.

@@ -1,0 +1,11 @@
+
+{% if dhis2_version_major is defined and dhis2_version_major | float >= 2.42 %}
+# BEGIN ANSIBLE MANAGED DORIS CONFIG
+# Analytics database management system
+analytics.database = doris
+analytics.connection.driver_class = com.mysql.cj.jdbc.Driver
+analytics.connection.url = jdbc:mysql://{{ hostvars[(hostvars[item]['apache_doris_db'])]['ansible_host'] }}:9030/analytics
+analytics.connection.username = {{ hostvars[item]['apache_doris_db_user'] | default('doris_user') }}
+analytics.connection.password = {{ hostvars[item]['apache_doris_db_password'] | default(lookup('password', '/opt/ansible/secrets/apache_doris_db_password')) }}
+# END ANSIBLE MANAGED DORIS CONFIG
+{% endif %}

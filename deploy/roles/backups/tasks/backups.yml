@@ -1,0 +1,193 @@
+---
+# Create LXD Container
+- name: Creating backup container
+  become: true
+  vars:
+    ansible_connection: local
+  community.general.lxd_container:
+    config:
+      boot.autostart.priority: "10"
+      user.type: "{{ group_names[0] }}"
+    name: "{{ inventory_hostname }}"
+    state: started
+    profiles: [default] # IDEA: a backup container could be on a separate profile
+    ignore_volatile_options: false
+    wait_for_ipv4_addresses: true
+    timeout: 600
+    source:
+      type: image
+      mode: pull
+      server: "{{ lxd_source_server | default('https://cloud-images.ubuntu.com/releases') }}"
+      protocol: "{{ lxd_source_protocol | default('simplestreams') }}"
+      alias: "{{ GUEST_OS | default(guest_os) }}/{{ guest_os_arch | default('amd64') }}"
+    devices:
+      eth0:
+        nictype: bridged
+        parent: "{{ lxd_bridge_interface | default('lxdbr1') }}"
+        type: nic
+        ipv4.address: "{{ ansible_host | ansible.utils.ipaddr(lxd_network) }}"
+  when: inventory_hostname in groups['backup_servers']
+
+# Install Postgresql Client
+- name: Updating and Upgrading packages
+  ansible.builtin.apt:
+    upgrade: "yes"
+    update_cache: true
+    cache_valid_time: 3600
+  when: inventory_hostname in groups['backup_servers']
+
+- name: Adding postgresql repo signing key
+  ansible.builtin.get_url:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    dest: /etc/apt/trusted.gpg.d/postgresql.asc
+    owner: root
+    group: root
+    mode: "0644"
+  when: inventory_hostname in groups['backup_servers']
+
+- name: Adding postgres apt repository to sources list
+  ansible.builtin.apt_repository:
+    repo: deb [arch={{ guest_os_arch | default('amd64') }} signed-by=/etc/apt/trusted.gpg.d/postgresql.asc] https://apt.postgresql.org/pub/repos/apt {{ ansible_facts['distribution_release']
+      }}-pgdg main
+    update_cache: true
+    filename: apt_postgresql_org
+    state: present
+    mode: "0644"
+  when: inventory_hostname in groups['backup_servers']
+
+- name: Installing postgreSQL Client version {{ postgresql_version }}
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name:
+      - postgresql-client-{{ postgresql_version }}
+    # NOTE: Consider adding postgresql-server if local backups are needed
+  when: inventory_hostname in groups['backup_servers']
+
+# deploy backup script, /usr/local/etc/dhis/pg_service.conf, .pgpass
+
+# TODO: Uncomment and use this fact in a template
+# - name: Create a list of dhis2 databases to backup
+#   ansible.builtin.set_fact:
+#     dhis2_databases: "{{ groups['instances'] | join(' ') }}"
+
+- name: Ensure /usr/local/etc/dhis directory exists
+  ansible.builtin.file:
+    path: /usr/local/etc/dhis/
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  when: inventory_hostname in groups['backup_servers']
+
+- name: Create dhis2-env from template
+  ansible.builtin.template:
+    src: dhis2-env-new.j2
+    dest: /usr/local/etc/dhis/dhis2-env-new
+    mode: "0600"
+    owner: root
+    group: root
+  when: inventory_hostname in groups['backup_servers']
+
+- name: Create service file from a template
+  ansible.builtin.template:
+    src: pg_service.conf.j2
+    dest: /usr/local/etc/dhis/pg_service.conf
+    owner: root
+    group: root
+    mode: "0600"
+  when: inventory_hostname in groups['backup_servers']
+
+- name: Create backup script from the template
+  ansible.builtin.template:
+    src: backup-script
+    dest: /usr/local/bin/dhis2-backup-new
+    owner: root
+    group: root
+    mode: "0700"
+  when: inventory_hostname in groups['backup_servers']
+
+# Adding postgresql Backup user
+- name: "Create backup database role"
+  become: true
+  become_user: postgres
+  community.general.postgresql_user:
+    name: "{{ item }}"
+    state: present
+    password: "{{ hostvars[item]['db_password'] }}"
+  loop: "{{ groups['instances'] }}"
+  when:
+    - hostvars[item]['instance_state'] is undefined
+    - item in ansible_play_hosts
+    - hostvars[item]['db_password'] is defined
+    - inventory_hostname == hostvars[item]['database_host']
+  notify: Reload Postgres
+
+- name: Collect databases used by instances (local)
+  connection: local
+  ansible.builtin.set_fact:
+    used_databases: >-
+      {{
+        groups['instances']
+        | map('extract', hostvars, 'database_host')
+        | select('defined')
+        | unique
+        | list
+      }}
+  run_once: true
+
+- name: Collect backup server IPs (local)
+  connection: local
+  ansible.builtin.set_fact:
+    backup_server_ips: >-
+      {{
+        groups['backup_servers']
+        | map('extract', hostvars, 'ansible_host')
+        | select('defined')
+        | list
+      }}
+  run_once: true
+
+- name: Allow PostgreSQL access from backup servers
+  community.general.ufw:
+    rule: allow
+    port: "{{ postgresql_port | default('5432') }}"
+    proto: tcp
+    src: "{{ item }}"
+    comment: "Allow PostgreSQL access from backup server {{ item }}"
+    state: enabled
+  loop: "{{ backup_server_ips }}"
+  when:
+    - inventory_hostname in used_databases
+
+- name: Checking PostgreSQL version
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_info:
+    filter: ver*
+  register: postgresql_version_info
+  when:
+    - inventory_hostname in used_databases
+
+- name: Allow PostgreSQL access from backup servers in pg_hba.conf
+  ansible.builtin.lineinfile:
+    path: "/etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf"
+    insertafter: EOF
+    # Old: regexp: "^hostssl\\s+all\\s+all\\s+{{ item }}/32\\s+scram-sha-256$"
+    regexp: "^hostssl\\s+all\\s+all\\s+{{ item }}\\/32\\s+scram-sha-256$"
+    line: "hostssl  all  all  {{ item }}/32  scram-sha-256" # TODO Do not use all all but username all
+  loop: "{{ backup_server_ips }}"
+  when:
+    - inventory_hostname in used_databases
+    - postgresql_version_info is defined
+
+# Add the script to the cronjob
+- name: Add backup script to crontab
+  ansible.builtin.cron:
+    name: dhis2 backup Script
+    minute: "0"
+    hour: "3"
+    user: root
+    job: /usr/local/bin/dhis2-backup-new
+    state: present
+  when: inventory_hostname in groups['backup_servers']

@@ -1,0 +1,23 @@
+# define your backup directory path
+BACKUP_DIR=/var/pgbackups
+
+SERVICES="prod"
+DBLIST_prod="dhis"
+DBLIST_dev="dhis2_dev test_db"
+
+PLAIN_BACKUPS="dhis"
+
+EXCLUDED="-T aggregated_* -T analytics_* -T completeness_* "
+
+# For remote backup to work you need to setup a passwordless ssh keys
+#REMOTE="remote:backups/"
+
+
+#ENCRYPTED_BACKUPS="tracker"
+#PASSWORD_FILE="/usr/local/etc/dhis/passwd.pg"
+CIPHER="aes-256-cbc"
+
+# Backup retention policy
+DAY_OF_WEEK_TO_KEEP=7
+WEEKS_TO_KEEP=4
+DAYS_TO_KEEP=7

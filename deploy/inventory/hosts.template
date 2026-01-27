@@ -20,6 +20,8 @@ dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.42 proxy
 [monitoring]
 monitor   ansible_host=172.19.2.30 
 
+[backup_servers]
+backup  ansible_host=172.19.2.100
 
 # integration server/container
 [integration]

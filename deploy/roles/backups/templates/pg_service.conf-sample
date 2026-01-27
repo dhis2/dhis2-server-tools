@@ -1,0 +1,11 @@
+[prod]
+host=172.19.2.20
+port=5432
+user=backup
+dbname=postgres
+
+[dev]
+host=172.19.2.30
+port=5432
+user=backup
+dbname=postgres

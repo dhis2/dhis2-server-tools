@@ -19,8 +19,9 @@
   ansible.builtin.include_tasks: "tls/{{ TLS_TYPE | default('letsencrypt') }}.yml"
   loop: "{{ groups['instances'] }}"
   when:
-    - hostvars[item]['fqdn'] | default('', true) | trim
-    - hostvars[item]['instance_state'] is undefined
+   - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
+   - hostvars[item]['instance_state'] is undefined
+
 
 - name: Instance location configuration
   ansible.builtin.template:
@@ -38,7 +39,7 @@
   ansible.builtin.include_tasks: tls/selfsigned.yml
   loop: "{{ groups['instances'] }}"
   when:
-    - not (hostvars[item]['fqdn'] | default('', true) | trim)
+    - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
 
 - name: Find files to delete in /etc/apache2/conf.d/
@@ -65,7 +66,7 @@
     mode: "0640"
   loop: "{{ groups['instances'] }}"
   when:
-    - hostvars[item]['fqdn'] | default('', true) | trim
+    - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
   notify: Restart Apache2
 
@@ -78,7 +79,7 @@
     mode: "0640"
   loop: "{{ groups['instances'] }}"
   when:
-    - hostvars[item]['fqdn'] | default('', true) | trim
+    - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
   notify: Reload Apache2
 
@@ -91,7 +92,7 @@
     mode: "0640"
   loop: "{{ groups['instances'] }}"
   when:
-    - not  (hostvars[item]['fqdn'] | default('', true) | trim)
+    - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
   notify: Reload Apache2
 
@@ -104,7 +105,7 @@
     mode: "0640"
   loop: "{{ groups['instances'] }}"
   when:
-    - not (hostvars[item]['fqdn'] | default('', true) | trim)
+    - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
   notify: Reload Apache2
 
@@ -119,7 +120,7 @@
     creates: /etc/apache2/sites-enabled/{{  hostvars[item]['fqdn'] | trim }}.conf
   loop: "{{ groups['instances'] }}"
   when:
-    - (hostvars[item]['fqdn'] | default('', true) | trim)
+    - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
   notify: Reload Apache2
 
@@ -129,7 +130,7 @@
     creates: /etc/apache2/sites-enabled/default.conf
   loop: "{{ groups['instances'] }}"
   when:
-    - not (hostvars[item]['fqdn'] | default('', true) | trim)
+    - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
   notify: Reload Apache2
 

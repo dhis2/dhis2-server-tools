@@ -1,0 +1,7 @@
+{% for host in groups['databases'] %}
+[{{ host }}]
+host={{ hostvars[host].ansible_host }}
+port=5432
+user={{ hostvars[host].backup_user | default('backup_user') }}
+dbname=postgres
+{% endfor %}

@@ -1,0 +1,50 @@
+# Auto-generated – DO NOT EDIT
+# Customize via Ansible inventory only
+
+BACKUP_DIR=/var/pgbackups
+
+# PostgreSQL services (pg_service.conf sections)
+SERVICES="{% for s in groups['databases'] %}{{ s }}{% if not loop.last %} {% endif %}{% endfor %}"
+
+{% for service in groups['databases'] %}
+{#-- collect databases that belong to this service --#}
+{% set dbs = [] %}
+{% for inst in groups['instances'] %}
+{%   if hostvars[inst].database_host == service %}
+{%     set _ = dbs.append(inst) %}
+{%   endif %}
+{% endfor %}
+
+{% if dbs | length > 0 %}
+DBLIST_{{ service }}="{{ dbs | join(' ') }}"
+{% endif %}
+{% endfor %}
+
+# Optional: databases (per service) that should be encrypted after dump
+# set to empty string if none:
+ENCRYPTED_BACKUPS_prod="" 
+ENCRYPTED_BACKUPS_dev="tracker"
+
+# If you prefer a different location for pg_service.conf, set PGSERVICEFILE here
+# PGSERVICEFILE=/usr/local/etc/dhis/pg_service.conf
+
+# pg_dump exclusion options (tables to skip)
+EXCLUDED="-T aggregated_* -T analytics_* -T completeness_*"
+
+# OpenSSL encryption settings (if using encryption)
+PASSWORD_FILE="/usr/local/etc/dhis/passwd.pg"   # file containing passphrase for openssl - must be secure
+CIPHER="aes-256-cbc"
+
+# Retention policy
+DAY_OF_WEEK_TO_KEEP=7   # which day-of-week to keep weekly snapshot (1=Mon..7=Sun)
+WEEKS_TO_KEEP=4
+DAYS_TO_KEEP=7
+
+# Optional remote rsync target (uncomment and set if used)
+# REMOTE="backupuser@backup.example:/srv/backups/pg/"
+
+# Other options
+# BACKUP_GLOBALS=1   # set to 0 to disable pg_dumpall -g (globals) backups
+# UMASK can be overridden here if desired (optional)
+UMASK=027
+

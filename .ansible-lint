@@ -11,7 +11,7 @@ exclude_paths:
   - "**/.travis.yml"
   - "**/meta/main.yml"
   - "**/tests/"
-parseable: true
+# parseable: true
 
 skip_list:
   - "204" # Lines should be no longer than 160 chars
