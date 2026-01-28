@@ -1,0 +1,9 @@
+---
+- name: Creating backup script
+  hosts: all:!127.0.0.1
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Backup Script Configuration
+      ansible.builtin.include_tasks: playbooks/backups.yml
+
