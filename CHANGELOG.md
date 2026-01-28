@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.2.0...v1.3.0) (2026-01-28)
+
+
+### 🎉 New Features
+
+* add backups role, Apache Doris support, and deploy.sh improvements ([0cfa14b](https://github.com/dhis2/dhis2-server-tools/commit/0cfa14bbb036e45c37f31c91ed16308a5f8f5862))
+
+
+### 🐛 Bug Fixes
+
+* optimized deploy.sh ([#69](https://github.com/dhis2/dhis2-server-tools/issues/69)) ([abfd676](https://github.com/dhis2/dhis2-server-tools/commit/abfd6760d2421e56343494b8ceb8089f4e84ab04))
+* proxy configuration for apache2 and nginx ([0cfa14b](https://github.com/dhis2/dhis2-server-tools/commit/0cfa14bbb036e45c37f31c91ed16308a5f8f5862))
+
 ## [1.2.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.1.0...v1.2.0) (2026-01-19)
 
 
