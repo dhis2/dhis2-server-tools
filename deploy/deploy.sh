@@ -25,26 +25,26 @@ UFW_STATUS=$(ufw status | grep Status | cut -d ' ' -f 2)
 
 # ensure firewall is running on the host
 if [[ "$UFW_STATUS" == "inactive" ]]; then
-    echo ""
-    echo "============================= ERROR ================================="
-    echo "ufw firewall needs to be enabled in order to perform the installation."
-    echo "Use the commands below to allow your ssh port (default=22) and enable the firewall"
-    echo "sudo ufw limit 22/tcp"
-    echo "sudo ufw enable"
-    echo "sudo ./deploy.sh"
-    echo ""
+    echo "" >&2
+    echo "============================= ERROR =================================" >&2
+    echo "ufw firewall needs to be enabled in order to perform the installation." >&2
+    echo "Use the commands below to allow your ssh port (default=22) and enable the firewall" >&2
+    echo "sudo ufw limit 22/tcp" >&2
+    echo "sudo ufw enable" >&2
+    echo "sudo ./deploy.sh" >&2
+    echo "" >&2
     exit 1
 fi
 
 # Ensure inventory file is created before doing anything
 hosts_file="inventory/hosts"
-if [ ! -f "$hosts_file" ]; then
+if [[ ! -f "$hosts_file" ]]; then
     echo "$hosts_file file does not exist, creating one from hosts.template"
     cp inventory/hosts.template inventory/hosts
     chown "${SUDO_USER:-$USER}" inventory/hosts
     chmod 600 inventory/hosts
     echo ""
-elif [ "$(stat -c '%a' "$hosts_file")" != "600" ]; then
+elif [[ "$(stat -c '%a' "$hosts_file")" != "600" ]]; then
     echo "Fixing permissions on $hosts_file"
     chown "${SUDO_USER:-$USER}" inventory/hosts
     chmod 600 inventory/hosts
@@ -61,6 +61,7 @@ ansible_install() {
     sudo apt install -yq git software-properties-common sshpass
     sudo apt-add-repository --yes --update ppa:ansible/ansible
     sudo apt install -yq ansible
+    return 0
 }
 
 if ! command -v ansible &> /dev/null; then
@@ -69,7 +70,7 @@ if ! command -v ansible &> /dev/null; then
     min_version="2004"
     current_version="${distro_version//./}"
     if [[ "$current_version" -lt "$min_version" ]]; then
-        echo "Your distro ${distro_name} ${distro_version} is not supported (minimum: 20.04)"
+        echo "Your distro ${distro_name} ${distro_version} is not supported (minimum: 20.04)" >&2
         exit 1
     fi
     echo "Installing ansible on ${distro_name} ${distro_version} ..."
@@ -93,7 +94,7 @@ else
     read -p "Enter ssh user: " ssh_user
     # Check if group exists and add user silently
     if [[ -z "$ssh_user" ]]; then
-        echo "Error: SSH user cannot be empty"
+        echo "Error: SSH user cannot be empty" >&2
         exit 1
     fi
     if getent group 'lxd' >/dev/null 2>&1; then

@@ -11,12 +11,13 @@ ansible_install_2004() {
   sudo apt install -yq software-properties-common   
   sudo apt-add-repository --yes --update ppa:ansible/ansible
   sudo apt install -yq  ansible
-  sudo apt install -yq sshpass 
-  }
+  sudo apt install -yq sshpass
+  return 0
+}
 # install ansible on Ubuntu-22.04
   ansible_install_2204() {
   # disables needrestart dialog on ubuntu 22.04 
-  if [ -f "/etc/needrestart/needrestart.conf" ]; then
+  if [[ -f "/etc/needrestart/needrestart.conf" ]]; then
   sed -i 's/#$nrconf{restart} = '"'"'i'"'"';/$nrconf{restart} = '"'"'a'"'"';/g' /etc/needrestart/needrestart.conf 
   sed -i "s/#\$nrconf{kernelhints} = -1;/\$nrconf{kernelhints} = -1;/g" /etc/needrestart/needrestart.conf  
   fi
@@ -25,7 +26,8 @@ ansible_install_2004() {
   sudo apt install -yq software-properties-common
   sudo apt-add-repository --yes --update ppa:ansible/ansible
   sudo apt install -yq ansible
-  sudo apt install -yq sshpass 
+  sudo apt install -yq sshpass
+  return 0
 }
 
 # this is for other releases, -- but they have to be newer that ubuntu 20.04
@@ -34,7 +36,8 @@ ansible_install_other() {
   sudo apt install -yq  git
   sudo apt install -yq software-properties-common
   sudo apt install -yq ansible
-  sudo apt install -yq sshpass 
+  sudo apt install -yq sshpass
+  return 0
 }
 
 if ! command -v ansible &> /dev/null

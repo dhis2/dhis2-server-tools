@@ -15,79 +15,229 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import os
+import re
 from subprocess import Popen, PIPE
 import shutil
 import sys
 import json
 
-from ansible.module_utils.six.moves import configparser
+# Path to static inventory file (relative to this script's location)
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_INVENTORY = os.path.join(SCRIPT_DIR, '..', 'inventory', 'hosts')
 
 # Set up defaults
-resource = 'local:'
 connection = 'lxd'
-hosts = {}
-result = {}
 
-# persing INI file 
-        # Read the settings from the lxd.ini file
-        # config = configparser.ConfigParser(allow_no_value=True)
-        # config.read('../inventory/hosts')
-        
-        # if config.has_option('all:vars', 'ansible_connection'):
-            # ansible_connection = config.get('all:vars', 'ansible_connection')
-        # print(ansible_connection)
-        # if config.has_option('lxd', 'group'):
-        #     group = config.get('lxd', 'group')
-        # if config.has_option('lxd', 'connection'):
-        #     connection = config.get('lxd', 'connection')
 
-if shutil.which('lxc'):
-    # Set up containers result and hosts array
-    # Run the command and load json result
+def parse_static_inventory(inventory_path):
+    """
+    Parse Ansible INI inventory file and return:
+    - groups: dict of group_name -> list of hostnames
+    - group_vars: dict of group_name -> dict of variables
+    - host_vars: dict of hostname -> dict of variables
+    """
+    groups = {}
+    group_vars = {}
+    host_vars = {}
+    current_section = None
+    is_vars_section = False
+
+    if not os.path.exists(inventory_path):
+        return groups, group_vars, host_vars
+
+    with open(inventory_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+
+            # Skip empty lines and comments
+            if not line or line.startswith('#'):
+                continue
+
+            # Check for section header [group] or [group:vars]
+            section_match = re.match(r'^\[([^\]]+)\]$', line)
+            if section_match:
+                section_name = section_match.group(1)
+                if ':vars' in section_name:
+                    # This is a vars section like [all:vars] or [instances:vars]
+                    current_section = section_name.replace(':vars', '')
+                    is_vars_section = True
+                    if current_section not in group_vars:
+                        group_vars[current_section] = {}
+                else:
+                    # This is a host group section
+                    current_section = section_name
+                    is_vars_section = False
+                    if current_section not in groups:
+                        groups[current_section] = []
+                continue
+
+            if is_vars_section and current_section:
+                # Parse variable assignment (key=value)
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    group_vars[current_section][key.strip()] = value.strip()
+            elif current_section:
+                # Parse host entry with optional inline variables
+                # Format: hostname  var1=val1  var2=val2
+                parts = line.split()
+                if parts:
+                    hostname = parts[0]
+                    groups[current_section].append(hostname)
+
+                    # Parse inline host variables
+                    if len(parts) > 1:
+                        if hostname not in host_vars:
+                            host_vars[hostname] = {}
+                        for part in parts[1:]:
+                            if '=' in part:
+                                key, value = part.split('=', 1)
+                                host_vars[hostname][key.strip()] = value.strip()
+            else:
+                # Hosts before any section (ungrouped)
+                parts = line.split()
+                if parts:
+                    hostname = parts[0]
+                    if 'ungrouped' not in groups:
+                        groups['ungrouped'] = []
+                    groups['ungrouped'].append(hostname)
+
+                    if len(parts) > 1:
+                        if hostname not in host_vars:
+                            host_vars[hostname] = {}
+                        for part in parts[1:]:
+                            if '=' in part:
+                                key, value = part.split('=', 1)
+                                host_vars[hostname][key.strip()] = value.strip()
+
+    return groups, group_vars, host_vars
+
+
+def get_lxd_containers():
+    """
+    Query LXD for running containers and return dict of name -> ip
+    Also return dict of name -> group (from user.type config)
+    """
+    containers = {}
+    container_groups = {}
+
+    if not shutil.which('lxc'):
+        return containers, container_groups
+
     pipe = Popen(['lxc', 'list', '--format', 'json'], stdout=PIPE, universal_newlines=True)
     lxdjson = json.load(pipe.stdout)
-    # Iterate the json lxd output
-    for item in lxdjson:
 
-        # Check state and network
+    for item in lxdjson:
         if 'state' in item and item['state'] is not None and 'network' in item['state']:
             network = item['state']['network']
-            new_group = item['config'].get('user.type', 'ungrouped')
-            # try:
-            #     new_group = item['config']['user.type']
-            # except KeyError:
-            #     new_group = "ungrouped"
+            name = item['name']
+            group = item['config'].get('user.type', None)
 
-            # Check for eth0 and addresses
             if 'eth0' in network and 'addresses' in network['eth0']:
-                addresses = network['eth0']['addresses']
-                            
-                # Iterate addresses
-                for address in addresses:
+                for address in network['eth0']['addresses']:
+                    if address.get('family') == 'inet' and 'address' in address:
+                        containers[name] = address['address']
+                        if group:
+                            container_groups[name] = group
+                        break
 
-                    # Only return inet family addresses
-                    if 'family' in address and address['family'] == 'inet':
-                        if 'address' in address:
-                            ip = address['address']
-                            name = item['name']
-                            if new_group not in result:
-                                    # if new_group not in results:
-                                result[new_group] = {}
-                                result[new_group]['hosts'] = []
-                            result[new_group]['hosts'].append(name)
-                            result[new_group]['vars'] = {}
-                            result[new_group]['vars']['ansible_connection'] = connection
-                            result[new_group]['vars']['ansible_host'] = ip
+    return containers, container_groups
 
-if len(sys.argv) == 2 and sys.argv[1] == '--list':
-    print(json.dumps(result))
-elif len(sys.argv) == 3 and sys.argv[1] == '--host':
-    if sys.argv[2] == 'localhost':
-        print(json.dumps({'ansible_connection': 'local'}))
+
+def build_inventory():
+    """
+    Build merged inventory from static file and dynamic LXD discovery.
+    - Static inventory provides: groups, group_vars, host_vars
+    - LXD provides: dynamic IPs (override static ansible_host)
+    """
+    result = {'_meta': {'hostvars': {}}}
+
+    # Parse static inventory
+    groups, group_vars, host_vars = parse_static_inventory(STATIC_INVENTORY)
+
+    # Get dynamic LXD containers
+    lxd_containers, lxd_groups = get_lxd_containers()
+
+    # Get connection type from static inventory
+    global connection
+    if 'all' in group_vars and 'ansible_connection' in group_vars['all']:
+        connection = group_vars['all']['ansible_connection']
+
+    # Build groups from static inventory
+    for group_name, hosts in groups.items():
+        if group_name not in result:
+            result[group_name] = {'hosts': []}
+        for hostname in hosts:
+            if hostname not in result[group_name]['hosts']:
+                result[group_name]['hosts'].append(hostname)
+
+    # Add LXD containers to their groups (based on user.type)
+    for container_name, group in lxd_groups.items():
+        if group not in result:
+            result[group] = {'hosts': []}
+        if container_name not in result[group]['hosts']:
+            result[group]['hosts'].append(container_name)
+
+    # Add LXD containers without user.type to ungrouped (if not already in a group)
+    all_grouped_hosts = set()
+    for group_name, group_data in result.items():
+        if group_name != '_meta' and 'hosts' in group_data:
+            all_grouped_hosts.update(group_data['hosts'])
+
+    for container_name in lxd_containers:
+        if container_name not in all_grouped_hosts:
+            if 'ungrouped' not in result:
+                result['ungrouped'] = {'hosts': []}
+            if container_name not in result['ungrouped']['hosts']:
+                result['ungrouped']['hosts'].append(container_name)
+
+    # Build host variables
+    all_hosts = set()
+    for group_name, hosts in groups.items():
+        all_hosts.update(hosts)
+    all_hosts.update(lxd_containers.keys())
+
+    for hostname in all_hosts:
+        hostvars = {}
+
+        # Apply group variables (all:vars first, then specific groups)
+        if 'all' in group_vars:
+            hostvars.update(group_vars['all'])
+
+        # Apply group-specific vars for groups this host belongs to
+        for group_name, hosts in groups.items():
+            if hostname in hosts and group_name in group_vars:
+                hostvars.update(group_vars[group_name])
+
+        # Apply host-specific variables from static inventory
+        if hostname in host_vars:
+            hostvars.update(host_vars[hostname])
+
+        # Override ansible_host with dynamic LXD IP if available
+        if hostname in lxd_containers:
+            hostvars['ansible_host'] = lxd_containers[hostname]
+            if 'ansible_connection' not in hostvars:
+                hostvars['ansible_connection'] = connection
+
+        # Special case for localhost/127.0.0.1
+        if hostname in ('localhost', '127.0.0.1'):
+            hostvars['ansible_connection'] = 'local'
+            hostvars['ansible_host'] = '127.0.0.1'
+
+        result['_meta']['hostvars'][hostname] = hostvars
+
+    return result
+
+
+def get_host_vars(hostname):
+    """Get variables for a specific host."""
+    inventory = build_inventory()
+    return inventory['_meta']['hostvars'].get(hostname, {})
+
+
+if __name__ == '__main__':
+    if len(sys.argv) == 2 and sys.argv[1] == '--list':
+        print(json.dumps(build_inventory()))
+    elif len(sys.argv) == 3 and sys.argv[1] == '--host':
+        print(json.dumps(get_host_vars(sys.argv[2])))
     else:
-        if connection == 'lxd':
-            print(json.dumps({'ansible_connection': connection}))
-        else:
-            print(json.dumps({'ansible_connection': connection, 'ansible_host': hosts[sys.argv[2]]}))
-else:
-    print("Need an argument, either --list or --host <host>")
+        print("Usage: {} --list | --host <hostname>".format(sys.argv[0]))
