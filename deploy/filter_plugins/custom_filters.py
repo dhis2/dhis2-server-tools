@@ -107,6 +107,15 @@ def get_dhis2_instance_specs(dhis2_version, dhis2_auto_upgrade, version_results)
             }
 
 
+def all_have_fqdn(instances, hostvars):
+    """Check if all instances have a valid (non-empty) fqdn defined."""
+    for instance in instances:
+        fqdn = hostvars.get(instance, {}).get('fqdn', '')
+        if not (fqdn and str(fqdn).strip()):
+            return False
+    return True
+
+
 def lowercase(value):
     if isinstance(value, str):
         if value is not None and value != 'None':
@@ -129,4 +138,5 @@ class FilterModule(object):
                 'lowercase': lowercase,
                 'tomcat_version': tomcat_version,
                 'normalize_dhis2_version': normalize_dhis2_version,
+                'all_have_fqdn': all_have_fqdn,
                 }

@@ -70,6 +70,10 @@ guest_os_arch=amd64
 # Options: nginx, apache2 defaults to nginx
 proxy=nginx
 
+# Enable proxy_protocol if behind a reverse proxy that sends proxy protocol headers
+# use_proxy_protocol=true
+# CIDR range for trusted proxy protocol sources (defaults to lxd_network if not set)
+# proxy_protocol_trusted_cidr=172.19.2.0/24
 
 # Options: letsencrypt, customssl, selfsigned, default(letsencrypt if fqdn is defined else selfsigned )
 TLS_TYPE=letsencrypt
@@ -79,7 +83,8 @@ TLS_TYPE=letsencrypt
 [instances:vars]
 database_host=postgres
 create_db=yes  
-JAVA_VERSION=11 
+# java_version is auto-detected from dhis2_version (JAVA_VERSION still works for backward compatibility)
+java_version=17 
 
 
 # NOTE: if dhis2_war_file and dhis2_version are both defined, dhis2_war_file takes precedence  

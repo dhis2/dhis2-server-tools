@@ -3,9 +3,33 @@
 # during future Ansible runs.
 
 # Please place any custom configurations in the following file
-# /etc/nginx/custom/{{  hostvars[item]['fqdn']  }}.conf 
+# /etc/nginx/custom/{{  hostvars[item]['fqdn']  }}.conf
 
 # configurations within that file will be included in this nginx configuration.
+
+{% if groups['instances'] | all_have_fqdn(hostvars) %}
+# SNI protection - prevents certificate/domain leakage via direct IP access
+# Only deployed when all instances have fqdn defined
+server {
+    listen 80{{ ' proxy_protocol' if use_proxy_protocol | default(false) and ansible_connection == 'lxd' else '' }} default_server;
+    server_name _;
+    return 444;
+}
+
+server {
+    listen 443 ssl{{ ' proxy_protocol' if use_proxy_protocol | default(false) and ansible_connection == 'lxd' else '' }} default_server;
+    server_name _;
+{% if nginx_version is defined and nginx_version is version('1.19.4', '>=') %}
+    ssl_reject_handshake on;
+{% else %}
+    # ssl_reject_handshake requires nginx >= 1.19.4 (current: {{ nginx_version | default('unknown') }})
+    # Fallback: return 444 with self-signed cert
+    ssl_certificate /etc/ssl/selfsigned/selfsigned.crt;
+    ssl_certificate_key /etc/ssl/selfsigned/selfsigned.key;
+    return 444;
+{% endif %}
+}
+{% endif %}
 
 # Let local monitoring agent access stats
 server {
@@ -53,8 +77,17 @@ server {
   ssl_certificate   /etc/ssl/selfsigned/selfsigned.crt;
   ssl_certificate_key   /etc/ssl/selfsigned/selfsigned.key;
   {%endif-%}
+{% if TLS_TYPE is defined and TLS_TYPE == 'customssl' %}
+  # ssl_stapling only for customssl (Let's Encrypt phased out OCSP in 2024)
   ssl_stapling on;
-  ssl_stapling_verify  on;
+  ssl_stapling_verify on;
+{% endif %}
+{% if use_proxy_protocol | default(false) and ansible_connection == 'lxd' %}
+
+  # Extract real client IP from proxy protocol header
+  set_real_ip_from {{ proxy_protocol_trusted_cidr | default(lxd_network | default('172.19.0.0/16')) }};
+  real_ip_header proxy_protocol;
+{% endif %}
 
   # please write your custom changes to the static/{{ hostvars[item]['fqdn'] }}.conf; and
   # will be kept across subsequent ansible runs 

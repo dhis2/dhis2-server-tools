@@ -22,16 +22,21 @@ server {
 
 # http block
 server {
-  listen {{ http_port | default('80') }};
+  listen {{ http_port | default('80') }}{{ ' proxy_protocol' if use_proxy_protocol | default(false) and ansible_connection == 'lxd' else '' }};
   server_name _;
   return 302 https://$host:{{ https_port | default("$server_port") }}$request_uri;
 }
 
-# https block 
+# https block
 server {
-  listen {{ https_port | default('443') }} ssl;
+  listen {{ https_port | default('443') }} ssl{{ ' proxy_protocol' if use_proxy_protocol | default(false) and ansible_connection == 'lxd' else '' }};
   server_name _;
   include static/default.conf;
+{% if use_proxy_protocol | default(false) and ansible_connection == 'lxd' %}
+  # Extract real client IP from proxy protocol header
+  set_real_ip_from {{ proxy_protocol_trusted_cidr | default(lxd_network | default('172.19.0.0/16')) }};
+  real_ip_header proxy_protocol;
+{% endif %}
 
   {% for instance in groups['instances']
    if (hostvars[instance]['instance_state'] is not defined)

@@ -37,6 +37,7 @@
     name: snapd
     state: present
     update_cache: true
+    cache_valid_time: 3600
 
 - name: Ensure lxd is installed
   community.general.snap:
@@ -110,8 +111,8 @@
     - dhis2-dbactivity
     - dhis2-logview
     - dhis2-restoredb
+    - dhis2-deploy-war
     # - dhis2-tomcat-munin
-    # - dhis2-deploy-war
     # - dhis2-query-killer.py
     # - dhis2-delete-instance
     # - dhis2-create-instance

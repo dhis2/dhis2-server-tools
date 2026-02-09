@@ -1,4 +1,24 @@
 ---
+# Get nginx version for conditional features (e.g., ssl_reject_handshake requires 1.19.4+)
+- name: Get nginx version
+  ansible.builtin.command: nginx -v
+  register: nginx_version_output
+  changed_when: false
+  failed_when: false
+
+- name: Set nginx version fact
+  ansible.builtin.set_fact:
+    nginx_version: "{{ nginx_version_output.stderr | default('') | regex_search('nginx/([0-9.]+)', '\\1') | first | default('0') }}"
+  when: nginx_version_output.rc == 0
+
+- ansible.builtin.debug:
+    msg: "Nginx version: {{ nginx_version }}"
+
+- name: Set nginx version to 0 if not installed
+  ansible.builtin.set_fact:
+    nginx_version: "0"
+  when: nginx_version_output.rc != 0
+
 # consider creating custom filter for this task.
 # Rigt now, it does not work when fqdn is not defined
 - name: Assert two instances using the same fqdn have unique Instance Names

@@ -28,21 +28,64 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Install prerequisites for nginx repo
+  ansible.builtin.apt:
+    name:
+      - curl
+      - gnupg2
+      - ca-certificates
+      - lsb-release
+      - ubuntu-keyring
+    state: present
+
+- name: Add nginx signing key
+  ansible.builtin.apt_key:
+    url: https://nginx.org/keys/nginx_signing.key
+    keyring: /usr/share/keyrings/nginx-archive-keyring.gpg
+    state: present
+
+- name: Add nginx official repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] https://nginx.org/packages/ubuntu {{ ansible_distribution_release }} nginx"
+    state: present
+    filename: nginx
+
+- name: Pin nginx packages from official repo
+  ansible.builtin.copy:
+    dest: /etc/apt/preferences.d/99nginx
+    content: |
+      Package: *
+      Pin: origin nginx.org
+      Pin: release o=nginx
+      Pin-Priority: 900
+    mode: "0644"
+
 - name: Installing Nginx
   ansible.builtin.apt:
     name:
       - nginx
       - libwww-perl   # required for munin monitoring
-    state: present
+    state: latest
     update_cache: true
-    cache_valid_time: 3600
+
+# Official nginx.org package doesn't include proxy_params (Ubuntu-specific)
+- name: Create proxy_params file
+  ansible.builtin.copy:
+    dest: /etc/nginx/proxy_params
+    content: |
+      proxy_set_header Host $http_host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+    mode: "0644"
+    force: false
 
 - name: Disabling nginx version show
   ansible.builtin.lineinfile:
     dest: /etc/nginx/nginx.conf
     regex: .*server_tokens off
-    line: "\tserver_tokens off;"
-    insertafter: types_hash_max_size
+    line: "    server_tokens off;"
+    insertafter: "http {"
   notify: Reload Nginx
 
 - name: Nginx Perfomance Loging
