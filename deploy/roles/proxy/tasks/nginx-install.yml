@@ -14,6 +14,13 @@
     proto: tcp
     comment: https
 
+- name: Open https port {{ https_port | default('443') }} for UDP (HTTP/3 QUIC)
+  community.general.ufw:
+    rule: allow
+    port: "{{ https_port | default('443') }}"
+    proto: udp
+    comment: https-udp
+
 - name: Ensure apache2 is stopped and disabled
   ansible.builtin.service:
     name: apache2
