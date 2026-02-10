@@ -35,19 +35,19 @@ server {
 # https block 
 server {
   {%if TLS_TYPE is undefined or TLS_TYPE == 'letsencrypt' -%}
-  listen 443 ssl;
+  listen 443 ssl http2;
   server_name {{ hostvars[item]['fqdn'] | trim }};
   # ssl settings 
   ssl_certificate /etc/letsencrypt/live/{{ hostvars[item]['fqdn'] | trim }}/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/{{ hostvars[item]['fqdn'] | trim }}/privkey.pem;
   {%elif TLS_TYPE is defined and  TLS_TYPE == 'customssl' -%}
-  listen {{ https_port | default('443') }} ssl;
+  listen {{ https_port | default('443') }} ssl http2;
   server_name {{ hostvars[item]['fqdn'] | trim }};
   # ssl settings 
   ssl_certificate /etc/ssl/{{ hostvars[item]['fqdn'] | trim }}/customssl.crt;
   ssl_certificate_key /etc/ssl/{{ hostvars[item]['fqdn'] | trim }}/customssl.key;
   {%elif TLS_TYPE is defined and  TLS_TYPE == 'selfsigned' -%}
-  listen {{ https_port | default('443') }} ssl;
+  listen {{ https_port | default('443') }} ssl http2;
   server_name {{ hostvars[item]['fqdn'] | trim }};
   # ssl settings 
   ssl_certificate   /etc/ssl/selfsigned/selfsigned.crt;
