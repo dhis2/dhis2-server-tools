@@ -51,22 +51,38 @@ fi
 
 INSTANCE=$1
 
+# Detect Tomcat version in container
+if lxc exec $INSTANCE -- systemctl is-active --quiet tomcat10 2>/dev/null; then
+    TOMCAT_VERSION=tomcat10
+elif lxc exec $INSTANCE -- systemctl is-active --quiet tomcat9 2>/dev/null; then
+    TOMCAT_VERSION=tomcat9
+elif lxc exec $INSTANCE -- test -d /var/lib/tomcat10 2>/dev/null; then
+    TOMCAT_VERSION=tomcat10
+elif lxc exec $INSTANCE -- test -d /var/lib/tomcat9 2>/dev/null; then
+    TOMCAT_VERSION=tomcat9
+else
+    echo "Error: Tomcat not found in container $INSTANCE"
+    exit 1
+fi
+
+echo "Detected: $TOMCAT_VERSION"
+
 # download war file if we don't have it
 test -f $TEMPWAR || wget -O $TEMPWAR $SOURCE  || exit 1
 unzip -t -q $TEMPWAR || { echo "Corrupt war file: $TEMPWAR"; exit 1; }
 
-lxc exec $1 -- service tomcat9 stop
+lxc exec $1 -- service $TOMCAT_VERSION stop
 # give it a chance to shutdown
 sleep 3
 
 echo "Deploying new war file"
 # clean out existing webapp
-echo 'rm -rf /var/lib/tomcat9/webapps/*' | lxc exec $INSTANCE -- bash
+echo "rm -rf /var/lib/$TOMCAT_VERSION/webapps/*" | lxc exec $INSTANCE -- bash
 lxc file push $TEMPWAR $INSTANCE/.
-lxc exec $INSTANCE -- mkdir /var/lib/tomcat9/webapps/$INSTANCE
-lxc exec $INSTANCE -- unzip -q -d /var/lib/tomcat9/webapps/$INSTANCE /dhis.war
+lxc exec $INSTANCE -- mkdir /var/lib/$TOMCAT_VERSION/webapps/$INSTANCE
+lxc exec $INSTANCE -- unzip -q -d /var/lib/$TOMCAT_VERSION/webapps/$INSTANCE /dhis.war
 lxc exec $INSTANCE -- rm /dhis.war
-lxc exec $INSTANCE -- service tomcat9 start
+lxc exec $INSTANCE -- service $TOMCAT_VERSION start
 echo "$INSTANCE container starting"
 
 rm $TEMPWAR || echo "Warning $TEMPWAR not deleted.  Please delete manually."
