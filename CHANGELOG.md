@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.3.0...v1.4.0) (2026-02-10)
+
+
+### 🎉 New Features
+
+* support for nginx proxy protocol ([2d2c6da](https://github.com/dhis2/dhis2-server-tools/commit/2d2c6da1b543afb49d34a91d8f52fef1d2f524bb))
+* upgrade nginx ([2d2c6da](https://github.com/dhis2/dhis2-server-tools/commit/2d2c6da1b543afb49d34a91d8f52fef1d2f524bb))
+
+
+### 🐛 Bug Fixes
+
+* dhis2-deploy-war detect tomcat version automatically ([2d2c6da](https://github.com/dhis2/dhis2-server-tools/commit/2d2c6da1b543afb49d34a91d8f52fef1d2f524bb))
+
 ## [1.3.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.2.0...v1.3.0) (2026-01-28)
 
 
