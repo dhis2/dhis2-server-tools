@@ -111,7 +111,19 @@ dhis2_version: 2.39
     <td style="vertical-align: top; text-align: left;"><code>heap_memory_size</code></td>
     <td> This is tomcat  Java Heap Memory Size,   <br>Example</strong> <br>
     <code>heap_memory_size=2G </code> </td>
-  </tr> </tr>
+  </tr>
+  <tr>
+    <td style="vertical-align: top; text-align: left;"><code>dhis2_auto_upgrade</code></td>
+    <td> Enables automatic DHIS2 upgrades when a newer patch version is available. <br><strong>Choices:</strong>
+    <br> <ul><li>False ← (default)</li><li>True</li></ul>
+    <br>Prior to enabling, ensure you have a backup of your instance database. </td>
+  </tr>
+  <tr>
+    <td style="vertical-align: top; text-align: left;"><code>app_monitoring</code></td>
+    <td> Enables application monitoring. Currently supports <code>glowroot</code>. <br><strong>Options:</strong>
+    <br> <ul><li><code>glowroot</code></li></ul>
+    <br>Example: <code>app_monitoring=glowroot</code> </td>
+  </tr>
 </table>
 
 ### PostgreSQL Variables { #dhis2_server_tools_postgresql_variables }

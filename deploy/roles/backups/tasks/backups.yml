@@ -28,6 +28,11 @@
         ipv4.address: "{{ ansible_host | ansible.utils.ipaddr(lxd_network) }}"
   when: inventory_hostname in groups['backup_servers']
 
+# Gather facts for backup container
+- name: Gather facts for backup container
+  ansible.builtin.setup:
+  when: inventory_hostname in groups['backup_servers']
+
 # Install Postgresql Client
 - name: Updating and Upgrading packages
   ansible.builtin.apt:
@@ -111,7 +116,7 @@
 - name: "Create backup database role"
   become: true
   become_user: postgres
-  community.general.postgresql_user:
+  community.postgresql.postgresql_user:
     name: "{{ item }}"
     state: present
     password: "{{ hostvars[item]['db_password'] }}"
@@ -180,6 +185,32 @@
   when:
     - inventory_hostname in used_databases
     - postgresql_version_info is defined
+  notify: Reload Postgres
+
+# Backup user creation and .pgpass deployment
+- name: Set backup_user_password fact (generate if not defined)
+  ansible.builtin.set_fact:
+    backup_user_password: "{{ backup_user_password | default(lookup('password', '/opt/ansible/secrets/backup_user_password_' + inventory_hostname + ' length=32 chars=ascii_letters,digits')) }}"
+  when: inventory_hostname in groups['databases']
+
+- name: Create backup PostgreSQL user
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    name: "{{ backup_user | default('backup_user') }}"
+    state: present
+    password: "{{ backup_user_password }}"
+    role_attr_flags: SUPERUSER
+  when: inventory_hostname in groups['databases']
+
+- name: Create .pgpass from template
+  ansible.builtin.template:
+    src: .pgpass.j2
+    dest: /root/.pgpass
+    owner: root
+    group: root
+    mode: "0600"
+  when: inventory_hostname in groups['backup_servers']
 
 # Add the script to the cronjob
 - name: Add backup script to crontab
