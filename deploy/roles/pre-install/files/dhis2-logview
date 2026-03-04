@@ -53,6 +53,20 @@ done
 
 NAME=$1
 
-JCMD="journalctl -u tomcat9 $SINCE $UNTIL $FOLLOW $REVERSE $GREP"
+# Detect Tomcat version in container
+if lxc exec $NAME -- systemctl is-active --quiet tomcat10 2>/dev/null; then
+    TOMCAT_VERSION=tomcat10
+elif lxc exec $NAME -- systemctl is-active --quiet tomcat9 2>/dev/null; then
+    TOMCAT_VERSION=tomcat9
+elif lxc exec $NAME -- test -d /var/lib/tomcat10 2>/dev/null; then
+    TOMCAT_VERSION=tomcat10
+elif lxc exec $NAME -- test -d /var/lib/tomcat9 2>/dev/null; then
+    TOMCAT_VERSION=tomcat9
+else
+    echo "Error: Tomcat not found in container $NAME"
+    exit 1
+fi
+
+JCMD="journalctl -u $TOMCAT_VERSION $SINCE $UNTIL $FOLLOW $REVERSE $GREP"
 echo $JCMD
 echo $JCMD | lxc exec $NAME -- sh

@@ -39,6 +39,10 @@ info() {
 # Where to find your pg_service.conf (change here if you keep it elsewhere)
 export PGSERVICEFILE=${PGSERVICEFILE:-/usr/local/etc/dhis/pg_service.conf}
 
+# Where to find your .pgpass file (passwords for pg_service.conf entries)
+# Defaults to ~/.pgpass which is the PostgreSQL standard location
+export PGPASSFILE=${PGPASSFILE:-~/.pgpass}
+
 # Basic safety & umask (directories 750, files 640)
 umask ${UMASK:-027}
 
@@ -57,6 +61,16 @@ done
 if [ ! -f "$PGSERVICEFILE" ]; then
   fail "pg_service.conf not found at PGSERVICEFILE=$PGSERVICEFILE"
 fi
+
+# Validate PGPASSFILE
+PGPASSFILE_EXPANDED="${PGPASSFILE/#\~/$HOME}"
+if [ ! -f "$PGPASSFILE_EXPANDED" ]; then
+  fail ".pgpass file not found at PGPASSFILE=$PGPASSFILE"
+fi
+if [ "$(stat -c '%a' "$PGPASSFILE_EXPANDED" 2>/dev/null || stat -f '%A' "$PGPASSFILE_EXPANDED")" != "600" ]; then
+  fail ".pgpass file at $PGPASSFILE must have permissions 0600 (PostgreSQL will ignore it otherwise)"
+fi
+export PGPASSFILE="$PGPASSFILE_EXPANDED"
 
 # Validate backup dir
 if [ -z "${BACKUP_DIR:-}" ]; then
@@ -166,18 +180,6 @@ perform_backups() {
       fi
 
     done # DB loop
-
-    # Optional: backup globals (roles, tablespaces) once per service
-    if [ "${BACKUP_GLOBALS:-1}" -eq 1 ]; then
-      OUT_GLOBALS="$FINAL_BACKUP_DIR/${SERVICE}_globals_${TIMESTAMP}.sql.gz"
-      info "Backing up globals for service $SERVICE"
-      if PGSERVICE=$SERVICE pg_dumpall --no-password -g | gzip > "$TMPDIR/${SERVICE}_globals_${TIMESTAMP}.sql.gz.in_progress"; then
-        mv "$TMPDIR/${SERVICE}_globals_${TIMESTAMP}.sql.gz.in_progress" "$OUT_GLOBALS"
-        info "Globals saved: $OUT_GLOBALS"
-      else
-        log "Warning: globals backup failed for $SERVICE"
-      fi
-    fi
 
   done # SERVICE loop
 

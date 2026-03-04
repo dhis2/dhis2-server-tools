@@ -18,28 +18,28 @@
     - version_results.stdout | trim is version(patchversion_name, '<')  # Comparison logic
 
 - name: Download dhis2 war file
-  ansible.builtin.get_url:
-    url: "{{ dhis2_url }}"
-    dest: /opt/dhis2/dhis2.war
-    force: true
-    mode: "0640"
-    # checksum: "sha256:{{ sha256 }}"
+  ansible.builtin.command:
+    cmd: wget -q -O /opt/dhis2/dhis2.war "{{ dhis2_url }}"
   when:
     - patchversion_name is defined
     - dhis2_url is defined
     - "'skipped' in version_results.stdout or (version_results.stdout | trim is version(patchversion_name, '<') and dhis2_auto_upgrade | default(false) | bool)"
-    # - sha256 is defined
 
 - name: Download dhis2.war with hard coded url
-  ansible.builtin.get_url:
-    url: "{{ dhis2_war_file }}"
-    timeout: 120
-    dest: /opt/dhis2/dhis2.war
-    force: true
-    mode: "0640"
+  ansible.builtin.command:
+    cmd: wget -q --timeout=120 -O /opt/dhis2/dhis2.war "{{ dhis2_war_file }}"
   when:
     - dhis2_war_file is defined
     - (dhis2_war_file | regex_search('^(https?|ftp|file):\/\/')) is not none
+
+- name: Set war file permissions
+  ansible.builtin.file:
+    path: /opt/dhis2/dhis2.war
+    mode: "0640"
+  when: >
+    (patchversion_name is defined and dhis2_url is defined and
+    ('skipped' in version_results.stdout or (version_results.stdout | trim is version(patchversion_name, '<') and dhis2_auto_upgrade | default(false) | bool)))
+    or (dhis2_war_file is defined and (dhis2_war_file | regex_search('^(https?|ftp|file):\/\/')) is not none)
 
 - name: Copy dhis2.war file from ansible controller
   ansible.builtin.copy:

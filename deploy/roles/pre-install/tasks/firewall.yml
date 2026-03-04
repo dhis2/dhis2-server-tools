@@ -60,3 +60,43 @@
       COMMIT
   notify: Reload UFW
   when: proxy is defined
+  tags: never
+
+- name: Get existing LXD network forwards
+  vars:
+    ansible_connection: local
+  become: true
+  ansible.builtin.command:
+    cmd: lxc network forward list {{ lxd_bridge_interface | default('lxdbr1') }} --format json
+  register: lxd_forwards
+  changed_when: false
+  when: proxy is defined
+
+- name: Create LXD network forward for host IP
+  vars:
+    ansible_connection: local
+    _listen_addrs: "{{ lxd_forwards.stdout | from_json | map(attribute='listen_address') | list }}"
+  become: true
+  ansible.builtin.command:
+    cmd: lxc network forward create {{ lxd_bridge_interface | default('lxdbr1') }} {{ ansible_default_ipv4.address }}
+  when:
+    - proxy is defined
+    - ansible_default_ipv4.address not in _listen_addrs
+
+- name: Add HTTP and HTTPS port forwards to proxy container
+  vars:
+    ansible_connection: local
+    proxy_host: "{{ groups['web'][0] }}"
+  become: true
+  ansible.builtin.command:
+    cmd: >-
+      lxc network forward port add {{ lxd_bridge_interface | default('lxdbr1') }}
+      {{ ansible_default_ipv4.address }} tcp {{ item }}
+      {{ hostvars[proxy_host]['ansible_host'] }} {{ item }}
+  loop:
+    - "{{ hostvars[groups['web'][0]]['http_port'] | default('80') }}"
+    - "{{ hostvars[groups['web'][0]]['https_port'] | default('443') }}"
+  register: port_result
+  changed_when: port_result.rc == 0
+  failed_when: port_result.rc != 0 and 'already exists' not in port_result.stderr and 'Duplicate' not in port_result.stderr
+  when: proxy is defined

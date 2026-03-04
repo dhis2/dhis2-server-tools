@@ -55,7 +55,7 @@
     - name: Checking postgresql Versions
       become: true
       become_user: postgres
-      community.general.postgresql_info:
+      community.postgresql.postgresql_info:
         filter: ver*
       register: postgresql_version_info
       loop: "{{ groups['instances'] }}"

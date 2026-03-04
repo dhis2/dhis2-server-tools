@@ -43,7 +43,7 @@
 - name: Creating zabbix role
   become: true
   become_user: postgres
-  community.general.postgresql_user:
+  community.postgresql.postgresql_user:
     name: zabbix
     state: present
     password: "{{ zabbix_db_password }}"
@@ -51,7 +51,7 @@
 - name: Creating zabbix database
   become: true
   become_user: postgres
-  community.general.postgresql_db:
+  community.postgresql.postgresql_db:
     name: zabbix
     state: present
     owner: zabbix

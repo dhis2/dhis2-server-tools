@@ -11,7 +11,7 @@
 
 - name: "Preparing to upgrade DHIS2, it is recommended to back up the database beforehand.\n The duration of the backup process may vary based on the size of your
     database."
-  community.general.postgresql_db:
+  community.postgresql.postgresql_db:
     state: dump
     name: "{{ item }}"
     target: /var/backups/postgres/{{ now }}{{ item }}.dump.gz

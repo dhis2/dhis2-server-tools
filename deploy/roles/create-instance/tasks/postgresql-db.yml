@@ -73,7 +73,7 @@
 - name: "Create instances database role:"
   become: true
   become_user: postgres
-  community.general.postgresql_user:
+  community.postgresql.postgresql_user:
     name: "{{ item }}"
     state: present
     password: "{{ hostvars[item]['db_password'] }}"
@@ -102,7 +102,7 @@
 - name: creating postgis,btree_gin and pg_trgm extensions
   become: true
   become_user: postgres
-  community.general.postgresql_ext:
+  community.postgresql.postgresql_ext:
     db: "{{ loop_item.0 }}"
     name: "{{ loop_item.1 }}"
   with_nested:

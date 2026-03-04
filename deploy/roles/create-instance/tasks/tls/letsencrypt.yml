@@ -10,9 +10,11 @@
 
 - name: Generate TLS/SSL Certificate with certbot
   become: true
-  ansible.builtin.shell: |
-    systemctl stop {{ proxy }}
-    certbot certonly -n -m {{ mail }} --agree-tos -d {{  hostvars[item]['fqdn'] | trim }} --standalone --no-eff-email
+  ansible.builtin.command: >
+    certbot certonly -n -m {{ mail }} --agree-tos
+    --standalone --no-eff-email
+    --pre-hook "systemctl stop {{ proxy }}"
+    -d {{ hostvars[item]['fqdn'] | trim }}
   args:
     creates: /etc/letsencrypt/live/{{ hostvars[item]['fqdn'] | trim }}
 
