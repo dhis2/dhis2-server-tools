@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.5.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.4.0...v1.5.0) (2026-03-04)
+
+
+### 🎉 New Features
+
+* add .pgpass template and auto-provisioning of backup_user with SUPERUSER ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+* add change_proxy.sh and create_instance.sh helper scripts ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+* add incus_container.py module and module_utils ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+* auto-generate backup_user_password via Ansible password lookup ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+* glowroot auto-update using latest GitHub release API ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+* support for nginx proxy protocol ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+* upgrade nginx ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+
+
+### 🐛 Bug Fixes
+
+* add force: false to server.xml copy to preserve customized Tomcat connector config ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+* add notify Reload Postgres to pg_hba.conf task in backups role ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+* auto-detect tomcat version (tomcat9/tomcat10) in dhis2-logview ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+* dhis2-deploy-war detect tomcat version automatically ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+* remove globals backup (pg_dumpall -g) redundant when Ansible manages roles ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+* replace community.general.postgresql_* with community.postgresql.* across all roles ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+* switch backup.yml from include_tasks to include_role to fix template resolution ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+* switch letsencrypt certbot to use --pre-hook instead of inline systemctl stop ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+* switch WAR download from get_url to wget to bypass Python 3.12 incompatibility with Ansible's CustomHTTPSConnection (cert_file attribute removed in ssl module) ([8753e6e](https://github.com/dhis2/dhis2-server-tools/commit/8753e6e2d42a65cabed09bd3678f9de23f0ad52e))
+
 ## [1.4.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.3.0...v1.4.0) (2026-02-10)
 
 
