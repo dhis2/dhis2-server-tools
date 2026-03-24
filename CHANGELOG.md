@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.6.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.5.0...v1.6.0) (2026-03-24)
+
+
+### 🎉 New Features
+
+* add external_hosts filter and lxd-host-ip-detect task ([854ddba](https://github.com/dhis2/dhis2-server-tools/commit/854ddba917ccdda05d57fab29e382d5c7bb01ca6))
+* add restic + rsync file system backups with SSH keypair and cron ([854ddba](https://github.com/dhis2/dhis2-server-tools/commit/854ddba917ccdda05d57fab29e382d5c7bb01ca6))
+* auto-detect lxd_host_ip for external hosts and use in pg_hba, firewall, and munin rules ([#76](https://github.com/dhis2/dhis2-server-tools/issues/76)) ([854ddba](https://github.com/dhis2/dhis2-server-tools/commit/854ddba917ccdda05d57fab29e382d5c7bb01ca6))
+* extract stop-other-proxies.yml with all_proxies list ([854ddba](https://github.com/dhis2/dhis2-server-tools/commit/854ddba917ccdda05d57fab29e382d5c7bb01ca6))
+
+
+### 🐛 Bug Fixes
+
+* basic auth file permissions for official nginx (non www-data worker) ([854ddba](https://github.com/dhis2/dhis2-server-tools/commit/854ddba917ccdda05d57fab29e382d5c7bb01ca6))
+* reference lxd_host_ip from database host, not instance containers ([854ddba](https://github.com/dhis2/dhis2-server-tools/commit/854ddba917ccdda05d57fab29e382d5c7bb01ca6))
+* replace UFW NAT blockinfile with LXD network forwards; clean up stale rules ([854ddba](https://github.com/dhis2/dhis2-server-tools/commit/854ddba917ccdda05d57fab29e382d5c7bb01ca6))
+
 ## [1.5.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.4.0...v1.5.0) (2026-03-04)
 
 
