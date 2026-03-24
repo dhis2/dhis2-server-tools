@@ -14,13 +14,8 @@
     proto: tcp
     comment: https
 
-- name: Ensure nginx is stopped and disabled.
-  ansible.builtin.service:
-    name: nginx
-    enabled: false
-    state: stopped
-  register: unused_disable
-  failed_when: unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)
+- name: Stop and disable other proxy services
+  ansible.builtin.include_tasks: stop-other-proxies.yml
 
 - name: Updating and Upgrading proxy
   ansible.builtin.apt:

@@ -35,33 +35,6 @@
     interface: "{{ lxd_bridge_interface | default('lxdbr0') }}"
     from_ip: 0.0.0.0/0
 
-- name: Configure host to NAT to the proxy container
-  vars:
-    ansible_connection: local
-  become: true
-  become_user: root
-  ansible.builtin.blockinfile:
-    path: /etc/ufw/before.rules
-    insertbefore: BOF
-    marker: "# {mark} NAT configuration"
-    block: |
-      *nat
-      -F
-      :PREROUTING ACCEPT [0:0]
-      {% for host in groups['web'] %}
-      {% if loop.first %}
-      # port forward port 80 and 443 to the proxy container
-      -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport {{ hostvars[host]['http_port'] | default('80') }} -j  DNAT --to-destination {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default('80') }}
-      -A PREROUTING -i {{ ansible_default_ipv4.interface }} -p tcp --dport {{ hostvars[host]['https_port'] | default('443') }} -j  DNAT --to-destination {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['https_port'] | default('443') }}
-      {% endif %}
-      {% endfor %}
-      # Enable masquerade on host network for internet connection, not required, handled in lxd
-      # -A POSTROUTING -s {{ lxd_network }} ! -d {{ lxd_network }} -j MASQUERADE
-      COMMIT
-  notify: Reload UFW
-  when: proxy is defined
-  tags: never
-
 - name: Get existing LXD network forwards
   vars:
     ansible_connection: local
@@ -100,3 +73,14 @@
   changed_when: port_result.rc == 0
   failed_when: port_result.rc != 0 and 'already exists' not in port_result.stderr and 'Duplicate' not in port_result.stderr
   when: proxy is defined
+
+- name: Remove NAT configuration from before.rules
+  vars:
+    ansible_connection: local
+  become: true
+  become_user: root
+  ansible.builtin.blockinfile:
+    path: /etc/ufw/before.rules
+    marker: "# {mark} NAT configuration"
+    state: absent
+  notify: Reload UFW

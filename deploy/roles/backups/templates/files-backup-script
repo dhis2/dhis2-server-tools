@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+#
+# dhis2-files-backup
+# Backs up /opt/dhis2/files/ from each DHIS2 instance using rsync + restic
+#
+
+exec < /dev/null
+set -euo pipefail
+
+source /usr/local/etc/dhis/dhis2-env-new
+
+LOG_DIR=${LOG_DIR:-/var/log/pg_backup}
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/files_backup_$(date +%Y%m%d).log"
+
+log() { echo "$(date '+%F %T') $*" | tee -a "$LOG_FILE"; }
+info() { log "[INFO] $*"; }
+fail() { log "[ERROR] $*"; exit 1; }
+
+# Validate required vars
+[ -z "${FILE_BACKUP_INSTANCES:-}" ] && fail "FILE_BACKUP_INSTANCES is not set"
+[ -z "${RESTIC_REPO_BASE:-}" ]      && fail "RESTIC_REPO_BASE is not set"
+[ -z "${FILE_STAGING_DIR:-}" ]      && fail "FILE_STAGING_DIR is not set"
+[ -z "${RESTIC_PASSWORD_FILE:-}" ]  && fail "RESTIC_PASSWORD_FILE is not set"
+[ ! -f "$RESTIC_PASSWORD_FILE" ]    && fail "Restic password file not found: $RESTIC_PASSWORD_FILE"
+
+SSH_KEY=${FILE_BACKUP_SSH_KEY:-/root/.ssh/files_backup_key}
+[ ! -f "$SSH_KEY" ] && fail "SSH key not found: $SSH_KEY"
+
+FILE_BACKUP_USER=${FILE_BACKUP_USER:-backup}
+
+for INSTANCE in $FILE_BACKUP_INSTANCES; do
+  HOST_VAR="FILE_BACKUP_HOST_${INSTANCE}"
+  HOST="${!HOST_VAR:-}"
+
+  if [ -z "$HOST" ]; then
+    info "No host defined for $INSTANCE (var $HOST_VAR empty), skipping"
+    continue
+  fi
+
+  info "=== Starting file backup: $INSTANCE ($HOST) ==="
+
+  STAGING="${FILE_STAGING_DIR}/${INSTANCE}"
+  REPO="${RESTIC_REPO_BASE}/${INSTANCE}"
+
+  mkdir -p "$STAGING"
+
+  # Initialize restic repo if not already done
+  if ! restic -r "$REPO" --password-file "$RESTIC_PASSWORD_FILE" snapshots >/dev/null 2>&1; then
+    info "Initializing restic repo for $INSTANCE"
+    restic -r "$REPO" --password-file "$RESTIC_PASSWORD_FILE" init
+  fi
+
+  # rsync pull from instance
+  info "rsync pull: ${FILE_BACKUP_USER}@${HOST}:/opt/dhis2/files/ -> $STAGING/"
+  if ! rsync -az --delete \
+      --rsync-path="sudo rsync" \
+      -e "ssh -i $SSH_KEY -o StrictHostKeyChecking=no -o BatchMode=yes" \
+      "${FILE_BACKUP_USER}@${HOST}:/opt/dhis2/files/" \
+      "$STAGING/" \
+      2>&1 | tee -a "$LOG_FILE"; then
+    info "rsync failed for $INSTANCE — skipping restic"
+    continue
+  fi
+
+  # restic backup
+  info "restic backup: $STAGING/ -> $REPO"
+  restic -r "$REPO" --password-file "$RESTIC_PASSWORD_FILE" \
+    backup "$STAGING/" --tag "$INSTANCE" \
+    2>&1 | tee -a "$LOG_FILE"
+
+  # retention
+  info "Applying retention policy for $INSTANCE"
+  restic -r "$REPO" --password-file "$RESTIC_PASSWORD_FILE" \
+    forget \
+    --keep-daily  "${RESTIC_KEEP_DAILY:-7}" \
+    --keep-weekly "${RESTIC_KEEP_WEEKLY:-4}" \
+    --keep-monthly "${RESTIC_KEEP_MONTHLY:-3}" \
+    --prune \
+    2>&1 | tee -a "$LOG_FILE"
+
+  info "=== Done: $INSTANCE ==="
+
+done
+
+info "File backup complete"

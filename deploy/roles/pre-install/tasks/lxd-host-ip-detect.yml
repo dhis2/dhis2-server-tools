@@ -1,0 +1,14 @@
+---
+- name: Build list of external hosts (ansible_host not in lxd_network)
+  set_fact:
+    _external_hosts: "{{ groups['all'] | external_hosts(hostvars, lxd_network) }}"
+
+- name: Set lxd_host_ip on each external host
+  set_fact:
+    lxd_host_ip: "{{ lookup('pipe', 'ip route get ' + hostvars[item]['ansible_host']) | regex_search('src (\\S+)', '\\1') | first }}"
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  loop: "{{ _external_hosts }}"
+  loop_control:
+    label: "{{ item }}"
+  when: hostvars[item]['lxd_host_ip'] is not defined
