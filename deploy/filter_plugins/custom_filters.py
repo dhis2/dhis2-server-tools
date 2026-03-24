@@ -1,4 +1,5 @@
 import re
+from netaddr import IPAddress, IPNetwork
 from ansible.module_utils.compat.version import LooseVersion
 from ansible.module_utils.common.text.converters import to_text
 from ansible.errors import (
@@ -131,9 +132,23 @@ def tomcat_version(distribution_version):
         return 9
 
 
+def external_hosts(hosts, hostvars, lxd_network):
+    """Return hosts whose ansible_host is not in lxd_network."""
+    network = IPNetwork(lxd_network)
+    result = []
+    for h in hosts:
+        if h == '127.0.0.1':
+            continue
+        ansible_host = hostvars.get(h, {}).get('ansible_host')
+        if ansible_host and IPAddress(ansible_host) not in network:
+            result.append(h)
+    return result
+
+
 class FilterModule(object):
     def filters(self):
         return {'get_dhis2_instance_specs': get_dhis2_instance_specs,
+                'external_hosts': external_hosts,
                 'to_fixed_string': to_fixed_string,
                 'lowercase': lowercase,
                 'tomcat_version': tomcat_version,

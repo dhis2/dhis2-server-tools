@@ -117,6 +117,9 @@
     # - dhis2-delete-instance
     # - dhis2-create-instance
 
+- name: Detect lxd_host_ip for external hosts
+  ansible.builtin.include_tasks: lxd-host-ip-detect.yml
+
 - name: Setting up firewall on the host
   ansible.builtin.include_tasks: firewall.yml
 

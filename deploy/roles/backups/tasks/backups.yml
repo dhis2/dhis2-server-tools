@@ -112,6 +112,49 @@
     mode: "0700"
   when: inventory_hostname in groups['backup_servers']
 
+# File system backup setup (backup server side)
+- name: Install restic
+  ansible.builtin.apt:
+    name: restic
+    state: present
+    update_cache: true
+  when: inventory_hostname in groups['backup_servers']
+
+- name: Generate SSH keypair for file backups
+  ansible.builtin.command:
+    cmd: ssh-keygen -t ed25519 -f /root/.ssh/files_backup_key -N ""
+    creates: /root/.ssh/files_backup_key
+  when: inventory_hostname in groups['backup_servers']
+
+- name: Read files backup public key
+  ansible.builtin.slurp:
+    src: /root/.ssh/files_backup_key.pub
+  register: files_backup_pubkey
+  when: inventory_hostname in groups['backup_servers']
+
+- name: Set restic password fact
+  ansible.builtin.set_fact:
+    restic_password: "{{ lookup('password', '/opt/ansible/secrets/restic_password length=32 chars=ascii_letters,digits') }}"
+  when: inventory_hostname in groups['backup_servers']
+
+- name: Deploy restic password file
+  ansible.builtin.copy:
+    content: "{{ restic_password }}"
+    dest: /root/.restic-password
+    owner: root
+    group: root
+    mode: "0600"
+  when: inventory_hostname in groups['backup_servers']
+
+- name: Deploy files backup script
+  ansible.builtin.template:
+    src: files-backup-script
+    dest: /usr/local/bin/dhis2-files-backup
+    owner: root
+    group: root
+    mode: "0700"
+  when: inventory_hostname in groups['backup_servers']
+
 # Adding postgresql Backup user
 - name: "Create backup database role"
   become: true
@@ -212,13 +255,79 @@
     mode: "0600"
   when: inventory_hostname in groups['backup_servers']
 
-# Add the script to the cronjob
-- name: Add backup script to crontab
+# File system backup setup (instance side)
+- name: Collect files backup public key from backup server
+  ansible.builtin.set_fact:
+    files_backup_pubkey_content: "{{ hostvars[groups['backup_servers'][0]]['files_backup_pubkey']['content'] | b64decode }}"
+  when:
+    - inventory_hostname in groups['instances']
+    - groups['backup_servers'] | length > 0
+    - hostvars[groups['backup_servers'][0]]['files_backup_pubkey'] is defined
+
+- name: Install rsync on instances
+  ansible.builtin.apt:
+    name: rsync
+    state: present
+  when: inventory_hostname in groups['instances']
+
+- name: Create backup OS user on instances
+  ansible.builtin.user:
+    name: "{{ file_backup_user | default('backup') }}"
+    shell: /bin/bash
+    state: present
+    create_home: true
+  when: inventory_hostname in groups['instances']
+
+- name: Allow backup user to run rsync as root via sudo
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/backup-rsync
+    content: "{{ file_backup_user | default('backup') }} ALL=(root) NOPASSWD: /usr/bin/rsync --server --sender *\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: /usr/sbin/visudo -cf %s
+  when: inventory_hostname in groups['instances']
+
+- name: Deploy backup server SSH public key to instances
+  ansible.posix.authorized_key:
+    user: "{{ file_backup_user | default('backup') }}"
+    key: "{{ files_backup_pubkey_content }}"
+    key_options: 'command="sudo rsync --server --sender -logDtprze.iLsfxC . /opt/dhis2/files/",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty'
+    state: present
+  when:
+    - inventory_hostname in groups['instances']
+    - files_backup_pubkey_content is defined
+
+- name: Allow SSH from backup servers to instances
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+    src: "{{ item }}"
+    comment: "SSH access from backup server for file backups"
+    state: enabled
+  loop: "{{ backup_server_ips }}"
+  when:
+    - inventory_hostname in groups['instances']
+    - backup_server_ips is defined
+
+# Add the scripts to the cronjob
+- name: Add DB backup script to crontab
   ansible.builtin.cron:
     name: dhis2 backup Script
     minute: "0"
     hour: "3"
     user: root
     job: /usr/local/bin/dhis2-backup-new
+    state: present
+  when: inventory_hostname in groups['backup_servers']
+
+- name: Add files backup script to crontab
+  ansible.builtin.cron:
+    name: dhis2 files backup
+    minute: "30"
+    hour: "2"
+    user: root
+    job: /usr/local/bin/dhis2-files-backup
     state: present
   when: inventory_hostname in groups['backup_servers']

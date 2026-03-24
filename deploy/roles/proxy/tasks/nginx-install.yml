@@ -14,13 +14,8 @@
     proto: tcp
     comment: https
 
-- name: Ensure apache2 is stopped and disabled
-  ansible.builtin.service:
-    name: apache2
-    enabled: false
-    state: stopped
-  register: unused_disable
-  failed_when: unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)  # this prevents failing when the service is not found
+- name: Stop and disable other proxy services
+  ansible.builtin.include_tasks: stop-other-proxies.yml  # this prevents failing when the service is not found
 
 - name: Updating and Upgrading
   ansible.builtin.apt:

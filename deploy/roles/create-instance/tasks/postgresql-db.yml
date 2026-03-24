@@ -12,15 +12,13 @@
   ansible.builtin.lineinfile:
     path: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf
     insertafter: EOF
-    # regexp: "^host\\s+{{ item }}\\s+{{ hostvars[item]['ansible_host'] }}\\s+.*$"
-    # regexp: "^(host|hostssl)\\s+{{ item }}\\s+{{ hostvars[item]['ansible_host'] }}\\s+.*$"
     regexp: "^(host|hostssl)\\s+{{ item }}\\s+{{ item }}\\s+{{ hostvars[item]['ansible_host'] }}(/32)?\\s+.*$"
     line: hostssl     {{ item }}    {{ item }}  {{ hostvars[item]['ansible_host'] }}/32  scram-sha-256
   loop: "{{ groups['instances'] }}"
   when:
     - hostvars[item]['instance_state'] is undefined
     - inventory_hostname == hostvars[item]['database_host']
-    - db_gateway_address is undefined
+    - lxd_host_ip is undefined
     - item in ansible_play_hosts
   notify: Reload Postgres
 
@@ -37,38 +35,38 @@
     - hostvars[item]['instance_state'] is undefined
     - item in ansible_play_hosts
     - inventory_hostname == hostvars[item]['database_host']
-    - db_gateway_address is undefined
+    - lxd_host_ip is undefined
 
-- name: Edit pg_hba.conf permissions, instances db_gateway_address
+- name: Edit pg_hba.conf permissions, instances lxd_host_ip
   become: true
   ansible.builtin.lineinfile:
     path: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf
     # regexp: '^host\s+({{ item }}).*$'
-    regexp: "^(host|hostssl)\\s+{{ item }}\\s+{{ item }}\\s+{{ hostvars[item]['db_gateway_address'] }}(/32)?\\s+.*$"
+    regexp: "^(host|hostssl)\\s+{{ item }}\\s+{{ item }}\\s+{{ lxd_host_ip }}(/32)?\\s+.*$"
     insertafter: EOF
-    line: hostssl     {{ item }}    {{ item }}   {{ hostvars[item]['db_gateway_address'] }}/32  scram-sha-256
+    line: hostssl     {{ item }}    {{ item }}   {{ lxd_host_ip }}/32  scram-sha-256
   loop: "{{ groups['instances'] }}"
   when:
     - hostvars[item]['instance_state'] is undefined
     - item in ansible_play_hosts
     - inventory_hostname == hostvars[item]['database_host']
-    - db_gateway_address is defined
+    - lxd_host_ip is defined
   notify: Reload Postgres
 
-- name: Firewall | Open port 5432 from db_gateway_address
+- name: Firewall | Open port 5432 from lxd_host_ip
   community.general.ufw:
     rule: allow
     port: "{{ postgresql_port | default('5432') }}"
-    src: "{{ db_gateway_address }}"
+    src: "{{ lxd_host_ip }}"
     proto: tcp
-    comment: Allow access from {{ db_gateway_address }}
+    comment: Allow access from {{ lxd_host_ip }}
     state: enabled
   loop: "{{ groups['instances'] }}"
   when:
     - hostvars[item]['instance_state'] is undefined
     - item in ansible_play_hosts
     - inventory_hostname == hostvars[item]['database_host']
-    - db_gateway_address is defined
+    - lxd_host_ip is defined
 
 - name: "Create instances database role:"
   become: true

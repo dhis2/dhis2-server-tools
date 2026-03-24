@@ -4,3 +4,9 @@ http_port: 80
 https_port: 443
 
 # TLS_TYPE: letsencrypt
+
+# All supported proxy services — used to stop/disable non-active proxies on switch
+all_proxies:
+  - nginx
+  - apache2
+  - openresty

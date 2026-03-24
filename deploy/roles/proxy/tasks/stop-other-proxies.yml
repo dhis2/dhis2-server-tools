@@ -1,0 +1,9 @@
+---
+- name: Stop and disable other proxy services
+  ansible.builtin.service:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  loop: "{{ all_proxies | difference([proxy]) }}"
+  register: proxy_stop
+  failed_when: proxy_stop is failed and ('find' not in proxy_stop.msg and 'found' not in proxy_stop.msg)

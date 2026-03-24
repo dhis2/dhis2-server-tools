@@ -47,3 +47,16 @@ DAYS_TO_KEEP=7
 # UMASK can be overridden here if desired (optional)
 UMASK=027
 
+# File system backups (rsync pull + restic)
+FILE_BACKUP_INSTANCES="{{ groups['instances'] | join(' ') }}"
+{% for inst in groups['instances'] %}
+FILE_BACKUP_HOST_{{ inst }}={{ hostvars[inst].ansible_host }}
+{% endfor %}
+FILE_BACKUP_USER=backup
+FILE_STAGING_DIR=/var/backup-staging
+RESTIC_REPO_BASE=/var/restic-repos
+RESTIC_PASSWORD_FILE=/root/.restic-password
+RESTIC_KEEP_DAILY=7
+RESTIC_KEEP_WEEKLY=4
+RESTIC_KEEP_MONTHLY=3
+

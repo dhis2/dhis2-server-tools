@@ -24,7 +24,19 @@
     state: started
     enabled: true
 
-- name: Open port 4949 (from munin server ) on monitored nodes
+- name: Open port 4949 from lxd_host_ip (NATed instances)
+  community.general.ufw:
+    rule: allow
+    port: "{{ munin_node_port | default('4949') }}"
+    src: "{{ lxd_host_ip }}"
+    proto: tcp
+    comment: Allow munin access from LXD host
+    state: enabled
+  when:
+    - inventory_hostname in groups['databases']
+    - lxd_host_ip is defined
+
+- name: Open port 4949 from monitoring server (direct access)
   community.general.ufw:
     rule: allow
     port: "{{ munin_node_port | default('4949') }}"
@@ -33,6 +45,9 @@
     comment: Allow access from {{ item }} monitoring server
     state: enabled
   loop: "{{ groups['monitoring'] }}"
+  when: >-
+    inventory_hostname not in groups['databases'] or
+    lxd_host_ip is not defined
 
 - name: Include tasks for munin nginx monitoring
   ansible.builtin.include_tasks: nginx-munin.yml
