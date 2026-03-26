@@ -52,11 +52,11 @@ for INSTANCE in $FILE_BACKUP_INSTANCES; do
   fi
 
   # rsync pull from instance
-  info "rsync pull: ${FILE_BACKUP_USER}@${HOST}:/opt/dhis2/files/ -> $STAGING/"
+  info "rsync pull: ${FILE_BACKUP_USER}@${HOST}:/opt/dhis2/ -> $STAGING/"
   if ! rsync -az --delete \
       --rsync-path="sudo rsync" \
       -e "ssh -i $SSH_KEY -o StrictHostKeyChecking=no -o BatchMode=yes" \
-      "${FILE_BACKUP_USER}@${HOST}:/opt/dhis2/files/" \
+      "${FILE_BACKUP_USER}@${HOST}:/opt/dhis2/" \
       "$STAGING/" \
       2>&1 | tee -a "$LOG_FILE"; then
     info "rsync failed for $INSTANCE — skipping restic"

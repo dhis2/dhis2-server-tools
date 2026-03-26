@@ -106,7 +106,7 @@
 - name: Create backup script from the template
   ansible.builtin.template:
     src: backup-script
-    dest: /usr/local/bin/dhis2-backup-new
+    dest: /usr/local/bin/dhis2-database-backup
     owner: root
     group: root
     mode: "0700"
@@ -292,7 +292,7 @@
   ansible.posix.authorized_key:
     user: "{{ file_backup_user | default('backup') }}"
     key: "{{ files_backup_pubkey_content }}"
-    key_options: 'command="sudo rsync --server --sender -logDtprze.iLsfxC . /opt/dhis2/files/",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty'
+    key_options: 'command="sudo rsync --server --sender -logDtprze.iLsfxC . /opt/dhis2/",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty'
     state: present
   when:
     - inventory_hostname in groups['instances']
@@ -318,7 +318,7 @@
     minute: "0"
     hour: "3"
     user: root
-    job: /usr/local/bin/dhis2-backup-new
+    job: /usr/local/bin/dhis2-database-backup
     state: present
   when: inventory_hostname in groups['backup_servers']
 
