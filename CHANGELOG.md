@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.1](https://github.com/dhis2/dhis2-server-tools/compare/v1.6.0...v1.6.1) (2026-03-26)
+
+
+### 🐛 Bug Fixes
+
+* backup full /opt/dhis2/ directory instead of /opt/dhis2/files/ only ([#78](https://github.com/dhis2/dhis2-server-tools/issues/78)) ([19ee0ff](https://github.com/dhis2/dhis2-server-tools/commit/19ee0ff288e326bb36f92178d33f181100ad7886))
+* enable http2 on nginx ssl virtual hosts ([19ee0ff](https://github.com/dhis2/dhis2-server-tools/commit/19ee0ff288e326bb36f92178d33f181100ad7886))
+
 ## [1.6.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.5.0...v1.6.0) (2026-03-24)
 
 
