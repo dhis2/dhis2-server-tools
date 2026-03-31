@@ -30,7 +30,6 @@
     group: root
     mode: '0700'
 
-# Keys are generated once and preserved across playbook runs.
 - name: Check if server private key exists
   ansible.builtin.stat:
     path: /etc/wireguard/server_private.key
@@ -73,7 +72,6 @@
       WireGuard Server Public Key:
       {{ wg_server_public_key.content | b64decode | trim }}
 
-# Required for routing VPN traffic into the LXD bridge.
 - name: Enable net.ipv4.ip_forward persistently
   ansible.posix.sysctl:
     name: net.ipv4.ip_forward
@@ -89,9 +87,6 @@
     owner: root
     group: root
     mode: '0600'
-  # First-time setup (no existing key) requires a full restart to bring up the interface.
-  # Subsequent runs use syncconf to apply peer changes atomically without dropping sessions.
-  # Ref: man wg(8) — syncconf
   notify: "{{ 'Sync WireGuard peers' if wg_private_key_stat.stat.exists else 'Restart WireGuard' }}"
 
 - name: Enable and start WireGuard service
@@ -108,7 +103,6 @@
       can connect. Add at least one peer to your inventory before use.
   when: wireguard_peers | length == 0
 
-# Generated as a convenience; admins still need to paste their own private key.
 - name: Generate client configuration files
   ansible.builtin.template:
     src: client.conf.j2

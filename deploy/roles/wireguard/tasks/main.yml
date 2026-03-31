@@ -32,7 +32,6 @@
     - wireguard_lockdown_monitoring | bool
     - inventory_hostname in groups.get('databases', [])
 
-# Glowroot (4000, app_monitoring=glowroot only) and munin-node (4949, all instances).
 - name: WireGuard VPN | Lock down instances
   ansible.builtin.include_tasks: lockdown_instances.yml
   when:

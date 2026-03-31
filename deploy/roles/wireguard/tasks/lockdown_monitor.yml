@@ -28,8 +28,6 @@
   notify: Restart Grafana
   when: grafana_ini_stat.stat.exists
 
-# Bind Grafana to all interfaces within the container.
-# Access control is enforced by the host firewall + VPN, not by bind address.
 - name: Ensure Grafana listens on all container interfaces
   community.general.ini_file:
     path: /etc/grafana/grafana.ini
