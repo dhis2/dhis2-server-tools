@@ -1,0 +1,36 @@
+# Managed by Ansible — do not edit manually
+# Architecture: VPN clients → wg0 → kernel forwarding → lxdbr1 → LXD containers
+
+[Interface]
+Address = {{ wireguard_server_ip }}/24
+ListenPort = {{ wireguard_port }}
+PrivateKey = {{ wg_server_private_key.content | b64decode | trim }}
+# Prevent wg-quick from overwriting this Ansible-managed file with runtime state.
+# Without this, 'wg-quick down' could persist dynamically-added peers back to disk.
+SaveConfig = false
+
+# FORWARD rules: allow packets between wg0 and the LXD bridge.
+# MASQUERADE: translate VPN source IPs so containers can reply through the bridge
+# without needing a static route to 10.8.0.0/24. %i expands to the interface name.
+PostUp = iptables -A FORWARD -i %i -o {{ lxd_bridge_interface }} -s {{ wireguard_network }} -d {{ lxd_network }} -j ACCEPT
+PostUp = iptables -A FORWARD -i {{ lxd_bridge_interface }} -o %i -s {{ lxd_network }} -d {{ wireguard_network }} -j ACCEPT
+PostUp = iptables -t nat -A POSTROUTING -s {{ wireguard_network }} -o {{ lxd_bridge_interface }} -j MASQUERADE
+PostUp = ip6tables -A FORWARD -i %i -j DROP
+PostUp = ip6tables -A FORWARD -o %i -j DROP
+
+PostDown = iptables -D FORWARD -i %i -o {{ lxd_bridge_interface }} -s {{ wireguard_network }} -d {{ lxd_network }} -j ACCEPT
+PostDown = iptables -D FORWARD -i {{ lxd_bridge_interface }} -o %i -s {{ lxd_network }} -d {{ wireguard_network }} -j ACCEPT
+PostDown = iptables -t nat -D POSTROUTING -s {{ wireguard_network }} -o {{ lxd_bridge_interface }} -j MASQUERADE
+PostDown = ip6tables -D FORWARD -i %i -j DROP
+PostDown = ip6tables -D FORWARD -o %i -j DROP
+
+{% for peer in wireguard_peers %}
+[Peer]
+# {{ peer.name }}
+PublicKey = {{ peer.public_key }}
+AllowedIPs = {{ peer.allowed_ips }}
+{% if peer.preshared_key is defined %}
+PresharedKey = {{ peer.preshared_key }}
+{% endif %}
+
+{% endfor %}

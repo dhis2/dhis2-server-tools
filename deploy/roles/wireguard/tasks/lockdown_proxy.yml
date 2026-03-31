@@ -1,0 +1,42 @@
+---
+- name: Find monitoring nginx upstream configs
+  ansible.builtin.find:
+    paths: /etc/nginx/conf.d/upstream
+    patterns:
+      - 'munin*.conf'
+      - 'grafana*.conf'
+  register: nginx_monitoring_configs
+  when: proxy | default('nginx') == 'nginx'
+
+- name: Remove monitoring configs from nginx proxy
+  ansible.builtin.file:
+    path: '{{ item.path }}'
+    state: absent
+  loop: '{{ nginx_monitoring_configs.files | default([]) }}'
+  loop_control:
+    label: '{{ item.path | basename }}'
+  notify: Reload Nginx
+  when:
+    - proxy | default('nginx') == 'nginx'
+    - nginx_monitoring_configs.files | default([]) | length > 0
+
+- name: Find monitoring apache2 site configs
+  ansible.builtin.find:
+    paths: /etc/apache2/sites-enabled
+    patterns:
+      - 'munin*.conf'
+      - 'grafana*.conf'
+  register: apache_monitoring_configs
+  when: proxy | default('nginx') == 'apache2'
+
+- name: Remove monitoring configs from apache2 proxy
+  ansible.builtin.file:
+    path: '{{ item.path }}'
+    state: absent
+  loop: '{{ apache_monitoring_configs.files | default([]) }}'
+  loop_control:
+    label: '{{ item.path | basename }}'
+  notify: Reload Apache2
+  when:
+    - proxy | default('nginx') == 'apache2'
+    - apache_monitoring_configs.files | default([]) | length > 0

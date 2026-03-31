@@ -1,0 +1,25 @@
+---
+- name: Allow WireGuard UDP port {{ wireguard_port }}
+  community.general.ufw:
+    rule: allow
+    port: '{{ wireguard_port | string }}'
+    proto: udp
+    comment: 'WireGuard VPN'
+
+- name: Allow all traffic from VPN interface
+  community.general.ufw:
+    rule: allow
+    direction: in
+    interface: '{{ wireguard_interface }}'
+    comment: 'Allow all VPN client traffic on {{ wireguard_interface }}'
+
+- name: Add VPN↔LXD forwarding rules to /etc/ufw/before.rules
+  ansible.builtin.blockinfile:
+    path: /etc/ufw/before.rules
+    marker: '# {mark} WIREGUARD VPN FORWARDING'
+    insertafter: '^-A ufw-before-forward'
+    block: |
+      # Allow forwarding between WireGuard VPN and LXD containers
+      -A ufw-before-forward -i {{ wireguard_interface }} -o {{ lxd_bridge_interface }} -s {{ wireguard_network }} -d {{ lxd_network }} -j ACCEPT
+      -A ufw-before-forward -i {{ lxd_bridge_interface }} -o {{ wireguard_interface }} -s {{ lxd_network }} -d {{ wireguard_network }} -j ACCEPT
+  notify: Reload UFW

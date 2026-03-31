@@ -5,6 +5,8 @@
   gather_facts: false
   roles:
     - role: pre-install
+    - role: wireguard
+      tags: [wireguard]
 
 - name: DHIS2 setup
   gather_facts: false
@@ -20,6 +22,8 @@
       tags: [proxy-install]
     - role: monitoring
       tags: monitoring
+    - role: wireguard
+      tags: [wireguard]
     - role: create-instance
       tags: [create-instance]
       when: instance_state is not defined or instance_state != 'deleted'
