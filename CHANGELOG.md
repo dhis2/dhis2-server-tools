@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.7.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.6.1...v1.7.0) (2026-04-02)
+
+
+### 🎉 New Features
+
+* support auto-upgrading DHIS2 to 2.42 ([#81](https://github.com/dhis2/dhis2-server-tools/issues/81)) ([3e9ecad](https://github.com/dhis2/dhis2-server-tools/commit/3e9ecaddf202fc553d818b552ecfcace9d3551c0))
+
+
+### 🐛 Bug Fixes
+
+* add NAT output rules to enable traffic from server looped to proxy container ([3e9ecad](https://github.com/dhis2/dhis2-server-tools/commit/3e9ecaddf202fc553d818b552ecfcace9d3551c0))
+* flush lingering iptables NAT rules on UFW restart ([3e9ecad](https://github.com/dhis2/dhis2-server-tools/commit/3e9ecaddf202fc553d818b552ecfcace9d3551c0))
+* replace deprecated apt_key and get_url with curl for signing keys ([3e9ecad](https://github.com/dhis2/dhis2-server-tools/commit/3e9ecaddf202fc553d818b552ecfcace9d3551c0))
+
 ## [1.6.1](https://github.com/dhis2/dhis2-server-tools/compare/v1.6.0...v1.6.1) (2026-03-26)
 
 
