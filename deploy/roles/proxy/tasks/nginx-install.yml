@@ -34,10 +34,9 @@
     state: present
 
 - name: Add nginx signing key
-  ansible.builtin.apt_key:
-    url: https://nginx.org/keys/nginx_signing.key
-    keyring: /usr/share/keyrings/nginx-archive-keyring.gpg
-    state: present
+  ansible.builtin.shell:
+    cmd: curl -fsSL https://nginx.org/keys/nginx_signing.key | gpg --dearmor -o /usr/share/keyrings/nginx-archive-keyring.gpg
+    creates: /usr/share/keyrings/nginx-archive-keyring.gpg
 
 - name: Add nginx official repository
   ansible.builtin.apt_repository:

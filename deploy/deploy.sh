@@ -80,27 +80,24 @@ if ! command -v ansible &> /dev/null; then
     ansible-galaxy collection install community.general
 fi
 
-# Deploying dhis2
-connection_type=$(awk -F= '/^ansible_connection=/{print $2}' inventory/hosts 2>/dev/null || echo "")
-if [[ "$connection_type" == "lxd" ]]; then
-    # Deploying dhis2 in lxd containers
-    echo "Deploying dhis2 with lxd ..."
-    # Ensure community general collections are upgraded
-    ansible-galaxy collection install community.general --upgrade
-    sudo ansible-playbook dhis2.yml
-else
-    # Deploying dhis2 over ssh
-    echo "Deploy dhis2 over ssh ..."
-    read -p "Enter ssh user: " ssh_user
-    # Check if group exists and add user silently
-    if [[ -z "$ssh_user" ]]; then
-        echo "Error: SSH user cannot be empty" >&2
-        exit 1
-    fi
+# Ensure community general collections are upgraded
+ansible-galaxy collection install community.general --upgrade
+
+# Check if any host explicitly uses ssh connection (per-host or per-group override)
+# Hosts may use lxd (default) or ssh individually — Ansible handles per-host connection natively.
+has_ssh_hosts=$(grep -v '^\s*#' inventory/hosts | sed 's/#.*//' | grep -E 'ansible_connection=ssh' || true)
+
+if [[ -n "$has_ssh_hosts" ]]; then
+    # At least one host uses SSH — need credentials for those hosts
+    echo ""
+    echo "Deploying dhis2 (hybrid lxd/ssh connections detected) ..."
+    ssh_user="${SUDO_USER:-$USER}"
     if getent group 'lxd' >/dev/null 2>&1; then
         sudo usermod -a -G "lxd" "$ssh_user"
     fi
-    # Ensure community general collections are upgraded
-    ansible-galaxy collection install community.general --upgrade
     su -c "ansible-playbook dhis2.yml -kK" "$ssh_user"
+else
+    # All hosts use lxd (default)
+    echo "Deploying dhis2 with lxd ..."
+    sudo ansible-playbook dhis2.yml
 fi
