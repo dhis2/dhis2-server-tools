@@ -6,12 +6,9 @@
     cache_valid_time: 3600
 
 - name: Adding postgresql repo signing key
-  ansible.builtin.get_url:
-    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
-    dest: /etc/apt/trusted.gpg.d/postgresql.asc
-    owner: root
-    group: root
-    mode: "0644"
+  ansible.builtin.command:
+    cmd: curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /etc/apt/trusted.gpg.d/postgresql.asc
+    creates: /etc/apt/trusted.gpg.d/postgresql.asc
 
 - name: Adding postgres apt repository to sources list
   ansible.builtin.apt_repository:
@@ -41,6 +38,7 @@
     owner: root
     group: root
     mode: "0644"
+    force: false
   notify: Restart Postgres
   tags: [postgresql-conf]
 

@@ -7,11 +7,14 @@ proxy  ansible_host=172.19.2.2
 
 
 # database hosts
+# To use SSH for a specific host instead of lxd, add ansible_connection=ssh ansible_user=<user>
+# EXAMPLE: postgres  ansible_host=192.168.1.50  ansible_connection=ssh  ansible_user=ubuntu
 [databases]
 postgres  ansible_host=172.19.2.20
 
-
 # dhis2 hosts
+# EXAMPLE:  dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.42  fqdn=dhis.example.org  dhis2_auto_upgrade=true  proxy_rewrite=True
+# NOTE:  dhis2_auto_upgrade=true automates upgrading to the versision set in  dhis2_version=2.42 
 [instances]
 dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.42 proxy_rewrite=True
 
@@ -59,7 +62,7 @@ ansible_lxd_executable=/bin/bash
 # Options: dir,zfs link: https://documentation.ubuntu.com/lxd/latest/reference/storage_drivers/ 
 lxd_storage_driver=dir 
 # Options: 22.04,24.04
-guest_os=22.04
+guest_os=24.04
 # Options: amd64,arm64,armhf, defaults_to amd64
 guest_os_arch=amd64 
 # lxd_source_server=
