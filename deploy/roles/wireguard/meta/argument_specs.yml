@@ -1,0 +1,57 @@
+---
+argument_specs:
+  main:
+    short_description: "WireGuard VPN for securing DHIS2 monitoring and database access"
+    description:
+      - Installs and configures a WireGuard VPN server on the host machine.
+      - Optionally locks down monitoring dashboards and PostgreSQL to VPN-only access.
+    options:
+      wireguard_enabled:
+        description: "Master switch — enable the WireGuard VPN role"
+        type: bool
+        default: false
+      wireguard_network:
+        description: "VPN subnet in CIDR notation"
+        type: str
+        default: "10.8.0.0/24"
+      wireguard_server_ip:
+        description: "Server IP address on the VPN subnet"
+        type: str
+        default: "10.8.0.1"
+      wireguard_port:
+        description: "UDP listen port for WireGuard"
+        type: int
+        default: 51820
+      wireguard_interface:
+        description: "WireGuard network interface name"
+        type: str
+        default: "wg0"
+      lxd_bridge_interface:
+        description: "LXD bridge interface name (must match the LXD network)"
+        type: str
+        default: "lxdbr1"
+      lxd_network:
+        description: "LXD container subnet in CIDR notation"
+        type: str
+        default: "172.19.2.0/24"
+      lxd_gateway_ip:
+        description: "Host-side IP of the LXD bridge"
+        type: str
+        default: "172.19.2.1"
+      wireguard_peers:
+        description: >-
+          List of VPN client peers. Each entry requires name, public_key,
+          and allowed_ips. Optional: preshared_key.
+        type: list
+        elements: dict
+        default: []
+      wireguard_lockdown_monitoring:
+        description: >-
+          When true, removes monitoring paths from the public proxy
+          and restricts monitoring/DB ports to VPN-only access.
+        type: bool
+        default: true
+      grafana_port:
+        description: "Grafana HTTP port — used for VPN-only UFW rules"
+        type: int
+        default: 3000

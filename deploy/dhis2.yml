@@ -22,11 +22,11 @@
       tags: [proxy-install]
     - role: monitoring
       tags: monitoring
-    - role: wireguard
-      tags: [wireguard]
     - role: create-instance
       tags: [create-instance]
       when: instance_state is not defined or instance_state != 'deleted'
+    - role: wireguard
+      tags: [wireguard]
   tasks:
     - name: Install and configure unattended_upgrades
       ansible.builtin.include_tasks: playbooks/unattended_upgrades.yml

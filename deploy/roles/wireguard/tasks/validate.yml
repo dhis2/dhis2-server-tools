@@ -1,0 +1,27 @@
+---
+- name: WireGuard | Assert each peer has required fields (name, public_key, allowed_ips)
+  ansible.builtin.assert:
+    that:
+      - item.name is defined and item.name | length > 0
+      - item.public_key is defined and item.public_key | length > 0
+      - item.allowed_ips is defined and item.allowed_ips | length > 0
+    fail_msg: >-
+      wireguard_peers[{{ idx }}] is missing a required field.
+      Each peer must define name, public_key, and allowed_ips.
+      Got: {{ item | dict2items | map(attribute='key') | list }}
+    quiet: true
+  loop: "{{ wireguard_peers }}"
+  loop_control:
+    index_var: idx
+    label: "{{ item.name | default('UNNAMED-peer-' + idx | string) }}"
+
+- name: WireGuard | Assert no duplicate allowed_ips across peers
+  ansible.builtin.assert:
+    that:
+      - wireguard_peers | map(attribute='allowed_ips') | list | unique | length == wireguard_peers | length
+    fail_msg: >-
+      Duplicate allowed_ips detected in wireguard_peers.
+      Each peer must have a unique allowed_ips value to avoid silent routing conflicts.
+      Values: {{ wireguard_peers | map(attribute='allowed_ips') | list }}
+    quiet: true
+  when: wireguard_peers | length > 1

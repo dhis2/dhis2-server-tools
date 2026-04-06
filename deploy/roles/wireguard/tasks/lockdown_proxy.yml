@@ -8,10 +8,11 @@
   register: nginx_monitoring_configs
   when: proxy | default('nginx') == 'nginx'
 
-- name: Remove monitoring configs from nginx proxy
-  ansible.builtin.file:
-    path: '{{ item.path }}'
-    state: absent
+- name: Empty monitoring configs on nginx proxy (keep files so include directives still resolve)
+  ansible.builtin.copy:
+    content: "# Monitoring disabled by WireGuard lockdown\n"
+    dest: '{{ item.path }}'
+    mode: '0644'
   loop: '{{ nginx_monitoring_configs.files | default([]) }}'
   loop_control:
     label: '{{ item.path | basename }}'

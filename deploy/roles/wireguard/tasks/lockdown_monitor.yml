@@ -48,20 +48,17 @@
 - name: Allow Grafana (3000/tcp) from LXD gateway only
   community.general.ufw:
     rule: allow
-    port: "{{ prometheus_http_port | default('3000') }}"
+    port: "{{ grafana_port }}"
     src: '{{ lxd_gateway_ip }}'
     proto: tcp
     state: enabled
     comment: 'Grafana — VPN access only (via LXD gateway NAT)'
   when: grafana_ini_stat.stat.exists
 
-# The monitoring role adds "allow <port>/tcp from <proxy IP>" before wireguard runs.
-# Remove it so Grafana is unreachable from the proxy. Uses prometheus_http_port to
-# match the rule the monitoring role created. delete: true is a no-op if already absent.
-- name: Remove proxy→Grafana UFW rule
+- name: Remove proxy -> Grafana UFW rule
   community.general.ufw:
     rule: allow
-    port: "{{ prometheus_http_port | default('3000') }}"
+    port: "{{ grafana_port }}"
     src: "{{ hostvars[item]['ansible_host'] }}"
     proto: tcp
     delete: true

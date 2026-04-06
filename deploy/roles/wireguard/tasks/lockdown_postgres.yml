@@ -5,7 +5,7 @@
   register: pg_hba_path
   changed_when: false
 
-- name: Allow VPN direct psql — add lxd_gateway_ip to pg_hba.conf
+- name: Allow VPN admin access — add lxd_gateway_ip to pg_hba.conf (all databases, all users)
   ansible.builtin.lineinfile:
     path: '{{ pg_hba_path.stdout | trim }}'
     regexp: "^host\\s+all\\s+all\\s+{{ (lxd_gateway_ip + '/32') | replace('.', '\\.') | replace('/', '\\/') }}"

@@ -2,8 +2,8 @@
 - name: Gather network facts for client config endpoint fallback
   ansible.builtin.setup:
     gather_subset:
-      - '!all'
-      - 'network'
+      - "!all"
+      - "network"
 
 - name: Install WireGuard packages
   ansible.builtin.apt:
@@ -20,7 +20,7 @@
     state: directory
     owner: root
     group: root
-    mode: '0700'
+    mode: "0700"
 
 - name: Ensure clients config directory exists
   ansible.builtin.file:
@@ -28,7 +28,7 @@
     state: directory
     owner: root
     group: root
-    mode: '0700'
+    mode: "0700"
 
 - name: Check if server private key exists
   ansible.builtin.stat:
@@ -47,10 +47,10 @@
 
 - name: Set restrictive permissions on key files
   ansible.builtin.file:
-    path: '/etc/wireguard/{{ item }}'
+    path: "/etc/wireguard/{{ item }}"
     owner: root
     group: root
-    mode: '0600'
+    mode: "0600"
   loop:
     - server_private.key
     - server_public.key
@@ -75,7 +75,7 @@
 - name: Enable net.ipv4.ip_forward persistently
   ansible.posix.sysctl:
     name: net.ipv4.ip_forward
-    value: '1'
+    value: "1"
     state: present
     reload: true
     sysctl_set: true
@@ -83,15 +83,15 @@
 - name: Deploy WireGuard server configuration
   ansible.builtin.template:
     src: wg0.conf.j2
-    dest: '/etc/wireguard/{{ wireguard_interface }}.conf'
+    dest: "/etc/wireguard/{{ wireguard_interface }}.conf"
     owner: root
     group: root
-    mode: '0600'
+    mode: "0600"
   notify: "{{ 'Sync WireGuard peers' if wg_private_key_stat.stat.exists else 'Restart WireGuard' }}"
 
 - name: Enable and start WireGuard service
   ansible.builtin.systemd:
-    name: 'wg-quick@{{ wireguard_interface }}'
+    name: "wg-quick@{{ wireguard_interface }}"
     state: started
     enabled: true
     daemon_reload: true
@@ -106,14 +106,14 @@
 - name: Generate client configuration files
   ansible.builtin.template:
     src: client.conf.j2
-    dest: '/etc/wireguard/clients/{{ item.name }}.conf'
+    dest: "/etc/wireguard/clients/{{ item.name }}.conf"
     owner: root
     group: root
-    mode: '0600'
+    mode: "0600"
   no_log: true
-  loop: '{{ wireguard_peers }}'
+  loop: "{{ wireguard_peers }}"
   loop_control:
-    label: '{{ item.name }}'
+    label: "{{ item.name }}"
   when: wireguard_peers | length > 0
 
 - name: Client config generation summary

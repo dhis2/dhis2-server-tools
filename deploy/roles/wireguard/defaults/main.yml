@@ -1,33 +1,17 @@
 ---
 wireguard_enabled: false
 
-# WireGuard VPN network
-wireguard_network: '10.8.0.0/24'
-wireguard_server_ip: '10.8.0.1'
+wireguard_network: "10.8.0.0/24"
+wireguard_server_ip: "10.8.0.1"
 wireguard_port: 51820
 wireguard_interface: wg0
 
-lxd_bridge_interface: 'lxdbr1'
+lxd_bridge_interface: "lxdbr1"
+lxd_network: "172.19.2.0/24"
+lxd_gateway_ip: "172.19.2.1"
 
-lxd_network: '172.19.2.0/24'
+grafana_port: 3000
 
-# LXD gateway IP — the host-side IP of the LXD bridge.
-# After MASQUERADE (wg0.conf.j2 PostUp), container UFW sees traffic sourced
-# from this IP, NOT from wireguard_network (10.8.0.x).
-# Verify with: lxc network show lxdbr1 | grep ipv4.address
-lxd_gateway_ip: '172.19.2.1'
-
-# VPN peers (clients)
-# Generate keys on the admin workstation:
-#   wg genkey | tee private.key | wg pubkey > public.key
-#   wg genpsk > preshared.key          (optional, post-quantum)
-#
-# Example:
-#   wireguard_peers:
-#     - name: admin-alice
-#       public_key: "abc123...="
-#       allowed_ips: "10.8.0.2/32"
-#       preshared_key: "xyz789...="    # optional
 wireguard_peers: []
 
 wireguard_lockdown_monitoring: true
