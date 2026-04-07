@@ -53,6 +53,12 @@ postgresql_version=16
 server_monitoring=munin
 app_monitoring=glowroot
 
+# alerting (requires server_monitoring=grafana, see docs/alerting.md)
+# alerting_enabled=false
+# alerting_default_contact_point=telegram
+# alerting_telegram_bot_token=
+# alerting_telegram_chat_id=
+# glowroot_alerting_enabled=false
 
 # lxd
 lxd_network=172.19.2.1/24 

@@ -49,4 +49,46 @@
     ],
     "traceCappedDatabaseSizeMb": 500
   }
+  {% if glowroot_alerting_enabled | default(false) | bool %}
+{% if alerting_telegram_bot_token is defined and alerting_telegram_chat_id is defined %}
+  ,"slack": {
+    "webhooks": [
+      {
+        "url": "http://127.0.0.1:{{ glowroot_telegram_forwarder_port | default(9099) }}",
+        "display": "Telegram (via forwarder)"
+      }
+    ]
+  }
+{% elif glowroot_slack_webhook_url is defined and glowroot_slack_webhook_url | length > 0 %}
+  ,"slack": {
+    "webhooks": [
+      {
+        "url": "{{ glowroot_slack_webhook_url }}",
+        "display": "{{ glowroot_slack_webhook_display | default('DHIS2 Alerts') }}"
+      }
+    ]
+  }
+{% endif %}
+{% if glowroot_smtp_host is defined and glowroot_smtp_host | length > 0 %}
+  ,"smtp": {
+    "host": "{{ glowroot_smtp_host }}",
+    "port": {{ glowroot_smtp_port | default(587) }},
+    "connectionSecurity": "{{ glowroot_smtp_connection_security | default('STARTTLS') }}",
+    "username": "{{ glowroot_smtp_username | default('') }}",
+    "password": "{{ glowroot_smtp_password | default('') }}",
+    "fromEmailAddress": "{{ glowroot_smtp_from_address | default('') }}",
+    "fromDisplayName": "{{ glowroot_smtp_from_name | default('Glowroot DHIS2') }}"
+  }
+{% endif %}
+{% if glowroot_pagerduty_key is defined and glowroot_pagerduty_key | length > 0 %}
+  ,"pagerDuty": {
+    "integrationKeys": [
+      {
+        "key": "{{ glowroot_pagerduty_key }}",
+        "display": "{{ glowroot_pagerduty_display | default('DHIS2') }}"
+      }
+    ]
+  }
+{% endif %}
+{% endif %}
 }

@@ -1,0 +1,80 @@
+{
+  "alerts": [
+    {
+      "condition": {
+        "conditionType": "heartbeat",
+        "timePeriodSeconds": {{ glowroot_alert_heartbeat_seconds | default(300) }}
+      },
+      "severity": "CRITICAL"
+{% if (alerting_telegram_bot_token is defined and alerting_telegram_chat_id is defined) or (glowroot_slack_webhook_url is defined) %}
+      ,"slackNotification": {
+        "slackChannels": ["#alerts"]
+      }
+{% endif %}
+{% if glowroot_smtp_host is defined and glowroot_smtp_host | length > 0 %}
+      ,"emailNotification": {
+        "emailAddresses": {{ glowroot_alert_email_addresses | default([]) | to_json }}
+      }
+{% endif %}
+    },
+    {
+      "condition": {
+        "conditionType": "metric",
+        "metric": "error:rate",
+        "transactionType": "Web",
+        "threshold": {{ glowroot_alert_error_rate_threshold | default(10.0) }},
+        "timePeriodSeconds": {{ glowroot_alert_error_rate_time_period_seconds | default(300) }}
+      },
+      "severity": "CRITICAL"
+{% if (alerting_telegram_bot_token is defined and alerting_telegram_chat_id is defined) or (glowroot_slack_webhook_url is defined) %}
+      ,"slackNotification": {
+        "slackChannels": ["#alerts"]
+      }
+{% endif %}
+{% if glowroot_smtp_host is defined and glowroot_smtp_host | length > 0 %}
+      ,"emailNotification": {
+        "emailAddresses": {{ glowroot_alert_email_addresses | default([]) | to_json }}
+      }
+{% endif %}
+    },
+    {
+      "condition": {
+        "conditionType": "metric",
+        "metric": "transaction:x-percentile",
+        "transactionType": "Web",
+        "percentile": 95.0,
+        "threshold": {{ glowroot_alert_p95_threshold_ms | default(10000) }},
+        "timePeriodSeconds": {{ glowroot_alert_p95_time_period_seconds | default(600) }},
+        "minTransactionCount": {{ glowroot_alert_min_transaction_count | default(10) }}
+      },
+      "severity": "HIGH"
+{% if (alerting_telegram_bot_token is defined and alerting_telegram_chat_id is defined) or (glowroot_slack_webhook_url is defined) %}
+      ,"slackNotification": {
+        "slackChannels": ["#alerts"]
+      }
+{% endif %}
+    },
+    {
+      "condition": {
+        "conditionType": "metric",
+        "metric": "gauge:java.lang:type=Memory:HeapMemoryUsage.used",
+{% set heap_raw = heap_memory_size | default('4G') | string | trim %}
+{% if heap_raw | regex_search('[mM]$') %}
+{% set heap_bytes = (heap_raw | regex_replace('[mM]$', '') | int) * 1048576 %}
+{% elif heap_raw | regex_search('[gG]$') %}
+{% set heap_bytes = (heap_raw | regex_replace('[gG]$', '') | int) * 1073741824 %}
+{% else %}
+{% set heap_bytes = (heap_raw | int) * 1073741824 %}
+{% endif %}
+        "threshold": {{ (heap_bytes * 0.8) | int }},
+        "timePeriodSeconds": 300
+      },
+      "severity": "HIGH"
+{% if (alerting_telegram_bot_token is defined and alerting_telegram_chat_id is defined) or (glowroot_slack_webhook_url is defined) %}
+      ,"slackNotification": {
+        "slackChannels": ["#alerts"]
+      }
+{% endif %}
+    }
+  ]
+}

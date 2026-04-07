@@ -1,0 +1,25 @@
+---
+glowroot_alerting_enabled: false
+glowroot_telegram_forwarder_port: '9099'
+
+# Slack (native Glowroot)
+# glowroot_slack_webhook_url: ""
+# glowroot_slack_webhook_display: "DHIS2 Alerts"
+
+# Email / SMTP (native Glowroot)
+# glowroot_smtp_host: ""
+# glowroot_smtp_port: 587
+# glowroot_smtp_connection_security: "STARTTLS"
+# glowroot_smtp_username: ""
+# glowroot_smtp_password: ""
+# glowroot_smtp_from_address: ""
+# glowroot_smtp_from_name: "Glowroot DHIS2"
+# glowroot_alert_email_addresses: []
+
+# Thresholds
+glowroot_alert_p95_threshold_ms: 10000
+glowroot_alert_p95_time_period_seconds: 600
+glowroot_alert_error_rate_threshold: 10.0
+glowroot_alert_error_rate_time_period_seconds: 300
+glowroot_alert_heartbeat_seconds: 300
+glowroot_alert_min_transaction_count: 10

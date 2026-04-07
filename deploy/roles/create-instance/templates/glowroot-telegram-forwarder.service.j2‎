@@ -1,0 +1,20 @@
+{{ ansible_managed | comment }}
+[Unit]
+Description=Glowroot Slack-to-Telegram webhook forwarder
+After=network.target
+
+[Service]
+Type=simple
+User=glowroot_forwarder
+Group=glowroot_forwarder
+ExecStart=/usr/bin/python3 /opt/glowroot/glowroot-telegram-forwarder.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadOnlyPaths=/opt/glowroot/glowroot-telegram-forwarder.py
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

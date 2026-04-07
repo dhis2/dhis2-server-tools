@@ -1,0 +1,21 @@
+---
+alerting_enabled: false
+alerting_default_contact_point: telegram
+
+# Telegram
+# alerting_telegram_bot_token: ""
+# alerting_telegram_chat_id: ""
+
+# Slack
+# alerting_slack_webhook_url: ""
+# alerting_slack_channel: "#dhis2-alerts"
+
+# Email
+# alerting_email_addresses: []
+
+# Thresholds
+alert_cpu_threshold: 85
+alert_memory_threshold: 90
+alert_disk_warning_pct: 15
+alert_disk_critical_pct: 5
+alert_pg_connection_pct: 80

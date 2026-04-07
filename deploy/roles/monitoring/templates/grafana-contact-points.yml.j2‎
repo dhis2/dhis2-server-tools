@@ -1,0 +1,33 @@
+{{ ansible_managed | comment }}
+apiVersion: 1
+contactPoints:
+{% if alerting_telegram_bot_token is defined and alerting_telegram_chat_id is defined %}
+  - orgId: 1
+    name: telegram
+    receivers:
+      - uid: telegram-default
+        type: telegram
+        settings:
+          bottoken: "{{ alerting_telegram_bot_token }}"
+          chatid: "{{ alerting_telegram_chat_id }}"
+          parse_mode: HTML
+{% endif %}
+{% if alerting_slack_webhook_url is defined %}
+  - orgId: 1
+    name: slack
+    receivers:
+      - uid: slack-default
+        type: slack
+        settings:
+          url: "{{ alerting_slack_webhook_url }}"
+          recipient: "{{ alerting_slack_channel | default('#dhis2-alerts') }}"
+{% endif %}
+{% if alerting_email_addresses is defined and alerting_email_addresses | length > 0 %}
+  - orgId: 1
+    name: email
+    receivers:
+      - uid: email-default
+        type: email
+        settings:
+          addresses: "{{ alerting_email_addresses | join(';') }}"
+{% endif %}

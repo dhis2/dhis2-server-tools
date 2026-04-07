@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+# {{ ansible_managed }}
+"""Slack-to-Telegram webhook forwarder for Glowroot alerts.
+
+Listens on localhost for Slack-formatted webhook POSTs from Glowroot
+and forwards them to a Telegram chat via the Bot API.
+
+Zero external dependencies -- uses only Python 3 stdlib.
+"""
+
+import json
+import sys
+import urllib.request
+import urllib.error
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+LISTEN_HOST = "127.0.0.1"
+LISTEN_PORT = {{ glowroot_telegram_forwarder_port | default(9099) }}
+TELEGRAM_BOT_TOKEN = "{{ alerting_telegram_bot_token }}"
+TELEGRAM_CHAT_ID = "{{ alerting_telegram_chat_id }}"
+TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+
+STATUS_ICONS = {"danger": "\u26a0\ufe0f", "good": "\u2705", "warning": "\u26a0\ufe0f"}
+
+
+def slack_to_telegram_html(payload):
+    """Convert a Slack attachment payload to Telegram HTML message."""
+    attachments = payload.get("attachments", [])
+    if not attachments:
+        text = payload.get("text", "Unknown alert")
+        return f"<b>Glowroot Alert</b>\n{text}"
+
+    att = attachments[0]
+    color = att.get("color", "warning")
+    icon = STATUS_ICONS.get(color, "\u2139\ufe0f")
+    pretext = att.get("pretext", "Alert")
+    body = att.get("text", "")
+    fallback = att.get("fallback", "")
+
+    lines = [f"{icon} <b>{pretext}</b>"]
+    if body:
+        lines.append(f"\n{body}")
+    elif fallback:
+        lines.append(f"\n{fallback}")
+    return "\n".join(lines)
+
+
+def send_telegram(message):
+    """POST a message to the Telegram Bot API."""
+    data = json.dumps({
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message[:4096],
+        "parse_mode": "HTML",
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        TELEGRAM_API,
+        data=data,
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return resp.status
+    except urllib.error.URLError as exc:
+        print(f"Telegram API error: {exc}", file=sys.stderr)
+        return None
+
+
+class WebhookHandler(BaseHTTPRequestHandler):
+    """Handle incoming Slack-formatted webhook POST requests."""
+
+    def do_POST(self):  # noqa: N802
+        length = int(self.headers.get("Content-Length", 0))
+        raw = self.rfile.read(length)
+        try:
+            payload = json.loads(raw)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            self.send_response(400)
+            self.end_headers()
+            return
+
+        message = slack_to_telegram_html(payload)
+        status = send_telegram(message)
+        code = 200 if status == 200 else 502
+        self.send_response(code)
+        self.end_headers()
+
+    def log_message(self, fmt, *args):
+        """Silence default stderr logging in production."""
+
+
+if __name__ == "__main__":
+    server = HTTPServer((LISTEN_HOST, LISTEN_PORT), WebhookHandler)
+    print(f"Listening on {LISTEN_HOST}:{LISTEN_PORT}")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        server.server_close()

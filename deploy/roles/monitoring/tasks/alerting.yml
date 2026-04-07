@@ -1,0 +1,105 @@
+---
+- name: Alerting | Assert at least one contact point is configured
+  ansible.builtin.assert:
+    that: >-
+      (alerting_telegram_bot_token is defined and alerting_telegram_chat_id is defined) or
+      (alerting_slack_webhook_url is defined) or
+      (alerting_email_addresses is defined and alerting_email_addresses | length > 0)
+    fail_msg: >-
+      alerting_enabled is true but no contact point is configured.
+      Set alerting_telegram_bot_token + alerting_telegram_chat_id,
+      or alerting_slack_webhook_url, or alerting_email_addresses.
+  tags: [always]
+
+# Prometheus alert rules
+- name: Alerting | Ensure Prometheus rules directory exists
+  ansible.builtin.file:
+    path: /etc/prometheus/rules
+    state: directory
+    owner: prometheus
+    group: prometheus
+    mode: '0755'
+
+- name: Alerting | Deploy Prometheus alert rules
+  ansible.builtin.template:
+    src: prometheus-rules.yml.j2
+    dest: /etc/prometheus/rules/dhis2-alerts.yml
+    owner: prometheus
+    group: prometheus
+    mode: '0644'
+    validate: 'promtool check rules %s'
+  notify: Reload Prometheus
+
+- name: Alerting | Ensure Prometheus rule_files directive exists
+  ansible.builtin.lineinfile:
+    path: /etc/prometheus/prometheus.yml
+    regexp: '^rule_files:'
+    line: 'rule_files:'
+    insertbefore: '^scrape_configs:'
+  notify: Reload Prometheus
+
+- name: Alerting | Wire rules directory into prometheus.yml
+  ansible.builtin.lineinfile:
+    path: /etc/prometheus/prometheus.yml
+    regexp: '^\s+- "/etc/prometheus/rules/\*\.yml"'
+    line: '  - "/etc/prometheus/rules/*.yml"'
+    insertafter: '^rule_files:'
+  notify: Reload Prometheus
+
+# Grafana unified alerting
+- name: Alerting | Provision Prometheus datasource with fixed UID
+  ansible.builtin.template:
+    src: grafana-datasource-provisioning.yml.j2
+    dest: /etc/grafana/provisioning/datasources/prometheus.yml
+    owner: grafana
+    group: grafana
+    mode: '0640'
+  notify: Restart Grafana
+
+- name: Alerting | Enable Grafana unified alerting
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: unified_alerting
+    option: enabled
+    value: 'true'
+    mode: '0640'
+  notify: Restart Grafana
+
+- name: Alerting | Create Grafana alerting provisioning directory
+  ansible.builtin.file:
+    path: /etc/grafana/provisioning/alerting
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: '0755'
+
+- name: Alerting | Deploy Grafana contact points
+  ansible.builtin.template:
+    src: grafana-contact-points.yml.j2
+    dest: /etc/grafana/provisioning/alerting/contact-points.yml
+    owner: grafana
+    group: grafana
+    mode: '0640'
+  no_log: true
+  notify: Restart Grafana
+
+- name: Alerting | Deploy Grafana notification policies
+  ansible.builtin.template:
+    src: grafana-notification-policies.yml.j2
+    dest: /etc/grafana/provisioning/alerting/notification-policies.yml
+    owner: grafana
+    group: grafana
+    mode: '0640'
+  notify: Restart Grafana
+
+- name: Alerting | Deploy Grafana alert rules
+  ansible.builtin.template:
+    src: grafana-alert-rules.yml.j2
+    dest: /etc/grafana/provisioning/alerting/alert-rules.yml
+    owner: grafana
+    group: grafana
+    mode: '0640'
+  notify: Restart Grafana
+
+- name: Alerting | Flush handlers
+  ansible.builtin.meta: flush_handlers
