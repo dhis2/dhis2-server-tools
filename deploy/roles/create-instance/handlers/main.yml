@@ -60,3 +60,9 @@
   ansible.builtin.service:
     name: munin-node
     state: restarted
+
+- name: Restart Glowroot Telegram Forwarder
+  ansible.builtin.systemd:
+    name: glowroot-telegram-forwarder
+    state: restarted
+    daemon_reload: true

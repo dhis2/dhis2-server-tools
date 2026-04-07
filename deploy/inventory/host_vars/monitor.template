@@ -1,0 +1,11 @@
+---
+# Variables for the monitoring host.
+# Copy to 'monitor': cp monitor.template monitor
+
+# alerting_enabled: true
+# alerting_telegram_bot_token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+# alerting_telegram_chat_id: "-1001234567890"
+
+# alerting_default_contact_point: slack
+# alerting_slack_webhook_url: "https://hooks.slack.com/services/T.../B.../xxx"
+# alerting_slack_channel: "#dhis2-alerts"

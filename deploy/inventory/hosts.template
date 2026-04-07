@@ -62,6 +62,10 @@ app_monitoring=glowroot
 wireguard_enabled=false
 # wireguard_data_plane=false
 
+# alerting (requires server_monitoring=grafana, see docs/alerting.md)
+# alerting_enabled=false
+# alerting_default_contact_point=telegram
+# Put tokens in host_vars/monitor/vault.yml — not in [all:vars]
 
 # lxd
 lxd_network=172.19.2.1/24 
