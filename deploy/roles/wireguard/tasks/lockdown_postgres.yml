@@ -8,8 +8,8 @@
 - name: Allow VPN admin access — add lxd_gateway_ip to pg_hba.conf (all databases, all users)
   ansible.builtin.lineinfile:
     path: '{{ pg_hba_path.stdout | trim }}'
-    regexp: "^host\\s+all\\s+all\\s+{{ (lxd_gateway_ip + '/32') | replace('.', '\\.') | replace('/', '\\/') }}"
-    line: 'host    all    all    {{ lxd_gateway_ip }}/32    scram-sha-256'
+    regexp: "^(host|hostssl)\\s+all\\s+all\\s+{{ (lxd_gateway_ip + '/32') | replace('.', '\\.') | replace('/', '\\/') }}"
+    line: 'hostssl    all    all    {{ lxd_gateway_ip }}/32    scram-sha-256'
     insertbefore: EOF
   notify: Reload PostgreSQL
   when: pg_hba_path.stdout | trim | length > 0

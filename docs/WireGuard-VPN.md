@@ -184,7 +184,7 @@ When `wireguard_enabled=true` and `wireguard_lockdown_monitoring=true` (default)
 
 ### PostgreSQL VPN access
 
-The VPN lockdown adds a `host all all <lxd_gateway_ip>/32 scram-sha-256` entry to `pg_hba.conf`. This grants VPN users access to all databases as any PostgreSQL user — intentionally broad to support ad-hoc admin access (`psql`) over the VPN. A password is still required (`scram-sha-256`). Application-level pg_hba entries (per-instance db/user restrictions) are managed separately by the `create-instance` role.
+The VPN lockdown adds a `hostssl all all <lxd_gateway_ip>/32 scram-sha-256` entry to `pg_hba.conf`. This grants VPN users access to all databases as any PostgreSQL user — intentionally broad to support ad-hoc admin access (`psql`) over the VPN. SSL is required at the application layer (consistent with instance connections) for defense in depth, even though VPN traffic is already encrypted. A password is still required (`scram-sha-256`). Application-level pg_hba entries (per-instance db/user restrictions) are managed separately by the `create-instance` role.
 
 ### Restoring public monitoring access
 
