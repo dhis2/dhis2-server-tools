@@ -1,0 +1,10 @@
+---
+# WireGuard VPN peers — one entry per VPN peer.
+# Generate keys on the admin workstation:
+#   wg genkey | tee private.key | wg pubkey > public.key
+#   wg genpsk > preshared.key   # optional, post-quantum resistance
+wireguard_peers:
+  - name: sysadmin
+    public_key: "<peer-public-key>"
+    allowed_ips: "10.8.0.2/32"
+    # preshared_key: "<peer-preshared-key>"   # optional — for post-quantum resistance
