@@ -21,6 +21,19 @@
     - proxy | default('nginx') == 'nginx'
     - nginx_monitoring_configs.files | default([]) | length > 0
 
+- name: Re-render nginx instance configs without Glowroot proxy blocks
+  ansible.builtin.template:
+    src: '{{ playbook_dir }}/roles/create-instance/templates/nginx/instance.j2'
+    dest: '/etc/nginx/conf.d/upstream/{{ item | to_fixed_string }}.conf'
+    owner: root
+    group: root
+    mode: '0640'
+  loop: '{{ groups["instances"] }}'
+  notify: Reload Nginx
+  when:
+    - proxy | default('nginx') == 'nginx'
+    - hostvars[item]['instance_state'] is undefined
+
 - name: Find monitoring apache2 site configs
   ansible.builtin.find:
     paths: /etc/apache2/sites-enabled
@@ -41,3 +54,16 @@
   when:
     - proxy | default('nginx') == 'apache2'
     - apache_monitoring_configs.files | default([]) | length > 0
+
+- name: Re-render apache2 instance configs without Glowroot proxy blocks
+  ansible.builtin.template:
+    src: '{{ playbook_dir }}/roles/create-instance/templates/apache2/instance.j2'
+    dest: '/etc/apache2/upstream/{{ item | to_fixed_string }}.conf'
+    owner: root
+    group: root
+    mode: '0640'
+  loop: '{{ groups["instances"] }}'
+  notify: Reload Apache2
+  when:
+    - proxy | default('nginx') == 'apache2'
+    - hostvars[item]['instance_state'] is undefined
