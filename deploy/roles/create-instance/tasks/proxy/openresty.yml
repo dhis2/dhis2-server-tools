@@ -1,0 +1,136 @@
+---
+# Get OpenResty/nginx version for conditional features (e.g., ssl_reject_handshake requires nginx 1.19.4+)
+- name: Get OpenResty version
+  ansible.builtin.command: openresty -v
+  register: openresty_version_output
+  changed_when: false
+  failed_when: false
+
+- name: Set nginx version fact from OpenResty
+  ansible.builtin.set_fact:
+    # openresty -v outputs "nginx version: openresty/1.x.x" — match either prefix.
+    # | default([]) guards against regex_search returning None (no match) before | first.
+    nginx_version: "{{ openresty_version_output.stderr | default('') | regex_search('(?:nginx|openresty)/([0-9.]+)', '\\1') | default([]) | first | default('0') }}"
+  when: openresty_version_output.rc == 0
+
+- name: Set nginx version to 0 if OpenResty not installed
+  ansible.builtin.set_fact:
+    nginx_version: "0"
+  when: openresty_version_output.rc != 0
+
+- name: Assert two instances using the same fqdn have unique Instance Names
+  ansible.builtin.assert:
+    that:
+      - hostvars[item]['dhis2_base_path'] != hostvars[ansible_loop.nextitem]['dhis2_base_path']
+    fail_msg: "Instances Names for {{ item }}: hostvars[item]['dhis2_base_path'] and {{ ansible_loop.nextitem }}: hostvars[item]['dhis2_base_path'] are the same"
+  loop: "{{ groups['instances'] }}"
+  loop_control:
+    extended: true
+    label: "{{ item }}"
+  when:
+    - ansible_loop.nextitem is defined
+    - hostvars[item]['dhis2_base_path'] is defined and  hostvars[ansible_loop.nextitem]['dhis2_base_path'] is defined
+    - hostvars[item]['fqdn'] is defined and hostvars[ansible_loop.nextitem]['fqdn'] is defined
+    - hostvars[item]['fqdn'] == hostvars[ansible_loop.nextitem]['fqdn']
+
+- name: Include TLS configuration tasks
+  ansible.builtin.include_tasks: "tls/{{ TLS_TYPE | default('letsencrypt') }}.yml"
+  loop: "{{ groups['instances'] }}"
+  when:
+    - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
+    - hostvars[item]['instance_state'] is undefined
+
+- name: Instance location configuration
+  ansible.builtin.template:
+    src: openresty/instance.j2
+    dest: /usr/local/openresty/nginx/conf/conf.d/upstream/{{ item | to_fixed_string }}.conf
+    owner: root
+    group: root
+    mode: "0640"
+  loop: "{{ groups['instances'] }}"
+  notify: Reload Openresty
+  when:
+    - hostvars[item]['instance_state'] is undefined
+
+- name: Include selfsigned TLS Certificate tasks, fqdn is not defined
+  ansible.builtin.include_tasks: ./tls/selfsigned.yml
+  loop: "{{ groups['instances'] }}"
+  when:
+    - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
+    - hostvars[item]['instance_state'] is undefined
+
+- name: Find files to delete in /usr/local/openresty/nginx/conf/conf.d/
+  ansible.builtin.find:
+    paths: /usr/local/openresty/nginx/conf/conf.d/
+    patterns: '*'
+    file_type: file
+    excludes: "{{ groups['instances'] | map('extract', hostvars, 'fqdn') | map('default', 'default', true) | map('regex_replace', '^\\s+|\\s+$', '') | unique | map('regex_replace', '^$', 'default') | map('regex_replace', '(.+)', '\\1.conf') | list }}"
+  register: found_files
+
+- name: Clean /usr/local/openresty/nginx/conf/conf.d/ directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ found_files['files'] | map(attribute='path') }}"
+
+- name: Copy static OpenResty config for valid FQDNs
+  ansible.builtin.copy:
+    src: openresty/static.conf
+    dest: /usr/local/openresty/nginx/conf/static/{{ hostvars[item]['fqdn'] | trim }}.conf
+    group: root
+    owner: root
+    force: false
+    mode: "0640"
+  loop: "{{ groups['instances'] }}"
+  when:
+    - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
+    - hostvars[item]['instance_state'] is undefined
+  notify: Restart Openresty
+
+- name: Generate OpenResty config for instances with valid FQDNs
+  ansible.builtin.template:
+    src: openresty/site.j2
+    dest: /usr/local/openresty/nginx/conf/conf.d/{{ hostvars[item]['fqdn'] | trim }}.conf
+    owner: root
+    group: root
+    mode: "0640"
+  loop: "{{ groups['instances'] }}"
+  when:
+    - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
+    - hostvars[item]['instance_state'] is undefined
+  notify: Restart Openresty
+
+- name: Copy static OpenResty config for instances without FQDNs
+  ansible.builtin.copy:
+    src: openresty/default.conf
+    dest: /usr/local/openresty/nginx/conf/static/default.conf
+    owner: root
+    group: root
+    mode: "0640"
+    force: false
+  loop: "{{ groups['instances'] }}"
+  when:
+    - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
+    - hostvars[item]['instance_state'] is undefined
+  notify: Restart Openresty
+
+- name: Generate dynamic OpenResty config for instances without FQDN
+  ansible.builtin.template:
+    src: openresty/default.j2
+    dest: /usr/local/openresty/nginx/conf/conf.d/default.conf
+    owner: root
+    group: root
+    mode: "0640"
+  loop: "{{ groups['instances'] }}"
+  when:
+    - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
+    - hostvars[item]['instance_state'] is undefined
+  notify: Restart Openresty
+
+- name: Start OpenResty service
+  ansible.builtin.service:
+    name: openresty
+    state: started
+
+- name: Flush Handlers
+  ansible.builtin.meta: flush_handlers

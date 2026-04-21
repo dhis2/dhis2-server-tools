@@ -70,7 +70,7 @@ guest_os_arch=amd64
 # lxd_storage_driver=dir
 
 
-# Options: nginx, apache2 defaults to nginx
+# Options: nginx, apache2, openresty defaults to nginx
 proxy=nginx
 
 # Enable proxy_protocol if behind a reverse proxy that sends proxy protocol headers

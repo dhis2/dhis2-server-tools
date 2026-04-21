@@ -1,0 +1,30 @@
+user www-data;
+worker_processes  auto;
+
+error_log  /usr/local/openresty/nginx/logs/error.log notice;
+pid        /usr/local/openresty/nginx/logs/nginx.pid;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    server_tokens off;
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    log_format performance '$remote_addr\t$remote_user\t[$time_local]\t"$request"\t'
+                           '$status\t$body_bytes_sent\t"$http_referer"\t"$http_user_agent"\t'
+                           '$request_time';
+
+    access_log /usr/local/openresty/nginx/logs/perf.log performance;
+
+    sendfile        on;
+    keepalive_timeout  65;
+
+    include /usr/local/openresty/nginx/conf/conf.d/*.conf;
+}

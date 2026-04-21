@@ -17,3 +17,15 @@
     name: apache2
     state: reloaded
     enabled: true
+
+- name: Reload Openresty
+  ansible.builtin.service:
+    name: openresty
+    state: reloaded
+    enabled: true
+
+- name: Restart Openresty
+  ansible.builtin.service:
+    name: openresty
+    state: restarted
+    enabled: true
