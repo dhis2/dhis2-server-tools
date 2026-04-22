@@ -137,7 +137,7 @@
         sudo cat {{ wireguard_client_config_dir }}/<name>.conf
 
       Copy to local machine:
-        scp <your-username>@{{ fqdn or IP address of the server }}:{{ wireguard_client_config_dir }}/<name>.conf .
+        scp <your-username>@{{ fqdn | default(ansible_default_ipv4.address, true) }}:{{ wireguard_client_config_dir }}/<name>.conf .
   when:
     - wireguard_peers_resolved is defined
     - wireguard_peers_resolved | length > 0
