@@ -1,19 +1,49 @@
 ---
-- name: WireGuard | Assert each peer has required fields (name, public_key, allowed_ips)
+# Pre-flight validation for wireguard_peers.
+# Runs early to fail fast before template rendering produces cryptic WireGuard errors.
+
+- name: WireGuard | Assert each peer has required fields
   ansible.builtin.assert:
     that:
       - item.name is defined and item.name | length > 0
-      - item.public_key is defined and item.public_key | length > 0
       - item.allowed_ips is defined and item.allowed_ips | length > 0
+      - item.public_key is defined or (wireguard_auto_generate_keys | bool)
     fail_msg: >-
-      wireguard_peers[{{ idx }}] is missing a required field.
-      Each peer must define name, public_key, and allowed_ips.
-      Got: {{ item | dict2items | map(attribute='key') | list }}
+      wireguard_peers[{{ idx }}] is missing required fields.
+      With auto-generate: name and allowed_ips required.
+      Without auto-generate: name, public_key, and allowed_ips required.
     quiet: true
   loop: "{{ wireguard_peers }}"
   loop_control:
     index_var: idx
     label: "{{ item.name | default('UNNAMED-peer-' + idx | string) }}"
+
+- name: WireGuard | Assert peer names are filesystem-safe
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-zA-Z0-9._-]+$')
+    fail_msg: >-
+      wireguard_peers[{{ idx }}].name = '{{ item.name }}' contains
+      invalid characters. Allowed: letters, digits, dot, underscore,
+      hyphen. Required to prevent path traversal in client key/config
+      file paths.
+    quiet: true
+  loop: "{{ wireguard_peers }}"
+  loop_control:
+    index_var: idx
+    label: "{{ item.name | default('UNNAMED-peer-' + idx | string) }}"
+
+- name: WireGuard | Assert no duplicate peer names
+  ansible.builtin.assert:
+    that:
+      - wireguard_peers | map(attribute='name') | list | unique | length
+          == wireguard_peers | length
+    fail_msg: >-
+      Duplicate name detected in wireguard_peers. Names are used as
+      file paths for keys and configs — duplicates cause silent
+      overwrite. Values: {{ wireguard_peers | map(attribute='name') | list }}
+    quiet: true
+  when: wireguard_peers | length > 1
 
 - name: WireGuard | Assert no duplicate allowed_ips across peers
   ansible.builtin.assert:

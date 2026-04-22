@@ -40,11 +40,43 @@ argument_specs:
         default: "172.19.2.1"
       wireguard_peers:
         description: >-
-          List of VPN client peers. Each entry requires name, public_key,
-          and allowed_ips. Optional: preshared_key.
+          List of VPN client peers. Each entry requires name and allowed_ips.
+          public_key is required only when wireguard_auto_generate_keys is false.
+          Optional: preshared_key.
         type: list
         elements: dict
         default: []
+      wireguard_auto_generate_keys:
+        description: >-
+          When true, generate client keypairs server-side and produce
+          complete, ready-to-import client configs. When false, peers
+          must supply their own public_key (current behavior).
+        type: bool
+        default: true
+      wireguard_auto_generate_psk:
+        description: >-
+          When true, generate a pre-shared key (PSK) for each peer that does
+          not supply an explicit preshared_key, and embed it into both the
+          server and client configs. Adds a symmetric post-quantum hedge.
+          Off by default — enabling on an existing deployment forces all
+          affected clients to re-import their .conf.
+        type: bool
+        default: false
+      wireguard_client_config_dir:
+        description: "Directory for generated client config files"
+        type: str
+        default: "/etc/wireguard/clients"
+      wireguard_client_key_dir:
+        description: "Directory for generated client key files"
+        type: str
+        default: "/etc/wireguard/clients/keys"
+      wireguard_prune_orphans:
+        description: >-
+          When true, remove client key/PSK/config files for peers no longer
+          present in wireguard_peers. Off by default to avoid accidental
+          destruction.
+        type: bool
+        default: false
       wireguard_lockdown_monitoring:
         description: >-
           When true, removes monitoring paths from the public proxy

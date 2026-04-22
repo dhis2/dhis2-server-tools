@@ -40,25 +40,7 @@ WireGuard provides a secure VPN tunnel for administering DHIS2 infrastructure. W
 
 ## Quick Start
 
-### 1. Generate Client Keys
-
-On your **admin workstation** (not the server):
-
-```bash
-# Install WireGuard tools
-sudo apt install wireguard-tools   # Ubuntu/Debian
-brew install wireguard-tools       # macOS
-
-# Generate keypair
-wg genkey | tee private.key | wg pubkey > public.key
-
-# Optional: generate a preshared key (post-quantum resistance)
-wg genpsk > preshared.key
-```
-
-Keep `private.key` secure. You will need `public.key` (and optionally `preshared.key`) for the inventory configuration.
-
-### 2. Configure the Inventory
+### 1. Configure the Inventory
 
 Edit `deploy/inventory/hosts` and set:
 
@@ -67,25 +49,24 @@ Edit `deploy/inventory/hosts` and set:
 wireguard_enabled=true
 ```
 
-### 3. Define VPN Peers
+### 2. Define VPN Peers
 
 Edit `deploy/inventory/group_vars/all/vars.yml`:
 
 ```yaml
 wireguard_peers:
-  - name: admin-alice
-    public_key: "paste-alice-public-key-here"
+  - name: sysadmin
     allowed_ips: "10.8.0.2/32"
-    preshared_key: "paste-preshared-key-here"  # optional
 
   - name: admin-bob
-    public_key: "paste-bob-public-key-here"
     allowed_ips: "10.8.0.3/32"
 ```
 
+Each peer needs only a **name** and **IP address**. Client keys are generated automatically on the server.
+
 Each peer must have a unique IP address within the `10.8.0.0/24` subnet. The server uses `10.8.0.1`; assign clients starting from `10.8.0.2`.
 
-### 4. Deploy
+### 3. Deploy
 
 ```bash
 cd deploy/
@@ -100,52 +81,38 @@ sudo ansible-playbook dhis2.yml --tags wireguard
 The playbook will:
 - Install WireGuard packages on the host
 - Generate server keypair (preserved across runs)
+- Generate client keypairs server-side (preserved across runs)
 - Deploy the `wg0` interface configuration
 - Configure UFW and iptables forwarding rules
 - Lock down monitoring and database access to VPN-only
-- Generate client configuration templates in `/etc/wireguard/clients/`
+- Generate complete, ready-to-import client configs in `/etc/wireguard/clients/`
 
-### 5. Configure the Client
-
-After deployment, the server displays its public key and generates client config files.
-
-**Retrieve the client config from the server:**
+### 4. Retrieve and Import Client Config
 
 ```bash
-sudo cat /etc/wireguard/clients/admin-alice.conf
+# View the config
+sudo cat /etc/wireguard/clients/sysadmin.conf
+
+# Copy to local machine
+scp your-user@your-server:/etc/wireguard/clients/sysadmin.conf .
 ```
 
-The generated config looks like:
-
-```ini
-[Interface]
-Address = 10.8.0.2/32
-PrivateKey = <PASTE_YOUR_PRIVATE_KEY_HERE>
-# DNS = 1.1.1.1, 8.8.8.8
-
-[Peer]
-PublicKey = <server-public-key>
-Endpoint = your-server.example.com:51820
-AllowedIPs = 10.8.0.0/24, 172.19.2.0/24
-PersistentKeepalive = 25
-```
-
-**Edit the config** and replace `<PASTE_YOUR_PRIVATE_KEY_HERE>` with the private key you generated in step 1.
+The config is complete — no editing needed. Import directly into your WireGuard client.
 
 **Connect:**
 
 ```bash
 # Linux
-sudo wg-quick up /path/to/admin-alice.conf
+sudo wg-quick up /path/to/sysadmin.conf
 
 # macOS / Windows
 # Import the .conf file into the WireGuard app
 
 # Mobile (generate QR code on the server)
-sudo qrencode -t ansiutf8 < /etc/wireguard/clients/admin-alice.conf
+sudo qrencode -t ansiutf8 < /etc/wireguard/clients/sysadmin.conf
 ```
 
-### 6. Verify Connectivity
+### 5. Verify Connectivity
 
 ```bash
 # Check VPN interface is up
@@ -184,7 +151,7 @@ When `wireguard_enabled=true` and `wireguard_lockdown_monitoring=true` (default)
 
 ### PostgreSQL VPN access
 
-The VPN lockdown adds a `hostssl all all <lxd_gateway_ip>/32 scram-sha-256` entry to `pg_hba.conf`. This grants VPN users access to all databases as any PostgreSQL user — intentionally broad to support ad-hoc admin access (`psql`) over the VPN. SSL is required at the application layer (consistent with instance connections) for defense in depth, even though VPN traffic is already encrypted. A password is still required (`scram-sha-256`). Application-level pg_hba entries (per-instance db/user restrictions) are managed separately by the `create-instance` role.
+The VPN lockdown adds a `host all all <lxd_gateway_ip>/32 scram-sha-256` entry to `pg_hba.conf`. This grants VPN users access to all databases as any PostgreSQL user — intentionally broad to support ad-hoc admin access (`psql`) over the VPN. A password is still required (`scram-sha-256`). Application-level pg_hba entries (per-instance db/user restrictions) are managed separately by the `create-instance` role.
 
 ### Restoring public monitoring access
 
@@ -209,6 +176,11 @@ All variables are set in `deploy/roles/wireguard/defaults/main.yml` and can be o
 | `wireguard_server_ip` | `10.8.0.1` | Server address on the VPN |
 | `wireguard_port` | `51820` | UDP listen port |
 | `wireguard_interface` | `wg0` | WireGuard interface name |
+| `wireguard_auto_generate_keys` | `true` | Generate client keypairs server-side |
+| `wireguard_auto_generate_psk` | `false` | Auto-generate pre-shared keys for peers |
+| `wireguard_client_config_dir` | `/etc/wireguard/clients` | Directory for client config files |
+| `wireguard_client_key_dir` | `/etc/wireguard/clients/keys` | Directory for client key files |
+| `wireguard_prune_orphans` | `false` | Remove files for peers no longer in inventory |
 | `lxd_bridge_interface` | `lxdbr1` | LXD bridge (must match your LXD network) |
 | `lxd_network` | `172.19.2.0/24` | LXD container subnet |
 | `lxd_gateway_ip` | `172.19.2.1` | Host-side IP of the LXD bridge |
@@ -221,10 +193,26 @@ Each entry in `wireguard_peers` accepts:
 
 | Field | Required | Description |
 |---|---|---|
-| `name` | Yes | Identifier (used for client config filename) |
-| `public_key` | Yes | Client's WireGuard public key |
+| `name` | Yes | Identifier — must be filesystem-safe (letters, digits, dot, underscore, hyphen) |
 | `allowed_ips` | Yes | Client's VPN IP (e.g., `10.8.0.2/32`) |
+| `public_key` | No* | Client's WireGuard public key. *Required only when `wireguard_auto_generate_keys: false` |
 | `preshared_key` | No | Optional preshared key for post-quantum security |
+
+### Key generation modes
+
+**Auto-generate (default):** `wireguard_auto_generate_keys: true`
+
+Only `name` and `allowed_ips` required per peer. The playbook generates client keypairs on the server and produces complete, ready-to-import `.conf` files. If a peer provides `public_key`, auto-generation is skipped for that peer (no client `.conf` emitted since the server never sees the private key).
+
+**Manual keys:** `wireguard_auto_generate_keys: false`
+
+Each peer must provide a `public_key`. This is the traditional workflow where admins generate keys on their workstation and paste the public key into inventory.
+
+### Pre-shared key (PSK) auto-generation
+
+Set `wireguard_auto_generate_psk: true` to generate a PSK for each peer that doesn't supply an explicit `preshared_key`. PSKs add a symmetric post-quantum hedge.
+
+> **Warning:** Enabling this on an existing deployment generates fresh PSKs on the next run for every peer that lacks an explicit `preshared_key`. All affected clients must re-import their `.conf`.
 
 ## Split Tunneling
 
@@ -244,13 +232,14 @@ AllowedIPs = 0.0.0.0/0
 
 ### Adding a new peer
 
-1. Generate keys on the new client's workstation.
-2. Add the peer to `wireguard_peers` in your inventory.
-3. Re-run the playbook:
+1. Add the peer to `wireguard_peers` in your inventory with a unique name and IP.
+2. Re-run the playbook:
 
 ```bash
 sudo ansible-playbook dhis2.yml --tags wireguard
 ```
+
+3. Retrieve the config from `/etc/wireguard/clients/<name>.conf`.
 
 The playbook uses `wg syncconf` to apply peer changes **without dropping existing VPN sessions**.
 
@@ -263,7 +252,45 @@ The playbook uses `wg syncconf` to apply peer changes **without dropping existin
 sudo ansible-playbook dhis2.yml --tags wireguard
 ```
 
-The `wg syncconf` command removes peers that are no longer in the configuration.
+The `wg syncconf` command removes peers that are no longer in the configuration. To also clean up orphaned key and config files, set `wireguard_prune_orphans: true`.
+
+### Rotating client keys
+
+Delete the client's key files on the server and re-run:
+
+```bash
+# Rotate keys only
+sudo rm /etc/wireguard/clients/keys/sysadmin.{key,pub}
+
+# Rotate PSK only
+sudo rm /etc/wireguard/clients/keys/sysadmin.psk
+
+# Rotate both
+sudo rm /etc/wireguard/clients/keys/sysadmin.{key,pub,psk}
+
+sudo ansible-playbook dhis2.yml --tags wireguard
+```
+
+The affected client must re-import their updated `.conf`.
+
+## File Layout on Server
+
+```
+/etc/wireguard/
+├── wg0.conf                  # Server config
+├── server_private.key         # Server private key
+├── server_public.key          # Server public key
+└── clients/
+    ├── user.conf       # Complete, ready-to-import config
+    ├── sysadmin.conf
+    └── keys/
+        ├── user.key    # Client private key (0600)
+        ├── user.pub    # Client public key (0600)
+        ├── user.psk    # Client PSK (0600, only if auto_generate_psk=true)
+        ├── sysadmin.key
+        ├── sysadmin.pub
+        └── sysadmin.psk
+```
 
 ## Network Customization
 

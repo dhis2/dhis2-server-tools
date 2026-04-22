@@ -24,13 +24,13 @@ PostDown = iptables -t nat -D POSTROUTING -s {{ wireguard_network }} -o {{ lxd_b
 PostDown = ip6tables -D FORWARD -i %i -j DROP
 PostDown = ip6tables -D FORWARD -o %i -j DROP
 
-{% for peer in wireguard_peers %}
+{% for peer in wireguard_peers_resolved %}
 [Peer]
 # {{ peer.name }}
 PublicKey = {{ peer.public_key }}
 AllowedIPs = {{ peer.allowed_ips }}
-{% if peer.preshared_key is defined %}
-PresharedKey = {{ peer.preshared_key }}
+{% if peer._preshared_key is defined and peer._preshared_key %}
+PresharedKey = {{ peer._preshared_key }}
 {% endif %}
 
 {% endfor %}
