@@ -6,10 +6,16 @@
 
 - name: Detect proxy worker user from config
   ansible.builtin.shell: |
-    grep -E '^\s*user\s+' /etc/{{ proxy }}/{{ proxy }}.conf | awk '{print $2}' | tr -d ';' | head -1
+    # OpenResty uses nginx.conf as its main config file
+    conf_file="/etc/{{ proxy }}/{{ proxy }}.conf"
+    if [ ! -f "$conf_file" ]; then
+      conf_file="/usr/local/openresty/nginx/conf/nginx.conf"
+    fi
+    grep -E '^\s*user\s+' "$conf_file" | awk '{print $2}' | tr -d ';' | head -1
   register: _proxy_worker_user
   changed_when: false
-  failed_when: false
+  check_mode: false
+
 
 - name: Set proxy_user fact
   ansible.builtin.set_fact:
@@ -17,7 +23,7 @@
 
 - name: "Munin authenticatin, defaults: Username: admin, password: district"
   community.general.htpasswd:
-    path: /etc/{{ proxy }}/.htpasswd
+    path: "{{ '/usr/local/openresty/nginx/conf/.htpasswd' if proxy == 'openresty' else '/etc/' + proxy + '/.htpasswd' }}"
     name: "{{ item.name }}"
     password: "{{ item.password }}"
     owner: root

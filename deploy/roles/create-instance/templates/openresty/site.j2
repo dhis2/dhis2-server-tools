@@ -3,9 +3,9 @@
 # during future Ansible runs.
 
 # Please place any custom configurations in the following file
-# /etc/nginx/custom/{{  hostvars[item]['fqdn']  }}.conf
+# /usr/local/openresty/nginx/conf/custom/{{  hostvars[item]['fqdn']  }}.conf
 
-# configurations within that file will be included in this nginx configuration.
+# configurations within that file will be included in this openresty configuration.
 
 # Tomcat upstreams with keepalive — one per instance under this FQDN
 {% for instance in groups['instances']
@@ -69,7 +69,7 @@ server {
   {%endif-%}
 }
 
-# https block 
+# https block
 server {
   {%if TLS_TYPE is undefined or TLS_TYPE == 'letsencrypt' -%}
   listen 443 ssl;
@@ -107,7 +107,7 @@ server {
 {% endif %}
 
   # please write your custom changes to the static/{{ hostvars[item]['fqdn'] }}.conf; and
-  # will be kept across subsequent ansible runs 
+  # will be kept across subsequent ansible runs
 {% for instance in groups['instances']
    if (hostvars[instance]['fqdn'] | default('') | trim) == (hostvars[item]['fqdn'] | default('') | trim)
    and (hostvars[instance]['fqdn'] | default('') | trim) and (hostvars[instance]['instance_state'] is undefined) %}
@@ -127,7 +127,7 @@ server {
   {% endif %}
 {% endfor %}
 
-   # Location configuration for  the instances 
+   # Location configuration for the instances
 {% for instance in groups['instances']
      if (hostvars[instance]['fqdn'] | default('') | trim == hostvars[item]['fqdn'] | trim)
      and (hostvars[instance]['instance_state'] is undefined) %}
@@ -135,7 +135,7 @@ server {
 {% endfor %}
 
 {% set monitoring = (server_monitoring | default('') | lower | trim) %}
-  # Location configs for server monitoring 
+  # Location configs for server monitoring
 {% if monitoring == 'munin' %}
   include conf.d/upstream/munin.conf;
 {% elif monitoring in ['grafana', 'prometheus', 'grafana/prometheus'] %}
@@ -145,7 +145,7 @@ server {
 {% else %}
   # server_monitoring is not defined or empty
 {% endif %}
-  # Return 444 if nothing is served  on '/'
+  # Return 444 if nothing is served on '/'
   {% for instance in groups['instances']
    if (hostvars[instance]['fqdn'] | default('') | trim == hostvars[item]['fqdn'] | trim)
    and ('ROOT' not in groups['instances']

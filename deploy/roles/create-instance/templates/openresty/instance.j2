@@ -1,50 +1,50 @@
 {% if  hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string == "ROOT"  %}
 location / {
    proxy_pass  http://{{ item | replace('-', '_') }}_tomcat;
-   include /etc/nginx/proxy_params;
+   include /usr/local/openresty/nginx/conf/proxy_params;
    proxy_redirect off;
    proxy_set_header X-Forwarded-Port {{ https_port | default('443') }};
    proxy_hide_header Strict-Transport-Security;
    proxy_hide_header X-Powered-By;
    proxy_hide_header Server;
-   include /etc/nginx/security_headers.conf;
+   include /usr/local/openresty/nginx/conf/security_headers.conf;
    }
 {% if app_monitoring is defined and app_monitoring | trim == 'glowroot' %}
-{# glowroot location block configs #} 
+{# glowroot location block configs #}
 location /glowroot/ {
    proxy_pass http://{{ hostvars[item]['ansible_host']+':4000' }}/glowroot/;
-   include /etc/nginx/proxy_params;
+   include /usr/local/openresty/nginx/conf/proxy_params;
    proxy_redirect off;
    proxy_set_header X-Forwarded-Port {{ https_port | default('443') }};
    proxy_hide_header Strict-Transport-Security;
    proxy_hide_header X-Powered-By;
    proxy_hide_header Server;
-   include /etc/nginx/security_headers.conf;
+   include /usr/local/openresty/nginx/conf/security_headers.conf;
    }
 {% endif %}
 {% else %}
 location /{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}/ {
    {# instance location block configs #}
    proxy_pass http://{{ item | replace('-', '_') }}_tomcat/{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}/;
-   include /etc/nginx/proxy_params;
+   include /usr/local/openresty/nginx/conf/proxy_params;
    proxy_redirect off;
    proxy_set_header X-Forwarded-Port {{ https_port | default('443') }};
    proxy_hide_header Strict-Transport-Security;
    proxy_hide_header X-Powered-By;
    proxy_hide_header Server;
-   include /etc/nginx/security_headers.conf;
-   }   
+   include /usr/local/openresty/nginx/conf/security_headers.conf;
+   }
 {% if app_monitoring is defined and app_monitoring | trim == 'glowroot' %}
-{# glowroot location block configs #} 
+{# glowroot location block configs #}
 location /{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}-glowroot {
    proxy_pass http://{{ hostvars[item]['ansible_host']+':4000' }}/{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}-glowroot;
-   include /etc/nginx/proxy_params;
+   include /usr/local/openresty/nginx/conf/proxy_params;
    proxy_redirect off;
    proxy_set_header X-Forwarded-Port {{ https_port | default('443') }};
    proxy_hide_header Strict-Transport-Security;
    proxy_hide_header X-Powered-By;
    proxy_hide_header Server;
-   include /etc/nginx/security_headers.conf;
+   include /usr/local/openresty/nginx/conf/security_headers.conf;
    }
 {% endif %}
 {% endif %}

@@ -5,9 +5,9 @@ location /{{ grafana_base_path }} {
 location /{{ server_monitoring }} {
   proxy_pass http://{{hostvars[item]['ansible_host']+':3000' }}/{{ server_monitoring }};
 {% endif  %}
-  include /etc/nginx/proxy_params;
+  include /usr/local/openresty/nginx/conf/proxy_params;
   proxy_redirect off;
   proxy_hide_header X-Powered-By;
   proxy_hide_header Server;
-  include /etc/nginx/security_headers.conf;
+  include /usr/local/openresty/nginx/conf/security_headers.conf;
 }

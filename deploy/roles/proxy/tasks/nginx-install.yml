@@ -52,7 +52,9 @@
       Pin: origin nginx.org
       Pin: release o=nginx
       Pin-Priority: 900
-    mode: "0644"
+    owner: root
+    group: root
+    mode: "0640"
 
 - name: Installing Nginx
   ansible.builtin.apt:
@@ -71,8 +73,26 @@
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header X-Forwarded-Proto $scheme;
-    mode: "0644"
-    force: false
+      # Keepalive to upstream — requires HTTP/1.1 and an empty Connection header.
+      # Activates only when proxy_pass targets an upstream{} block with keepalive set.
+      proxy_http_version 1.1;
+      proxy_set_header Connection "";
+      # Timeouts for long-running DHIS2 operations (analytics, imports)
+      proxy_connect_timeout 60s;
+      proxy_send_timeout 300s;
+      proxy_read_timeout 300s;
+    owner: root
+    group: root
+    mode: "0640"
+
+- name: Deploy security_headers.conf
+  ansible.builtin.copy:
+    src: security_headers.conf
+    dest: /etc/nginx/security_headers.conf
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Reload Nginx
 
 - name: Disabling nginx version show
   ansible.builtin.lineinfile:
@@ -95,6 +115,43 @@
     marker: "# {mark} PERFORMANCE LOG FORMAT"  # Add a marker to easily identify and update the block
     insertafter: "http {"
   tags: [nginx-perf-log]
+  notify: Reload Nginx
+
+- name: Nginx TCP optimizations
+  ansible.builtin.blockinfile:
+    path: /etc/nginx/nginx.conf
+    block: |
+      tcp_nopush on;
+              tcp_nodelay on;
+    marker: "# {mark} TCP OPTIMIZATIONS"
+    insertafter: "http {"
+  tags: [nginx-tcp]
+  notify: Reload Nginx
+
+- name: Nginx gzip compression
+  ansible.builtin.blockinfile:
+    path: /etc/nginx/nginx.conf
+    block: |
+      gzip on;
+              gzip_vary on;
+              gzip_proxied any;
+              gzip_comp_level 5;
+              gzip_min_length 1024;
+              gzip_types
+                  text/plain
+                  text/css
+                  text/xml
+                  text/javascript
+                  application/json
+                  application/javascript
+                  application/xml
+                  application/rss+xml
+                  application/atom+xml
+                  application/wasm
+                  image/svg+xml;
+    marker: "# {mark} GZIP COMPRESSION"
+    insertafter: "http {"
+  tags: [nginx-gzip]
   notify: Reload Nginx
 
 - name: Remove default nginx site
