@@ -1,0 +1,24 @@
+---
+- name: Find pg_hba.conf location
+  ansible.builtin.shell: |
+    find /etc/postgresql -name pg_hba.conf -type f | head -1
+  register: pg_hba_path
+  changed_when: false
+
+- name: Allow VPN admin access — add lxd_gateway_ip to pg_hba.conf (all databases, all users)
+  ansible.builtin.lineinfile:
+    path: '{{ pg_hba_path.stdout | trim }}'
+    regexp: "^(host|hostssl)\\s+all\\s+all\\s+{{ (lxd_gateway_ip + '/32') | replace('.', '\\.') | replace('/', '\\/') }}"
+    line: 'hostssl    all    all    {{ lxd_gateway_ip }}/32    scram-sha-256'
+    insertbefore: EOF
+  notify: Reload PostgreSQL
+  when: pg_hba_path.stdout | trim | length > 0
+
+- name: Allow PostgreSQL (5432/tcp) from LXD gateway — VPN-only access
+  community.general.ufw:
+    rule: allow
+    port: '5432'
+    src: '{{ lxd_gateway_ip }}'
+    proto: tcp
+    state: enabled
+    comment: 'PostgreSQL — VPN access only (via LXD gateway NAT)'

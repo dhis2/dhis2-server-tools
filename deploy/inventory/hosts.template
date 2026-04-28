@@ -53,6 +53,11 @@ postgresql_version=16
 server_monitoring=munin
 app_monitoring=glowroot
 
+# WireGuard VPN — restricts Grafana, Prometheus, Munin, Glowroot and PostgreSQL to VPN-only access
+# Define peers in group_vars/all/vars.yml
+# Override wireguard_port or wireguard_lockdown_monitoring in host_vars or group_vars if needed
+wireguard_enabled=false
+
 
 # lxd
 lxd_network=172.19.2.1/24 

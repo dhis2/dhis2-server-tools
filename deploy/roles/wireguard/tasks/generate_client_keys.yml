@@ -1,0 +1,173 @@
+---
+- name: Ensure client key directory exists
+  ansible.builtin.file:
+    path: '{{ wireguard_client_key_dir }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Check for existing client private keys
+  ansible.builtin.stat:
+    path: '{{ wireguard_client_key_dir }}/{{ item.name }}.key'
+  loop: '{{ wireguard_peers }}'
+  loop_control:
+    label: '{{ item.name }}'
+  register: wireguard_client_key_stats
+  when: item.public_key is not defined
+
+- name: Generate client keypair (private + public)
+  ansible.builtin.shell: |
+    set -o pipefail
+    umask 077
+    wg genkey | tee "{{ wireguard_client_key_dir }}/{{ item.item.name }}.key" | \
+      wg pubkey > "{{ wireguard_client_key_dir }}/{{ item.item.name }}.pub"
+  args:
+    executable: /bin/bash
+  loop: '{{ wireguard_client_key_stats.results }}'
+  loop_control:
+    label: '{{ item.item.name }}'
+  when:
+    - item.stat is defined
+    - not item.stat.exists
+  changed_when: true
+  no_log: true
+
+- name: Read generated client public keys
+  ansible.builtin.slurp:
+    src: '{{ wireguard_client_key_dir }}/{{ item.name }}.pub'
+  loop: '{{ wireguard_peers }}'
+  loop_control:
+    label: '{{ item.name }}'
+  register: wireguard_client_public_keys
+  when: item.public_key is not defined
+  no_log: true
+
+- name: Read generated client private keys
+  ansible.builtin.slurp:
+    src: '{{ wireguard_client_key_dir }}/{{ item.name }}.key'
+  loop: '{{ wireguard_peers }}'
+  loop_control:
+    label: '{{ item.name }}'
+  register: wireguard_client_private_keys
+  when: item.public_key is not defined
+  no_log: true
+
+- name: Check for existing client PSKs
+  ansible.builtin.stat:
+    path: '{{ wireguard_client_key_dir }}/{{ item.name }}.psk'
+  loop: '{{ wireguard_peers }}'
+  loop_control:
+    label: '{{ item.name }}'
+  register: wireguard_client_psk_stats
+  when:
+    - wireguard_auto_generate_psk | bool
+    - item.preshared_key is not defined
+
+- name: Generate client PSK
+  ansible.builtin.shell: |
+    set -o pipefail
+    umask 077
+    wg genpsk > "{{ wireguard_client_key_dir }}/{{ item.item.name }}.psk"
+  args:
+    executable: /bin/bash
+  loop: '{{ wireguard_client_psk_stats.results | default([]) }}'
+  loop_control:
+    label: "{{ item.item.name | default('(skipped)') }}"
+  when:
+    - wireguard_auto_generate_psk | bool
+    - item.stat is defined
+    - not item.stat.exists
+  changed_when: true
+  no_log: true
+
+- name: Read generated client PSKs
+  ansible.builtin.slurp:
+    src: '{{ wireguard_client_key_dir }}/{{ item.name }}.psk'
+  loop: '{{ wireguard_peers }}'
+  loop_control:
+    label: '{{ item.name }}'
+  register: wireguard_client_psks
+  when:
+    - wireguard_auto_generate_psk | bool
+    - item.preshared_key is not defined
+  no_log: true
+
+- name: Build enriched peer list with generated keys and PSKs
+  ansible.builtin.set_fact:
+    wireguard_peers_resolved: >-
+      {{ wireguard_peers_resolved | default([]) + [
+        item | combine({
+          'public_key': (wireguard_client_public_keys.results[idx].content | b64decode | trim)
+            if item.public_key is not defined
+            else item.public_key,
+          '_private_key': (wireguard_client_private_keys.results[idx].content | b64decode | trim)
+            if item.public_key is not defined
+            else none,
+          '_preshared_key': item.preshared_key
+            if item.preshared_key is defined
+            else ((wireguard_client_psks.results[idx].content | b64decode | trim)
+                  if (wireguard_auto_generate_psk | bool)
+                  else none)
+        })
+      ] }}
+  loop: '{{ wireguard_peers }}'
+  loop_control:
+    index_var: idx
+    label: '{{ item.name }}'
+  no_log: true
+
+- name: Find all client key files for permission enforcement
+  ansible.builtin.find:
+    paths: '{{ wireguard_client_key_dir }}'
+    patterns: '*.key,*.pub,*.psk'
+  register: wireguard_key_files_for_perms
+
+- name: Enforce 0600 on client key files
+  ansible.builtin.file:
+    path: '{{ item.path }}'
+    owner: root
+    group: root
+    mode: '0600'
+  loop: '{{ wireguard_key_files_for_perms.files | default([]) }}'
+  loop_control:
+    label: '{{ item.path | basename }}'
+
+- name: Find orphan client key files
+  ansible.builtin.find:
+    paths: '{{ wireguard_client_key_dir }}'
+    patterns: '*.key,*.pub,*.psk'
+  register: wireguard_existing_key_files
+  when: wireguard_prune_orphans | bool
+
+- name: Remove orphan client key files
+  ansible.builtin.file:
+    path: '{{ item.path }}'
+    state: absent
+  loop: '{{ wireguard_existing_key_files.files | default([]) }}'
+  loop_control:
+    label: '{{ item.path | basename }}'
+  when:
+    - wireguard_prune_orphans | bool
+    - (item.path | basename | regex_replace('\\.(key|pub|psk)$', ''))
+      not in (wireguard_peers | map(attribute='name') | list)
+  no_log: true
+
+- name: Find orphan client config files
+  ansible.builtin.find:
+    paths: '{{ wireguard_client_config_dir }}'
+    patterns: '*.conf'
+  register: wireguard_existing_conf_files
+  when: wireguard_prune_orphans | bool
+
+- name: Remove orphan client config files
+  ansible.builtin.file:
+    path: '{{ item.path }}'
+    state: absent
+  loop: '{{ wireguard_existing_conf_files.files | default([]) }}'
+  loop_control:
+    label: '{{ item.path | basename }}'
+  when:
+    - wireguard_prune_orphans | bool
+    - (item.path | basename | regex_replace('\\.conf$', ''))
+      not in (wireguard_peers | map(attribute='name') | list)

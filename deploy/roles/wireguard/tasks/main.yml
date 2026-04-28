@@ -1,0 +1,49 @@
+---
+- name: WireGuard VPN | Validate peer configuration
+  ansible.builtin.include_tasks: validate.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_peers | length > 0
+  tags:
+    - always
+
+- name: WireGuard VPN | Server setup
+  ansible.builtin.include_tasks: server.yml
+  when:
+    - wireguard_enabled | bool
+    - inventory_hostname == '127.0.0.1'
+
+- name: WireGuard VPN | Firewall rules
+  ansible.builtin.include_tasks: firewall.yml
+  when:
+    - wireguard_enabled | bool
+    - inventory_hostname == '127.0.0.1'
+
+- name: WireGuard VPN | Lock down proxy
+  ansible.builtin.include_tasks: lockdown_proxy.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_lockdown_monitoring | bool
+    - inventory_hostname in groups.get('web', [])
+
+- name: WireGuard VPN | Lock down monitoring
+  ansible.builtin.include_tasks: lockdown_monitor.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_lockdown_monitoring | bool
+    - inventory_hostname in groups.get('monitoring', [])
+
+- name: WireGuard VPN | Lock down PostgreSQL
+  ansible.builtin.include_tasks: lockdown_postgres.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_lockdown_monitoring | bool
+    - inventory_hostname in groups.get('databases', [])
+
+# Glowroot (4000, app_monitoring=glowroot only) and munin-node (4949, all instances).
+- name: WireGuard VPN | Lock down instances
+  ansible.builtin.include_tasks: lockdown_instances.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_lockdown_monitoring | bool
+    - inventory_hostname in groups.get('instances', [])

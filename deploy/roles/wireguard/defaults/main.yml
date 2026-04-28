@@ -1,0 +1,23 @@
+---
+wireguard_enabled: false
+
+wireguard_network: "10.8.0.0/24"
+wireguard_server_ip: "10.8.0.1"
+wireguard_port: 51820
+wireguard_interface: wg0
+
+lxd_bridge_interface: "lxdbr1"
+lxd_network: "172.19.2.0/24"
+lxd_gateway_ip: "172.19.2.1"
+
+grafana_port: 3000
+
+wireguard_peers: []
+
+wireguard_auto_generate_keys: true
+wireguard_auto_generate_psk: false
+wireguard_prune_orphans: false
+wireguard_client_config_dir: /etc/wireguard/clients
+wireguard_client_key_dir: /etc/wireguard/clients/keys
+
+wireguard_lockdown_monitoring: true

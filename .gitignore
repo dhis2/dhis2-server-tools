@@ -9,12 +9,15 @@ venv/
 .venv/
 .claude/
 
-# Ignore all files in deploy/inventory/host_vars/ and deploy/inventory/group_vars/ 
+# Ignore all files in deploy/inventory/host_vars/ and deploy/inventory/group_vars/
 # but allow .template files
 deploy/inventory/host_vars/*
-deploy/inventory/group_vars/*
 !deploy/inventory/host_vars/*.template
+deploy/inventory/group_vars/*
 !deploy/inventory/group_vars/*.template
+!deploy/inventory/group_vars/all/
+deploy/inventory/group_vars/all/*
+!deploy/inventory/group_vars/all/vars.yml
 deploy/filter_plugins/__pycache__/
 
 # Testing artifacts

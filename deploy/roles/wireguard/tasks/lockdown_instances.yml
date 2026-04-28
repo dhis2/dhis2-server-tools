@@ -1,0 +1,29 @@
+---
+- name: Check if munin-node is installed
+  ansible.builtin.stat:
+    path: /etc/munin/munin-node.conf
+  register: munin_node_stat
+
+- name: Allow Glowroot (4000/tcp) from LXD gateway only
+  community.general.ufw:
+    rule: allow
+    port: '4000'
+    src: '{{ lxd_gateway_ip }}'
+    proto: tcp
+    state: enabled
+    comment: 'Glowroot APM — VPN access only (via LXD gateway NAT)'
+  when:
+    - app_monitoring is defined
+    - app_monitoring | trim == 'glowroot'
+
+- name: Allow munin-node (4949/tcp) from monitor container only
+  community.general.ufw:
+    rule: allow
+    port: '4949'
+    src: "{{ hostvars[groups['monitoring'][0]]['ansible_host'] }}"
+    proto: tcp
+    state: enabled
+    comment: 'munin-node — monitor container access only'
+  when:
+    - munin_node_stat.stat.exists
+    - groups.get('monitoring', []) | length > 0

@@ -1,0 +1,93 @@
+---
+- name: Check if Grafana is installed
+  ansible.builtin.stat:
+    path: /etc/grafana/grafana.ini
+  register: grafana_ini_stat
+
+- name: Reset Grafana root_url for direct access
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: server
+    option: root_url
+    value: '%(protocol)s://%(domain)s:%(http_port)s/'
+    mode: '0640'
+    owner: root
+    group: grafana
+  notify: Restart Grafana
+  when: grafana_ini_stat.stat.exists
+
+- name: Disable Grafana serve_from_sub_path
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: server
+    option: serve_from_sub_path
+    value: 'false'
+    mode: '0640'
+    owner: root
+    group: grafana
+  notify: Restart Grafana
+  when: grafana_ini_stat.stat.exists
+
+- name: Ensure Grafana listens on all container interfaces
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: server
+    option: http_addr
+    value: '0.0.0.0'
+    mode: '0640'
+    owner: root
+    group: grafana
+  notify: Restart Grafana
+  when: grafana_ini_stat.stat.exists
+
+- name: Check if Prometheus is installed
+  ansible.builtin.stat:
+    path: /etc/prometheus/prometheus.yml
+  register: prometheus_stat
+
+- name: Allow Grafana (3000/tcp) from LXD gateway only
+  community.general.ufw:
+    rule: allow
+    port: "{{ grafana_port }}"
+    src: '{{ lxd_gateway_ip }}'
+    proto: tcp
+    state: enabled
+    comment: 'Grafana — VPN access only (via LXD gateway NAT)'
+  when: grafana_ini_stat.stat.exists
+
+- name: Remove proxy -> Grafana UFW rule
+  community.general.ufw:
+    rule: allow
+    port: "{{ grafana_port }}"
+    src: "{{ hostvars[item]['ansible_host'] }}"
+    proto: tcp
+    delete: true
+  loop: "{{ groups.get('web', []) }}"
+  loop_control:
+    label: '{{ item }}'
+  when: grafana_ini_stat.stat.exists
+
+- name: Allow Prometheus (9090/tcp) from LXD gateway only
+  community.general.ufw:
+    rule: allow
+    port: '9090'
+    src: '{{ lxd_gateway_ip }}'
+    proto: tcp
+    state: enabled
+    comment: 'Prometheus — VPN access only (via LXD gateway NAT)'
+  when: prometheus_stat.stat.exists
+
+- name: Check if Munin is installed
+  ansible.builtin.stat:
+    path: /etc/munin/munin.conf
+  register: munin_conf_stat
+
+- name: Allow Munin (80/tcp) from LXD gateway only
+  community.general.ufw:
+    rule: allow
+    port: '80'
+    src: '{{ lxd_gateway_ip }}'
+    proto: tcp
+    state: enabled
+    comment: 'Munin — VPN access only (via LXD gateway NAT)'
+  when: munin_conf_stat.stat.exists

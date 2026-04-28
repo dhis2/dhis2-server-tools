@@ -1,0 +1,143 @@
+---
+- name: Gather network facts for client config endpoint fallback
+  ansible.builtin.setup:
+    gather_subset:
+      - '!all'
+      - 'network'
+
+- name: Install WireGuard packages
+  ansible.builtin.apt:
+    name:
+      - wireguard
+      - wireguard-tools
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure /etc/wireguard directory exists with secure permissions
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Ensure clients config directory exists
+  ansible.builtin.file:
+    path: '{{ wireguard_client_config_dir }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Check if server private key exists
+  ansible.builtin.stat:
+    path: /etc/wireguard/server_private.key
+  register: wg_private_key_stat
+
+- name: Generate WireGuard server keypair
+  ansible.builtin.shell: |
+    set -o pipefail
+    umask 077
+    wg genkey | tee /etc/wireguard/server_private.key | wg pubkey > /etc/wireguard/server_public.key
+  args:
+    executable: /bin/bash
+  when: not wg_private_key_stat.stat.exists
+  changed_when: true
+
+- name: Set restrictive permissions on key files
+  ansible.builtin.file:
+    path: '/etc/wireguard/{{ item }}'
+    owner: root
+    group: root
+    mode: '0600'
+  loop:
+    - server_private.key
+    - server_public.key
+
+- name: Read server private key
+  ansible.builtin.slurp:
+    src: /etc/wireguard/server_private.key
+  register: wg_server_private_key
+  no_log: true
+
+- name: Read server public key
+  ansible.builtin.slurp:
+    src: /etc/wireguard/server_public.key
+  register: wg_server_public_key
+
+- name: Display server public key (share with VPN clients)
+  ansible.builtin.debug:
+    msg: >-
+      WireGuard Server Public Key:
+      {{ wg_server_public_key.content | b64decode | trim }}
+
+# Required for routing VPN traffic into the LXD bridge.
+- name: Enable net.ipv4.ip_forward persistently
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+    reload: true
+    sysctl_set: true
+
+- name: Generate client keys (auto-generate mode)
+  ansible.builtin.include_tasks: generate_client_keys.yml
+  when:
+    - wireguard_auto_generate_keys | bool
+    - wireguard_peers | length > 0
+
+- name: Use provided peers when not auto-generating or no peers defined
+  ansible.builtin.set_fact:
+    wireguard_peers_resolved: '{{ wireguard_peers }}'
+  when: not (wireguard_auto_generate_keys | bool) or wireguard_peers | length == 0
+
+- name: Deploy WireGuard server configuration
+  ansible.builtin.template:
+    src: wg0.conf.j2
+    dest: '/etc/wireguard/{{ wireguard_interface }}.conf'
+    owner: root
+    group: root
+    mode: '0600'
+  notify: "{{ 'Sync WireGuard peers' if wg_private_key_stat.stat.exists else 'Restart WireGuard' }}"
+
+- name: Enable and start WireGuard service
+  ansible.builtin.systemd:
+    name: 'wg-quick@{{ wireguard_interface }}'
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: Warn when no VPN peers are configured
+  ansible.builtin.debug:
+    msg: >-
+      WARNING: wireguard_peers is empty. WireGuard will start but no client
+      can connect. Add at least one peer to your inventory before use.
+  when: wireguard_peers | length == 0
+
+- name: Generate client configuration files
+  ansible.builtin.template:
+    src: client.conf.j2
+    dest: '{{ wireguard_client_config_dir }}/{{ item.name }}.conf'
+    owner: root
+    group: root
+    mode: '0600'
+  no_log: true
+  loop: '{{ wireguard_peers_resolved }}'
+  loop_control:
+    label: '{{ item.name }}'
+  when: item._private_key is defined and item._private_key | length > 0
+
+- name: Display client retrieval instructions
+  ansible.builtin.debug:
+    msg: |
+      {{ wireguard_peers_resolved | length }} ready-to-use client config(s) generated.
+
+      Retrieve configs:
+        sudo cat {{ wireguard_client_config_dir }}/<name>.conf
+
+      Copy to local machine:
+        scp <your-username>@{{ fqdn | default(ansible_default_ipv4.address, true) }}:{{ wireguard_client_config_dir }}/<name>.conf .
+  when:
+    - wireguard_peers_resolved is defined
+    - wireguard_peers_resolved | length > 0
