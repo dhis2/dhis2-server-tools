@@ -52,7 +52,9 @@
       Pin: origin nginx.org
       Pin: release o=nginx
       Pin-Priority: 900
-    mode: "0644"
+    owner: root
+    group: root
+    mode: "0640"
 
 - name: Installing Nginx
   ansible.builtin.apt:
@@ -79,7 +81,9 @@
       proxy_connect_timeout 60s;
       proxy_send_timeout 300s;
       proxy_read_timeout 300s;
-    mode: "0644"
+    owner: root
+    group: root
+    mode: "0640"
 
 - name: Deploy security_headers.conf
   ansible.builtin.copy:
@@ -87,7 +91,7 @@
     dest: /etc/nginx/security_headers.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
   notify: Reload Nginx
 
 - name: Disabling nginx version show

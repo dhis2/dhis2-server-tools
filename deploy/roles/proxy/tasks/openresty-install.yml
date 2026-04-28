@@ -68,7 +68,7 @@
     dest: /usr/local/openresty/nginx/conf/nginx.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
   notify: Reload Openresty
 
 - name: Create proxy_params file
@@ -87,7 +87,9 @@
       proxy_connect_timeout 60s;
       proxy_send_timeout 300s;
       proxy_read_timeout 300s;
-    mode: "0644"
+    owner: root
+    group: root
+    mode: "0640"
 
 - name: Deploy security_headers.conf
   ansible.builtin.copy:
@@ -95,7 +97,7 @@
     dest: /usr/local/openresty/nginx/conf/security_headers.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
   notify: Reload Openresty
 
 - name: Generating Diffie-Hellman key parameters, takes a while, you may grab some coffee
