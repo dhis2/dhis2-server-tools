@@ -79,8 +79,24 @@
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header X-Forwarded-Proto $scheme;
+      # Keepalive to upstream — requires HTTP/1.1 and an empty Connection header.
+      # Activates only when proxy_pass targets an upstream{} block with keepalive set.
+      proxy_http_version 1.1;
+      proxy_set_header Connection "";
+      # Timeouts for long-running DHIS2 operations (analytics, imports)
+      proxy_connect_timeout 60s;
+      proxy_send_timeout 300s;
+      proxy_read_timeout 300s;
     mode: "0644"
-    force: false
+
+- name: Deploy security_headers.conf
+  ansible.builtin.copy:
+    src: security_headers.conf
+    dest: /usr/local/openresty/nginx/conf/security_headers.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload Openresty
 
 - name: Generating Diffie-Hellman key parameters, takes a while, you may grab some coffee
   ansible.builtin.command: openssl dhparam -out /usr/local/openresty/nginx/conf/dhparams.pem 2048

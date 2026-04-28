@@ -7,6 +7,17 @@
 
 # configurations in /usr/local/openresty/nginx/conf/static/default.conf are included in this openresty configuration.
 
+# Tomcat upstreams with keepalive — for instances without an FQDN
+{% for instance in groups['instances']
+   if (hostvars[instance]['instance_state'] is not defined)
+   and not (hostvars[instance]['fqdn'] | default('', true) | trim) %}
+upstream {{ instance | replace('-', '_') }}_tomcat {
+    server {{ hostvars[instance]['ansible_host'] }}:8080;
+    keepalive {{ tomcat_keepalive | default(32) }};
+    keepalive_requests {{ tomcat_keepalive_requests | default(1000) }};
+    keepalive_timeout {{ tomcat_keepalive_timeout | default('60s') }};
+}
+{% endfor %}
 
 # Let local monitoring agent access stats
 server {
@@ -32,6 +43,7 @@ server {
   listen {{ https_port | default('443') }} ssl{{ ' proxy_protocol' if use_proxy_protocol | default(false) and ansible_connection == 'lxd' else '' }};
   http2 on;
   server_name _;
+  ssl_session_cache shared:SSL:20m;
   include static/default.conf;
 {% if use_proxy_protocol | default(false) and ansible_connection == 'lxd' %}
   # Extract real client IP from proxy protocol header

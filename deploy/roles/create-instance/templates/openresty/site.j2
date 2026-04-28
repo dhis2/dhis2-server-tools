@@ -7,6 +7,18 @@
 
 # configurations within that file will be included in this openresty configuration.
 
+# Tomcat upstreams with keepalive — one per instance under this FQDN
+{% for instance in groups['instances']
+   if (hostvars[instance]['fqdn'] | default('') | trim == hostvars[item]['fqdn'] | trim)
+   and (hostvars[instance]['instance_state'] is undefined) %}
+upstream {{ instance | replace('-', '_') }}_tomcat {
+    server {{ hostvars[instance]['ansible_host'] }}:8080;
+    keepalive {{ tomcat_keepalive | default(32) }};
+    keepalive_requests {{ tomcat_keepalive_requests | default(1000) }};
+    keepalive_timeout {{ tomcat_keepalive_timeout | default('60s') }};
+}
+{% endfor %}
+
 {% if groups['instances'] | all_have_fqdn(hostvars) %}
 # SNI protection - prevents certificate/domain leakage via direct IP access
 # Only deployed when all instances have fqdn defined
@@ -86,6 +98,7 @@ server {
   ssl_stapling on;
   ssl_stapling_verify on;
 {% endif %}
+  ssl_session_cache shared:SSL:20m;
 {% if use_proxy_protocol | default(false) and ansible_connection == 'lxd' %}
 
   # Extract real client IP from proxy protocol header
@@ -145,7 +158,4 @@ server {
 {% endif %}
 {% endfor %}
 
-if ($host != "{{ hostvars[item]['fqdn'] | trim }}") {
-  return 444;
-    }
 }

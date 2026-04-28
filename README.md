@@ -285,7 +285,7 @@ NOTE:
 - You will need to have two files, named `customssl.crt` and `customssl.key`.<br>
   `customssl.crt` should contain the main certificate concatenated with intermediate and
    root certificates.
--  Copy these two files into `dhis2-server-tools/deploy/roles/proxy/files/` directory, preserving their names.
+-  Copy these two files into `dhis2-server-tools/deploy/roles/create-instance/files/` directory, preserving their names.
 - Edit hosts file and set `TLS_TYPE=customssl`
   ```
   vim dhis2-server-tools/deploy/inventory/hosts
