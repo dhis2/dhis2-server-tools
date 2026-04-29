@@ -1,0 +1,88 @@
+{{ ansible_managed | comment }}
+groups:
+  - name: dhis2_infrastructure
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Target {{ '{{ $labels.instance }}' }} is down"
+          description: "{{ '{{ $labels.instance }}' }} of job {{ '{{ $labels.job }}' }} has been down for more than 5 minutes."
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > {{ alert_cpu_threshold }}
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ '{{ $labels.instance }}' }}"
+          description: "CPU usage is above {{ alert_cpu_threshold }}% for more than 10 minutes."
+
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > {{ alert_memory_threshold }}
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ '{{ $labels.instance }}' }}"
+          description: "Memory usage is above {{ alert_memory_threshold }}% for more than 5 minutes."
+
+      - alert: DiskSpaceWarning
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < {{ alert_disk_warning_pct }}
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space on {{ '{{ $labels.instance }}' }}"
+          description: "Filesystem {{ '{{ $labels.mountpoint }}' }} has less than {{ alert_disk_warning_pct }}% free space."
+
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < {{ alert_disk_critical_pct }}
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical disk space on {{ '{{ $labels.instance }}' }}"
+          description: "Filesystem {{ '{{ $labels.mountpoint }}' }} has less than {{ alert_disk_critical_pct }}% free space."
+
+  - name: dhis2_database
+    rules:
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is down on {{ '{{ $labels.instance }}' }}"
+          description: "PostgreSQL exporter reports the database is unreachable."
+
+      - alert: PostgresConnectionsHigh
+        expr: sum by(instance) (pg_stat_activity_count) / on(instance) pg_settings_max_connections * 100 > {{ alert_pg_connection_pct }}
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High PostgreSQL connections on {{ '{{ $labels.instance }}' }}"
+          description: "Database connections exceed {{ alert_pg_connection_pct }}% of max_connections."
+
+      - alert: PostgresLongRunningQuery
+        expr: pg_stat_activity_max_tx_duration{state="active"} > 3600
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Long-running query on {{ '{{ $labels.instance }}' }}"
+          description: "A query has been running for more than 1 hour."
+
+  - name: dhis2_application
+    rules:
+      - alert: DHIS2EndpointDown
+        expr: up{job=~".*dhis.*"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "DHIS2 endpoint {{ '{{ $labels.instance }}' }} is down"
+          description: "DHIS2 metrics endpoint has been unreachable for more than 5 minutes."

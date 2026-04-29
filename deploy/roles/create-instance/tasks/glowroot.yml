@@ -102,6 +102,7 @@
     owner: root
     group: tomcat
     mode: "0660"
+  no_log: true
   when: not glowroot_admin_file_status.stat.exists
   notify: Restart Tomcat
 
@@ -111,4 +112,96 @@
     regexp: '^(.*)"contextPath"'
     line: '\1"contextPath": "{{ "/glowroot" if dhis2_base_path | default(inventory_hostname) | to_fixed_string == "ROOT" else "/" + dhis2_base_path | default(inventory_hostname) | to_fixed_string + "-glowroot" }}",'
     backrefs: true
+  notify: Restart Tomcat
+
+# Glowroot alerting pre-flight check
+- name: Glowroot | Assert at least one notification channel is configured
+  ansible.builtin.assert:
+    that: >-
+      (alerting_telegram_bot_token is defined and alerting_telegram_chat_id is defined) or
+      (glowroot_slack_webhook_url is defined) or
+      (glowroot_smtp_host is defined)
+    fail_msg: >-
+      glowroot_alerting_enabled is true but no notification channel is configured.
+      Set alerting_telegram_bot_token + alerting_telegram_chat_id,
+      or glowroot_slack_webhook_url, or glowroot_smtp_host.
+  when: glowroot_alerting_enabled | default(false) | bool
+
+# Telegram forwarder for Glowroot alerts
+- name: Glowroot | Create forwarder system group
+  ansible.builtin.group:
+    name: glowroot_forwarder
+    system: true
+  when:
+    - glowroot_alerting_enabled | default(false) | bool
+    - alerting_telegram_bot_token is defined
+    - alerting_telegram_chat_id is defined
+
+- name: Glowroot | Create forwarder system user
+  ansible.builtin.user:
+    name: glowroot_forwarder
+    shell: /bin/false
+    create_home: false
+    system: true
+    group: glowroot_forwarder
+  when:
+    - glowroot_alerting_enabled | default(false) | bool
+    - alerting_telegram_bot_token is defined
+    - alerting_telegram_chat_id is defined
+
+- name: Glowroot | Deploy Telegram forwarder script
+  ansible.builtin.template:
+    src: glowroot-telegram-forwarder.py.j2
+    dest: /opt/glowroot/glowroot-telegram-forwarder.py
+    owner: root
+    group: glowroot_forwarder
+    mode: "0640"
+  no_log: true
+  when:
+    - glowroot_alerting_enabled | default(false) | bool
+    - alerting_telegram_bot_token is defined
+    - alerting_telegram_chat_id is defined
+  notify: Restart Glowroot Telegram Forwarder
+
+- name: Glowroot | Deploy Telegram forwarder systemd service
+  ansible.builtin.template:
+    src: glowroot-telegram-forwarder.service.j2
+    dest: /etc/systemd/system/glowroot-telegram-forwarder.service
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - glowroot_alerting_enabled | default(false) | bool
+    - alerting_telegram_bot_token is defined
+    - alerting_telegram_chat_id is defined
+  notify: Restart Glowroot Telegram Forwarder
+
+- name: Glowroot | Enable and start Telegram forwarder
+  ansible.builtin.systemd:
+    name: glowroot-telegram-forwarder
+    state: started
+    enabled: true
+    daemon_reload: true
+  when:
+    - glowroot_alerting_enabled | default(false) | bool
+    - alerting_telegram_bot_token is defined
+    - alerting_telegram_chat_id is defined
+
+# Glowroot alert rules config
+- name: Glowroot | Check if config.json exists
+  ansible.builtin.stat:
+    path: /opt/glowroot/config.json
+  register: glowroot_config_file_status
+  when: glowroot_alerting_enabled | default(false) | bool
+
+- name: Glowroot | Deploy config.json with alert rules
+  ansible.builtin.template:
+    src: glowroot_config.json.j2
+    dest: /opt/glowroot/config.json
+    owner: root
+    group: tomcat
+    mode: "0660"
+  when:
+    - glowroot_alerting_enabled | default(false) | bool
+    - not (glowroot_config_file_status.stat.exists | default(false))
   notify: Restart Tomcat

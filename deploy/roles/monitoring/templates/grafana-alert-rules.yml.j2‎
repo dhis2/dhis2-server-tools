@@ -1,0 +1,258 @@
+{{ ansible_managed | comment }}
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: DHIS2 Infrastructure
+    folder: DHIS2 Alerts
+    interval: 60s
+    rules:
+      - uid: instance-down
+        title: Instance Down
+        condition: B
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: {% raw %}"Target {{ $labels.instance }} is down"{% endraw %}
+
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: up == 0
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+
+      - uid: high-cpu-usage
+        title: High CPU Usage
+        condition: B
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU usage above {{ alert_cpu_threshold }}%"
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > {{ alert_cpu_threshold }}
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+
+      - uid: high-memory-usage
+        title: High Memory Usage
+        condition: B
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memory usage above {{ alert_memory_threshold }}%"
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > {{ alert_memory_threshold }}
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+
+      - uid: disk-space-warning
+        title: Disk Space Warning
+        condition: B
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk space below {{ alert_disk_warning_pct }}%"
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < {{ alert_disk_warning_pct }}
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+
+      - uid: disk-space-critical
+        title: Disk Space Critical
+        condition: B
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk space below {{ alert_disk_critical_pct }}%"
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < {{ alert_disk_critical_pct }}
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+
+  - orgId: 1
+    name: DHIS2 Database
+    folder: DHIS2 Alerts
+    interval: 60s
+    rules:
+      - uid: postgres-down
+        title: PostgreSQL Down
+        condition: B
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is unreachable"
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: pg_up == 0
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+
+      - uid: postgres-connections-high
+        title: PostgreSQL Connections High
+        condition: B
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database connections exceed {{ alert_pg_connection_pct }}% of max"
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum by(instance) (pg_stat_activity_count) / on(instance) pg_settings_max_connections * 100 > {{ alert_pg_connection_pct }}
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+
+  - orgId: 1
+    name: DHIS2 Application
+    folder: DHIS2 Alerts
+    interval: 60s
+    rules:
+      - uid: dhis2-endpoint-down
+        title: DHIS2 Endpoint Down
+        condition: B
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "DHIS2 metrics endpoint is unreachable"
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: up{job=~".*dhis.*"} == 0
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
