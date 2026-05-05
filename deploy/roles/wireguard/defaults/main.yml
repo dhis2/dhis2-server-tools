@@ -1,16 +1,32 @@
 ---
 wireguard_enabled: false
 
-wireguard_network: "10.8.0.0/24"
-wireguard_server_ip: "10.8.0.1"
+wireguard_network: "10.0.0.0/24"
+wireguard_server_ip: "10.0.0.1"
 wireguard_port: 51820
 wireguard_interface: wg0
 
-lxd_bridge_interface: "lxdbr1"
-lxd_network: "172.19.2.0/24"
-lxd_gateway_ip: "172.19.2.1"
+# Hub container — dedicated LXD container running the WireGuard server.
+wireguard_hub_inventory_hostname: "wireguard"
+wireguard_hub_lxd_ip: "172.19.2.200"
 
-grafana_port: 3000
+# Empty = auto-detect ansible_default_ipv4.address. On cloud VMs behind
+# 1:1 NAT this is the private primary IP, not the public IP.
+wireguard_endpoint_listen: ""
+
+# Falls back to wireguard_endpoint_listen when empty. Must be set explicitly
+# on cloud VMs with 1:1 NAT or home peers receive an unroutable Endpoint.
+wireguard_endpoint_public: ""
+
+wireguard_stage: ""
+
+# Cross-role shared variables consumed by proxy/postgres/monitoring/pre-install.
+# Renaming with a wireguard_ prefix would break that contract.
+lxd_bridge_interface: "lxdbr1"  # noqa: var-naming[no-role-prefix]
+lxd_network: "172.19.2.0/24"  # noqa: var-naming[no-role-prefix]
+lxd_gateway_ip: "172.19.2.1"  # noqa: var-naming[no-role-prefix]
+
+grafana_port: 3000  # noqa: var-naming[no-role-prefix]
 
 wireguard_peers: []
 

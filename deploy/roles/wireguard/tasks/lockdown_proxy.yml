@@ -5,7 +5,7 @@
     patterns:
       - 'munin*.conf'
       - 'grafana*.conf'
-  register: nginx_monitoring_configs
+  register: wireguard_nginx_monitoring_configs
   when: proxy | default('nginx') == 'nginx'
 
 - name: Empty monitoring configs on nginx proxy (keep files so include directives still resolve)
@@ -13,13 +13,13 @@
     content: "# Monitoring disabled by WireGuard lockdown\n"
     dest: '{{ item.path }}'
     mode: '0644'
-  loop: '{{ nginx_monitoring_configs.files | default([]) }}'
+  loop: '{{ wireguard_nginx_monitoring_configs.files | default([]) }}'
   loop_control:
     label: '{{ item.path | basename }}'
   notify: Reload Nginx
   when:
     - proxy | default('nginx') == 'nginx'
-    - nginx_monitoring_configs.files | default([]) | length > 0
+    - wireguard_nginx_monitoring_configs.files | default([]) | length > 0
 
 - name: Re-render nginx instance configs without Glowroot proxy blocks
   ansible.builtin.template:
@@ -40,20 +40,20 @@
     patterns:
       - 'munin*.conf'
       - 'grafana*.conf'
-  register: apache_monitoring_configs
+  register: wireguard_apache_monitoring_configs
   when: proxy | default('nginx') == 'apache2'
 
 - name: Remove monitoring configs from apache2 proxy
   ansible.builtin.file:
     path: '{{ item.path }}'
     state: absent
-  loop: '{{ apache_monitoring_configs.files | default([]) }}'
+  loop: '{{ wireguard_apache_monitoring_configs.files | default([]) }}'
   loop_control:
     label: '{{ item.path | basename }}'
   notify: Reload Apache2
   when:
     - proxy | default('nginx') == 'apache2'
-    - apache_monitoring_configs.files | default([]) | length > 0
+    - wireguard_apache_monitoring_configs.files | default([]) | length > 0
 
 - name: Re-render apache2 instance configs without Glowroot proxy blocks
   ansible.builtin.template:

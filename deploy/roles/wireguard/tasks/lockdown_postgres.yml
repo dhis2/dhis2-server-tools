@@ -1,24 +1,54 @@
 ---
-- name: Find pg_hba.conf location
+# Per-peer pg_hba.conf rules managed via a single blockinfile so that peer
+# removal is idempotent — lineinfile cannot remove a previously-added line
+# when the entry disappears from inventory.
+
+- name: Lockdown | Find pg_hba.conf
   ansible.builtin.shell: |
+    set -o pipefail
     find /etc/postgresql -name pg_hba.conf -type f | head -1
-  register: pg_hba_path
+  args:
+    executable: /bin/bash
+  register: wireguard_pg_hba_path
   changed_when: false
 
-- name: Allow VPN admin access — add lxd_gateway_ip to pg_hba.conf (all databases, all users)
-  ansible.builtin.lineinfile:
-    path: '{{ pg_hba_path.stdout | trim }}'
-    regexp: "^(host|hostssl)\\s+all\\s+all\\s+{{ (lxd_gateway_ip + '/32') | replace('.', '\\.') | replace('/', '\\/') }}"
-    line: 'hostssl    all    all    {{ lxd_gateway_ip }}/32    scram-sha-256'
-    insertbefore: EOF
-  notify: Reload PostgreSQL
-  when: pg_hba_path.stdout | trim | length > 0
+- name: Lockdown | Build per-peer pg_hba lines
+  ansible.builtin.set_fact:
+    _wireguard_pg_hba_lines: >-
+      {{ _wireguard_pg_hba_lines | default([]) + [
+           'hostssl    ' ~ item.1.database
+           ~ '    ' ~ item.1.user
+           ~ '    ' ~ (item.0.peer_ip | default(item.0.allowed_ips.split(',')[0] | trim))
+           ~ '    scram-sha-256'
+         ] }}
+  loop: "{{ wireguard_peers | subelements('pg_access', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.0.name }} -> {{ item.1.database }}/{{ item.1.user }}"
 
-- name: Allow PostgreSQL (5432/tcp) from LXD gateway — VPN-only access
+- name: Lockdown | Manage per-peer pg_hba block
+  ansible.builtin.blockinfile:
+    path: "{{ wireguard_pg_hba_path.stdout | trim }}"
+    marker: "# {mark} ANSIBLE MANAGED — wireguard per-peer pg_access"
+    block: "{{ _wireguard_pg_hba_lines | default([]) | join('\n') }}"
+    state: "{{ 'present' if (_wireguard_pg_hba_lines | default([]) | length > 0) else 'absent' }}"
+    insertbefore: EOF
+    create: false
+  notify: Reload PostgreSQL
+  when: wireguard_pg_hba_path.stdout | trim | length > 0
+
+- name: Lockdown | Remove legacy blanket pg_hba VPN admin grant
+  ansible.builtin.lineinfile:
+    path: "{{ wireguard_pg_hba_path.stdout | trim }}"
+    regexp: '^hostssl\s+all\s+all\s+{{ lxd_gateway_ip | replace(".", "\\.") }}/32\s'
+    state: absent
+  notify: Reload PostgreSQL
+  when: wireguard_pg_hba_path.stdout | trim | length > 0
+
+- name: Lockdown | Allow PostgreSQL (5432/tcp) from VPN subnet
   community.general.ufw:
     rule: allow
     port: '5432'
-    src: '{{ lxd_gateway_ip }}'
+    src: '{{ wireguard_network }}'
     proto: tcp
     state: enabled
-    comment: 'PostgreSQL — VPN access only (via LXD gateway NAT)'
+    comment: 'PostgreSQL — VPN access only'

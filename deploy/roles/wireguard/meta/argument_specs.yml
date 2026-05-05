@@ -3,21 +3,56 @@ argument_specs:
   main:
     short_description: "WireGuard VPN for securing DHIS2 monitoring and database access"
     description:
-      - Installs and configures a WireGuard VPN server on the host machine.
+      - Deploys a WireGuard VPN hub inside a dedicated LXD container.
+      - Each app container (proxy/postgres/dhis/monitor) joins as a WG peer.
       - Optionally locks down monitoring dashboards and PostgreSQL to VPN-only access.
     options:
       wireguard_enabled:
         description: "Master switch — enable the WireGuard VPN role"
         type: bool
         default: false
+      wireguard_stage:
+        description: >-
+          Per-play stage selector. Set by dhis2.yml when including the role.
+          One of: host_portforward (LXD host: provision wireguard container +
+          UDP 51820 forward), hub (the wireguard container itself), peer
+          (every app container).
+        type: str
+        default: ""
+        choices: ["", "host_portforward", "hub", "peer"]
       wireguard_network:
         description: "VPN subnet in CIDR notation"
         type: str
-        default: "10.8.0.0/24"
+        default: "10.0.0.0/24"
       wireguard_server_ip:
-        description: "Server IP address on the VPN subnet"
+        description: "Hub IP address on the VPN subnet"
         type: str
-        default: "10.8.0.1"
+        default: "10.0.0.1"
+      wireguard_hub_inventory_hostname:
+        description: "Inventory hostname of the wireguard hub container"
+        type: str
+        default: "wireguard"
+      wireguard_hub_lxd_ip:
+        description: "Static LXD IP assigned to the wireguard hub container"
+        type: str
+        default: "172.19.2.200"
+      wireguard_endpoint_listen:
+        description: >-
+          Listen address used by `lxc network forward` on the LXD host.
+          Must be an IP owned by the host itself. Empty = auto-detect via
+          ansible_default_ipv4.address. On cloud VMs behind 1:1 NAT this
+          is the private primary IP, NOT the public IP.
+        type: str
+        default: ""
+      wireguard_endpoint_public:
+        description: >-
+          Public IP/hostname advertised to home/admin peers as their
+          Endpoint = line. Empty falls back to wireguard_endpoint_listen.
+          On cloud VMs with 1:1 NAT this MUST be set explicitly to the
+          public IP/hostname or home peers will receive an unroutable
+          Endpoint.
+        type: str
+        default: ""
       wireguard_port:
         description: "UDP listen port for WireGuard"
         type: int
@@ -40,41 +75,50 @@ argument_specs:
         default: "172.19.2.1"
       wireguard_peers:
         description: >-
-          List of VPN client peers. Each entry requires name and allowed_ips.
+          List of human/admin VPN peers (laptops, home machines).
+          App containers are auto-derived from inventory wireguard_ip; do NOT
+          list them here. Each entry requires name and allowed_ips.
           public_key is required only when wireguard_auto_generate_keys is false.
           Optional: preshared_key.
+          Optional: peer_ip (single CIDR ending in /32) — used for per-peer
+          pg_hba.conf rules when allowed_ips routes additional networks. If
+          omitted, the first CIDR in allowed_ips is used.
+          Optional: pg_access (list of {database, user}) — generates per-peer
+          pg_hba.conf entries on the databases host. Database and user names
+          must match ^[a-zA-Z0-9_]+$ (PostgreSQL keyword 'all' is allowed).
+          Peers without pg_access have no PostgreSQL access.
         type: list
         elements: dict
         default: []
       wireguard_auto_generate_keys:
         description: >-
-          When true, generate client keypairs server-side and produce
+          When true, generate peer keypairs hub-side and produce
           complete, ready-to-import client configs. When false, peers
-          must supply their own public_key (current behavior).
+          must supply their own public_key.
         type: bool
         default: true
       wireguard_auto_generate_psk:
         description: >-
           When true, generate a pre-shared key (PSK) for each peer that does
           not supply an explicit preshared_key, and embed it into both the
-          server and client configs. Adds a symmetric post-quantum hedge.
+          hub and peer configs. Adds a symmetric post-quantum hedge.
           Off by default — enabling on an existing deployment forces all
           affected clients to re-import their .conf.
         type: bool
         default: false
       wireguard_client_config_dir:
-        description: "Directory for generated client config files"
+        description: "Directory on the hub for generated peer config files"
         type: str
         default: "/etc/wireguard/clients"
       wireguard_client_key_dir:
-        description: "Directory for generated client key files"
+        description: "Directory on the hub for generated peer key files"
         type: str
         default: "/etc/wireguard/clients/keys"
       wireguard_prune_orphans:
         description: >-
-          When true, remove client key/PSK/config files for peers no longer
-          present in wireguard_peers. Off by default to avoid accidental
-          destruction.
+          When true, remove peer key/PSK/config files for peers no longer
+          present in inventory or wireguard_peers. Off by default to avoid
+          accidental destruction.
         type: bool
         default: false
       wireguard_lockdown_monitoring:

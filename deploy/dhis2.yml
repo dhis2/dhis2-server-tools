@@ -2,17 +2,29 @@
 - name: Preparing localhost
   hosts: 127.0.0.1
   become: true
-  gather_facts: false
+  gather_facts: true
   roles:
     - role: pre-install
     - role: wireguard
+      vars:
+        wireguard_stage: host_portforward
+      tags: [wireguard]
+
+- name: WireGuard hub container
+  hosts: "{{ wireguard_hub_inventory_hostname | default('wireguard') }}"
+  become: true
+  gather_facts: false
+  roles:
+    - role: wireguard
+      vars:
+        wireguard_stage: hub
       tags: [wireguard]
 
 - name: DHIS2 setup
   gather_facts: false
   force_handlers: true
   become: true
-  hosts: all:!127.0.0.1
+  hosts: "all:!127.0.0.1:!{{ wireguard_hub_inventory_hostname | default('wireguard') }}"
   vars_files:
     - vars/vars.yml
   roles:
@@ -26,6 +38,8 @@
       tags: [create-instance]
       when: instance_state is not defined or instance_state != 'deleted'
     - role: wireguard
+      vars:
+        wireguard_stage: peer
       tags: [wireguard]
   tasks:
     - name: Install and configure unattended_upgrades

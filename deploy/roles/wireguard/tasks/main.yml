@@ -1,49 +1,76 @@
 ---
-- name: WireGuard VPN | Validate peer configuration
+# Stage dispatcher. The dhis2.yml playbook calls this role three times with
+# different `wireguard_stage` values:
+#   1. host_portforward — on 127.0.0.1: provision the wireguard LXD container
+#      and forward UDP {{ wireguard_port }} from the host's public IP.
+#   2. hub              — inside the wireguard container: keys, config, peers.
+#   3. peer             — inside each app container: pull config from hub,
+#                         start wg-quick, apply per-host lockdown rules.
+
+- name: WireGuard | Validate configuration
   ansible.builtin.include_tasks: validate.yml
   when:
     - wireguard_enabled | bool
-    - wireguard_peers | length > 0
+    - wireguard_stage == 'host_portforward'
   tags:
     - always
 
-- name: WireGuard VPN | Server setup
-  ansible.builtin.include_tasks: server.yml
+- name: WireGuard | Provision hub LXD container
+  ansible.builtin.include_tasks: lxd_container.yml
   when:
     - wireguard_enabled | bool
-    - inventory_hostname == '127.0.0.1'
+    - wireguard_stage == 'host_portforward'
 
-- name: WireGuard VPN | Firewall rules
-  ansible.builtin.include_tasks: firewall.yml
+- name: WireGuard | LXD host port-forward
+  ansible.builtin.include_tasks: host_portforward.yml
   when:
     - wireguard_enabled | bool
-    - inventory_hostname == '127.0.0.1'
+    - wireguard_stage == 'host_portforward'
 
-- name: WireGuard VPN | Lock down proxy
+- name: WireGuard | Hub container setup
+  ansible.builtin.include_tasks: hub.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_stage == 'hub'
+
+# Hosts without wireguard_ip (backup_servers, integration) are not enrolled
+# as peers; the hub never renders a config for them.
+- name: WireGuard | Peer setup
+  ansible.builtin.include_tasks: peer.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_stage == 'peer'
+    - hostvars[inventory_hostname].wireguard_ip is defined
+    - hostvars[inventory_hostname].wireguard_ip | length > 0
+
+- name: WireGuard | Lock down proxy
   ansible.builtin.include_tasks: lockdown_proxy.yml
   when:
     - wireguard_enabled | bool
     - wireguard_lockdown_monitoring | bool
+    - wireguard_stage == 'peer'
     - inventory_hostname in groups.get('web', [])
 
-- name: WireGuard VPN | Lock down monitoring
+- name: WireGuard | Lock down monitoring
   ansible.builtin.include_tasks: lockdown_monitor.yml
   when:
     - wireguard_enabled | bool
     - wireguard_lockdown_monitoring | bool
+    - wireguard_stage == 'peer'
     - inventory_hostname in groups.get('monitoring', [])
 
-- name: WireGuard VPN | Lock down PostgreSQL
+- name: WireGuard | Lock down PostgreSQL
   ansible.builtin.include_tasks: lockdown_postgres.yml
   when:
     - wireguard_enabled | bool
     - wireguard_lockdown_monitoring | bool
+    - wireguard_stage == 'peer'
     - inventory_hostname in groups.get('databases', [])
 
-# Glowroot (4000, app_monitoring=glowroot only) and munin-node (4949, all instances).
-- name: WireGuard VPN | Lock down instances
+- name: WireGuard | Lock down instances
   ansible.builtin.include_tasks: lockdown_instances.yml
   when:
     - wireguard_enabled | bool
     - wireguard_lockdown_monitoring | bool
+    - wireguard_stage == 'peer'
     - inventory_hostname in groups.get('instances', [])
