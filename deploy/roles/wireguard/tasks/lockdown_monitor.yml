@@ -45,7 +45,7 @@
     path: /etc/prometheus/prometheus.yml
   register: wireguard_prometheus_stat
 
-- name: Allow Grafana from VPN subnet
+- name: Lockdown | Allow Grafana from VPN subnet
   community.general.ufw:
     rule: allow
     port: "{{ grafana_port }}"
@@ -55,15 +55,7 @@
     comment: 'Grafana — VPN access only'
   when: wireguard_grafana_ini_stat.stat.exists
 
-- name: Lockdown | Remove legacy Grafana UFW rule (src=lxd_gateway_ip)
-  community.general.ufw:
-    rule: allow
-    port: "{{ grafana_port }}"
-    src: '{{ lxd_gateway_ip }}'
-    proto: tcp
-    delete: true
-
-- name: Remove proxy -> Grafana UFW rule
+- name: Lockdown | Remove proxy -> Grafana UFW rule (replaced by VPN access)
   community.general.ufw:
     rule: allow
     port: "{{ grafana_port }}"
@@ -75,7 +67,7 @@
     label: '{{ item }}'
   when: wireguard_grafana_ini_stat.stat.exists
 
-- name: Allow Prometheus (9090/tcp) from VPN subnet
+- name: Lockdown | Allow Prometheus (9090/tcp) from VPN subnet
   community.general.ufw:
     rule: allow
     port: '9090'
@@ -85,20 +77,12 @@
     comment: 'Prometheus — VPN access only'
   when: wireguard_prometheus_stat.stat.exists
 
-- name: Lockdown | Remove legacy Prometheus UFW rule (src=lxd_gateway_ip)
-  community.general.ufw:
-    rule: allow
-    port: '9090'
-    src: '{{ lxd_gateway_ip }}'
-    proto: tcp
-    delete: true
-
-- name: Check if Munin is installed
+- name: Lockdown | Check if Munin is installed
   ansible.builtin.stat:
     path: /etc/munin/munin.conf
   register: wireguard_munin_conf_stat
 
-- name: Allow Munin (80/tcp) from VPN subnet
+- name: Lockdown | Allow Munin (80/tcp) from VPN subnet
   community.general.ufw:
     rule: allow
     port: '80'
@@ -108,10 +92,14 @@
     comment: 'Munin — VPN access only'
   when: wireguard_munin_conf_stat.stat.exists
 
-- name: Lockdown | Remove legacy Munin UFW rule (src=lxd_gateway_ip)
+- name: Lockdown | Remove proxy -> Munin UFW rule (replaced by VPN access)
   community.general.ufw:
     rule: allow
     port: '80'
-    src: '{{ lxd_gateway_ip }}'
+    src: "{{ hostvars[item]['ansible_host'] }}"
     proto: tcp
     delete: true
+  loop: "{{ groups.get('web', []) }}"
+  loop_control:
+    label: '{{ item }}'
+  when: wireguard_munin_conf_stat.stat.exists

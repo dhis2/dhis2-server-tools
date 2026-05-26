@@ -36,14 +36,6 @@
   notify: Reload PostgreSQL
   when: wireguard_pg_hba_path.stdout | trim | length > 0
 
-- name: Lockdown | Remove legacy blanket pg_hba VPN admin grant
-  ansible.builtin.lineinfile:
-    path: "{{ wireguard_pg_hba_path.stdout | trim }}"
-    regexp: '^hostssl\s+all\s+all\s+{{ lxd_gateway_ip | replace(".", "\\.") }}/32\s'
-    state: absent
-  notify: Reload PostgreSQL
-  when: wireguard_pg_hba_path.stdout | trim | length > 0
-
 - name: Lockdown | Allow PostgreSQL (5432/tcp) from VPN subnet
   community.general.ufw:
     rule: allow

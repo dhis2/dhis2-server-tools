@@ -13,10 +13,13 @@ argument_specs:
         default: false
       wireguard_stage:
         description: >-
-          Per-play stage selector. Set by dhis2.yml when including the role.
-          One of: host_portforward (LXD host: provision wireguard container +
-          UDP 51820 forward), hub (the wireguard container itself), peer
-          (every app container).
+          Legacy per-play stage selector retained for backward compatibility
+          when the role is invoked the old way
+          (roles: [{ role: wireguard, vars: { wireguard_stage: ... } }]).
+          The current playbooks (playbooks/wireguard.yml,
+          playbooks/wireguard-lockdown.yml) call task files directly via
+          include_role tasks_from: and ignore this variable.
+          One of: host_portforward, hub, peer, or empty.
         type: str
         default: ""
         choices: ["", "host_portforward", "hub", "peer"]
@@ -123,10 +126,18 @@ argument_specs:
         default: false
       wireguard_lockdown_monitoring:
         description: >-
-          When true, removes monitoring paths from the public proxy
-          and restricts monitoring/DB ports to VPN-only access.
+          Gates the `/glowroot` proxy block in
+          roles/create-instance/templates/{nginx,apache2}/instance.j2.
+          Default false. The proxy role's first render during `dhis2.yml`
+          keeps `/glowroot` present; `playbooks/wireguard-lockdown.yml`
+          (lockdown_proxy.yml), which is auto-imported by `dhis2.yml`
+          immediately after the mesh playbook, sets this to true via task
+          vars and re-renders the same files to strip the block. Net
+          result of a full `dhis2.yml` run with wireguard_enabled=true:
+          `/glowroot` is absent. To preserve `/glowroot` while keeping the
+          VPN, run with `--skip-tags lockdown-proxy`.
         type: bool
-        default: true
+        default: false
       grafana_port:
         description: "Grafana HTTP port — used for VPN-only UFW rules"
         type: int

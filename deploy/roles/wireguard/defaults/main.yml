@@ -36,4 +36,4 @@ wireguard_prune_orphans: false
 wireguard_client_config_dir: /etc/wireguard/clients
 wireguard_client_key_dir: /etc/wireguard/clients/keys
 
-wireguard_lockdown_monitoring: true
+wireguard_lockdown_monitoring: false

@@ -2,29 +2,15 @@
 - name: Preparing localhost
   hosts: 127.0.0.1
   become: true
-  gather_facts: true
-  roles:
-    - role: pre-install
-    - role: wireguard
-      vars:
-        wireguard_stage: host_portforward
-      tags: [wireguard]
-
-- name: WireGuard hub container
-  hosts: "{{ wireguard_hub_inventory_hostname | default('wireguard') }}"
-  become: true
   gather_facts: false
   roles:
-    - role: wireguard
-      vars:
-        wireguard_stage: hub
-      tags: [wireguard]
+    - role: pre-install
 
 - name: DHIS2 setup
   gather_facts: false
   force_handlers: true
   become: true
-  hosts: "all:!127.0.0.1:!{{ wireguard_hub_inventory_hostname | default('wireguard') }}"
+  hosts: all:!127.0.0.1:!{{ wireguard_hub_inventory_hostname | default('wireguard') }}
   vars_files:
     - vars/vars.yml
   roles:
@@ -37,10 +23,6 @@
     - role: create-instance
       tags: [create-instance]
       when: instance_state is not defined or instance_state != 'deleted'
-    - role: wireguard
-      vars:
-        wireguard_stage: peer
-      tags: [wireguard]
   tasks:
     - name: Install and configure unattended_upgrades
       ansible.builtin.include_tasks: playbooks/unattended_upgrades.yml
@@ -61,6 +43,20 @@
   become: true
   roles:
     - role: backups
+
+- name: WireGuard VPN bring-up
+  ansible.builtin.import_playbook: playbooks/wireguard.yml
+
+# Lockdown is auto-imported. Every play inside gates on wireguard_enabled,
+# so this is a no-op when WireGuard is disabled. To deploy the mesh without
+# locking services down (e.g. during initial cut-over while not all admins
+# are on the VPN yet), run:
+#   ansible-playbook dhis2.yml --skip-tags wireguard-lockdown
+# To revert a specific component without disabling WireGuard, use the
+# per-component skip-tags listed in docs/WireGuard-VPN.md (lockdown-proxy,
+# lockdown-monitor, lockdown-postgres, lockdown-instances).
+- name: WireGuard VPN service lockdown
+  ansible.builtin.import_playbook: playbooks/wireguard-lockdown.yml
 
 - import_playbook: playbooks/delete-dhis2-instance.yml
   tags: [never, delete-instance]

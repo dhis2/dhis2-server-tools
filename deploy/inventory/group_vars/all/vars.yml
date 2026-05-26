@@ -4,17 +4,11 @@
 # inventory's inline `wireguard_ip` and must NOT be listed here.
 # The hub itself uses 10.0.0.1; assign human peers from 10.0.0.6 upward
 # (10.0.0.2–.5 are reserved for app containers in the default inventory).
-#
-# With wireguard_auto_generate_keys: true (default), only name and allowed_ips
-# are required. Keys are generated hub-side automatically.
-#
-# To manage keys manually, set wireguard_auto_generate_keys: false and provide
-# a public_key for each peer.
+
 #
 # Optional pg_access: a list of {database, user} entries that produces per-peer
 # pg_hba.conf rules on the databases host. Peers without pg_access have no
-# PostgreSQL access. Database/user names must match ^[a-zA-Z0-9_]+$ (the
-# PostgreSQL keyword 'all' is allowed).
+# PostgreSQL access. 
 wireguard_peers:
   - name: sysadmin
     allowed_ips: "10.0.0.6/32"

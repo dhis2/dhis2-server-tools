@@ -21,14 +21,23 @@
     - proxy | default('nginx') == 'nginx'
     - wireguard_nginx_monitoring_configs.files | default([]) | length > 0
 
+# `role_path` is the path to the currently-executing role (wireguard).
+# Using it (rather than `playbook_dir`) keeps the cross-role template
+# reference correct whether this file is loaded from dhis2.yml or from
+# playbooks/wireguard-lockdown.yml.
 - name: Re-render nginx instance configs without Glowroot proxy blocks
   ansible.builtin.template:
-    src: '{{ playbook_dir }}/roles/create-instance/templates/nginx/instance.j2'
+    src: '{{ role_path }}/../create-instance/templates/nginx/instance.j2'
     dest: '/etc/nginx/conf.d/upstream/{{ item | to_fixed_string }}.conf'
     owner: root
     group: root
     mode: '0640'
   loop: '{{ groups["instances"] }}'
+  vars:
+    # Forces instance.j2 to drop the /glowroot location block. The role default
+    # is false (so a normal dhis2.yml proxy render keeps glowroot); the lockdown
+    # phase explicitly opts in here.
+    wireguard_lockdown_monitoring: true
   notify: Reload Nginx
   when:
     - proxy | default('nginx') == 'nginx'
@@ -57,12 +66,16 @@
 
 - name: Re-render apache2 instance configs without Glowroot proxy blocks
   ansible.builtin.template:
-    src: '{{ playbook_dir }}/roles/create-instance/templates/apache2/instance.j2'
+    src: '{{ role_path }}/../create-instance/templates/apache2/instance.j2'
     dest: '/etc/apache2/upstream/{{ item | to_fixed_string }}.conf'
     owner: root
     group: root
     mode: '0640'
   loop: '{{ groups["instances"] }}'
+  vars:
+    # Forces instance.j2 to drop the /glowroot Location block. See the nginx
+    # task above for why this is task-scoped rather than a play default.
+    wireguard_lockdown_monitoring: true
   notify: Reload Apache2
   when:
     - proxy | default('nginx') == 'apache2'

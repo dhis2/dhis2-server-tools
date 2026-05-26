@@ -58,17 +58,7 @@ app_monitoring=glowroot
 # WireGuard VPN — restricts Grafana, Prometheus, Munin, Glowroot and PostgreSQL to VPN-only access.
 # App containers above are auto-derived as WG peers via inline wireguard_ip.
 # Human/admin peers (laptops, home machines) live in group_vars/all/vars.yml.
-# Hosts in groups other than [web]/[databases]/[instances]/[monitoring]/[wireguard]
-# (e.g. [backup_servers], [integration]) are skipped — they don't need wireguard_ip.
-#
-# wireguard_endpoint_listen — host-side IP `lxc network forward` binds on.
-#   Empty = auto-detect via ansible_default_ipv4.address. Must be on the host.
-# wireguard_endpoint_public — what home peers dial in their .conf Endpoint.
-#   Empty = same as wireguard_endpoint_listen. On cloud VMs with 1:1 NAT
-#   (AWS EIP, GCP external IP) you MUST set this to the public IP/hostname.
 wireguard_enabled=false
-# wireguard_endpoint_listen=
-# wireguard_endpoint_public=
 
 
 # lxd

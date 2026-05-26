@@ -1,11 +1,18 @@
 ---
-# Stage dispatcher. The dhis2.yml playbook calls this role three times with
-# different `wireguard_stage` values:
-#   1. host_portforward — on 127.0.0.1: provision the wireguard LXD container
-#      and forward UDP {{ wireguard_port }} from the host's public IP.
-#   2. hub              — inside the wireguard container: keys, config, peers.
-#   3. peer             — inside each app container: pull config from hub,
-#                         start wg-quick, apply per-host lockdown rules.
+# The role is normally driven from playbooks/wireguard.yml and
+# playbooks/wireguard-lockdown.yml via include_role tasks_from:, so this
+# dispatcher is only used when the role is invoked the legacy way
+# (roles: [{ role: wireguard, vars: { wireguard_stage: ... } }]).
+#
+# Stages:
+#   host_portforward — provision hub LXD container + lxc network forward
+#                      (LXD deployments only).
+#   hub              — install/configure WireGuard server inside the hub.
+#   peer             — install/configure WireGuard on each app host.
+#
+# Lockdown stages (lockdown_proxy, lockdown_monitor, lockdown_postgres,
+# lockdown_instances) are NOT exposed here; run
+# playbooks/wireguard-lockdown.yml explicitly after the mesh is verified.
 
 - name: WireGuard | Validate configuration
   ansible.builtin.include_tasks: validate.yml
@@ -15,17 +22,19 @@
   tags:
     - always
 
-- name: WireGuard | Provision hub LXD container
+- name: WireGuard | Provision hub LXD container (LXD only)
   ansible.builtin.include_tasks: lxd_container.yml
   when:
     - wireguard_enabled | bool
     - wireguard_stage == 'host_portforward'
+    - ansible_connection | default('lxd') == 'lxd'
 
-- name: WireGuard | LXD host port-forward
+- name: WireGuard | LXD host port-forward (LXD only)
   ansible.builtin.include_tasks: host_portforward.yml
   when:
     - wireguard_enabled | bool
     - wireguard_stage == 'host_portforward'
+    - ansible_connection | default('lxd') == 'lxd'
 
 - name: WireGuard | Hub container setup
   ansible.builtin.include_tasks: hub.yml
@@ -33,8 +42,6 @@
     - wireguard_enabled | bool
     - wireguard_stage == 'hub'
 
-# Hosts without wireguard_ip (backup_servers, integration) are not enrolled
-# as peers; the hub never renders a config for them.
 - name: WireGuard | Peer setup
   ansible.builtin.include_tasks: peer.yml
   when:
@@ -42,35 +49,3 @@
     - wireguard_stage == 'peer'
     - hostvars[inventory_hostname].wireguard_ip is defined
     - hostvars[inventory_hostname].wireguard_ip | length > 0
-
-- name: WireGuard | Lock down proxy
-  ansible.builtin.include_tasks: lockdown_proxy.yml
-  when:
-    - wireguard_enabled | bool
-    - wireguard_lockdown_monitoring | bool
-    - wireguard_stage == 'peer'
-    - inventory_hostname in groups.get('web', [])
-
-- name: WireGuard | Lock down monitoring
-  ansible.builtin.include_tasks: lockdown_monitor.yml
-  when:
-    - wireguard_enabled | bool
-    - wireguard_lockdown_monitoring | bool
-    - wireguard_stage == 'peer'
-    - inventory_hostname in groups.get('monitoring', [])
-
-- name: WireGuard | Lock down PostgreSQL
-  ansible.builtin.include_tasks: lockdown_postgres.yml
-  when:
-    - wireguard_enabled | bool
-    - wireguard_lockdown_monitoring | bool
-    - wireguard_stage == 'peer'
-    - inventory_hostname in groups.get('databases', [])
-
-- name: WireGuard | Lock down instances
-  ansible.builtin.include_tasks: lockdown_instances.yml
-  when:
-    - wireguard_enabled | bool
-    - wireguard_lockdown_monitoring | bool
-    - wireguard_stage == 'peer'
-    - inventory_hostname in groups.get('instances', [])

@@ -2,6 +2,15 @@
 
 WireGuard provides a secure VPN tunnel for administering DHIS2 infrastructure. The hub runs in its own LXD container; every app container (proxy, postgres, dhis, monitor) joins as a WG peer with its own `wg0` interface. Home/admin peers (sysadmin laptops) connect to the hub via the LXD host's public IP over UDP `51820`. Public DHIS2 web access is unaffected.
 
+WireGuard is set up by `dhis2.yml` in a single deploy, in two stages run back-to-back:
+
+1. **Mesh bring-up** — `playbooks/wireguard.yml`. Creates the hub container (LXD only), installs WireGuard everywhere, and connects every peer.
+2. **Service lockdown** — `playbooks/wireguard-lockdown.yml`. Restricts Grafana, Prometheus, Munin, Glowroot and PostgreSQL to the VPN subnet only.
+
+Both are imported by `dhis2.yml` and gated on `wireguard_enabled`, so a single `sudo ./deploy.sh` (or `ansible-playbook dhis2.yml`) takes you all the way to a hardened deployment. SSH on port 22 and the DHIS2 web app on 80/443 are deliberately left public.
+
+If you need the mesh without the firewall (e.g. during cut-over, while not all admins are on the VPN yet), skip lockdown with `--skip-tags wireguard-lockdown` — see [Skipping or reverting the lockdown](#skipping-or-reverting-the-lockdown).
+
 ## Architecture
 
 ```
@@ -68,7 +77,13 @@ wireguard_endpoint_public=203.0.113.42      # public IP or DNS name
 
 ### 1. Configure the inventory
 
-Edit `deploy/inventory/hosts` and set:
+Copy the template, lock down its permissions (it ends up holding peer IP allocations and, optionally, manually-supplied keys), and set the master switch:
+
+```bash
+cp deploy/inventory/hosts.template deploy/inventory/hosts
+```
+
+Then edit `deploy/inventory/hosts` and set:
 
 ```ini
 [all:vars]
@@ -90,7 +105,9 @@ dhis      ansible_host=172.19.2.11  ... wireguard_ip=10.0.0.4
 [monitoring]
 monitor   ansible_host=172.19.2.30  wireguard_ip=10.0.0.5
 
-[wireguard]
+# Group is wireguard_hub (not "wireguard") to avoid Ansible's
+# "host and group share name" warning.
+[wireguard_hub]
 wireguard ansible_host=172.19.2.200 wireguard_ip=10.0.0.1
 ```
 
@@ -116,21 +133,30 @@ Each peer needs only a **name** and **IP address**. Keypairs are generated hub-s
 ```bash
 cd deploy/
 
-# Full deployment (includes WireGuard)
+# Full deployment: DHIS2 setup + WireGuard mesh + service lockdown.
+# dhis2.yml imports playbooks/wireguard.yml and then
+# playbooks/wireguard-lockdown.yml at the end.
 sudo ./deploy.sh
 
-# Or deploy only WireGuard on an existing setup
-sudo ansible-playbook dhis2.yml --tags wireguard
+# Or bring up the VPN only (mesh + lockdown) on an already-deployed cluster:
+sudo ansible-playbook playbooks/wireguard.yml \
+  && sudo ansible-playbook playbooks/wireguard-lockdown.yml
+
+# Deploy the mesh without the lockdown (rare; e.g. mid-cutover):
+sudo ansible-playbook dhis2.yml --skip-tags wireguard-lockdown
 ```
 
-The playbook will:
-- Provision the `wireguard` LXD container at `172.19.2.200`.
-- Add an `lxc network forward` rule so UDP `51820` from the host's public IP lands inside the wireguard container.
+A `wireguard_enabled=true` run of `dhis2.yml` will:
+
+- Provision the `wireguard` LXD container at `172.19.2.200` (LXD setups only — skipped automatically on SSH/distributed deployments).
+- Add an `lxc network forward` rule so UDP `51820` from the host's public IP lands inside the wireguard container (LXD only).
 - Install WireGuard packages inside the hub and inside every app container.
 - Generate hub + peer keypairs (preserved across runs).
 - Render `wg0.conf` for the hub and per-peer `.conf` files for every container and every human peer.
 - Pull each app container's config from the hub via Ansible `slurp` and start `wg-quick@wg0`.
-- Lock down monitoring and database access to VPN-only.
+- Restrict Grafana, Prometheus, Munin, Glowroot and PostgreSQL to the VPN subnet, and strip the `/glowroot` block from the public proxy.
+
+SSH on port 22 and the DHIS2 web app on 80/443 are deliberately left public. To peel off individual hardening steps (for debugging, mid-cutover, or operator preference), see [Skipping or reverting the lockdown](#skipping-or-reverting-the-lockdown).
 
 ### 4. Retrieve and import a human peer config
 
@@ -154,30 +180,68 @@ sudo wg-quick up /path/to/sysadmin.conf
 # macOS / Windows
 # Import the .conf file into the WireGuard app
 
-# Mobile (generate QR code on the hub)
-sudo lxc exec wireguard -- qrencode -t ansiutf8 < /etc/wireguard/clients/sysadmin.conf
+# Mobile (generate QR code on the hub).
+# qrencode is not pulled in by wireguard-tools — install it inside the hub
+# container first. The redirection must run inside the container, hence
+# `bash -c '...'`; a top-level `<` would be parsed by the LXD host shell
+# and fail because the .conf file lives inside the container.
+sudo lxc exec wireguard -- apt-get install -y qrencode
+sudo lxc exec wireguard -- bash -c \
+  'qrencode -t ansiutf8 < /etc/wireguard/clients/sysadmin.conf'
 ```
 
-### 5. Verify connectivity
+### 5. Verify deployment
+
+A full `dhis2.yml` run brings the mesh up *and* applies lockdown. Verify both:
+
+**Mesh health (run regardless of lockdown):**
 
 ```bash
-# On the home machine (connected over WG):
-ping 10.0.0.1                # hub
-ping 10.0.0.5                # monitor (via mesh)
-curl http://10.0.0.5:3000    # Grafana (locked-down, VPN-only)
-psql -h 10.0.0.3 -U dhis -d dhis2
-
-# On the LXD host:
-sudo lxc exec wireguard -- wg show
+# On the LXD host (only meaningful for LXD deployments):
+sudo lxc exec wireguard -- wg show              # all peers + recent handshakes
 sudo lxc exec proxy -- wg show
-sudo lxc network forward show lxdbr1   # confirms UDP 51820 forward
+sudo lxc network forward show lxdbr1            # confirms UDP 51820 forward
+
+# On the home machine (connected over WG):
+ping 10.0.0.1                                   # hub
+ping 10.0.0.5                                   # monitor via mesh relay
 ```
 
-## What gets locked down
+**Lockdown effects (skip this block if you ran with `--skip-tags wireguard-lockdown`):**
 
-When `wireguard_enabled=true` and `wireguard_lockdown_monitoring=true` (default):
+```bash
+# From the LXD host (not on the VPN) — should fail / time out.
+curl -m 3 http://172.19.2.30:3000/              # Grafana — was reachable, now blocked
+curl -m 3 http://172.19.2.11:4000/              # Glowroot — was reachable, now blocked
 
-| Service | Container | Port | Before VPN | After VPN |
+# From a connected WG peer (e.g. 10.0.0.6):
+curl -m 3 http://10.0.0.5:3000/                 # Grafana via VPN
+curl -m 3 http://10.0.0.4:4000/                 # Glowroot via VPN
+psql -h 10.0.0.3 -U dhis -d dhis2               # only if pg_access is set for this peer
+
+# DHIS2 itself stays public — sanity check it hasn't moved:
+curl -I https://your.dhis2.fqdn/                # expect 200 / 302
+```
+
+If the lockdown checks fail but the mesh checks pass, the most likely cause is a misconfigured `wireguard_endpoint_public` (cloud 1:1 NAT) or UDP `51820` blocked at the cloud security group — see [Troubleshooting](#troubleshooting). To recover monitoring access while you debug, run `sudo ansible-playbook dhis2.yml --skip-tags wireguard-lockdown` to peel lockdown off without tearing down the mesh.
+
+## Service lockdown
+
+The lockdown stage runs automatically as part of `dhis2.yml` whenever `wireguard_enabled=true`. It is idempotent — re-running with no inventory changes does nothing — and can also be invoked standalone to re-apply after manual UFW edits:
+
+```bash
+cd deploy/
+
+# Dry-run the lockdown stage on its own (mesh assumed already up).
+sudo ansible-playbook playbooks/wireguard-lockdown.yml --check --diff
+
+# Re-apply standalone (rarely needed; dhis2.yml already does this).
+sudo ansible-playbook playbooks/wireguard-lockdown.yml
+```
+
+### What gets locked down
+
+| Service | Container | Port | Before lockdown | After lockdown |
 |---|---|---|---|---|
 | Grafana | monitor | 3000 | Accessible via proxy `/grafana` | VPN-only (`10.0.0.5:3000`) |
 | Prometheus | monitor | 9090 | Accessible via proxy | VPN-only |
@@ -186,7 +250,28 @@ When `wireguard_enabled=true` and `wireguard_lockdown_monitoring=true` (default)
 | munin-node | dhis instances | 4949 | Accessible from monitor container | Monitor container only |
 | PostgreSQL | postgres | 5432 | LXD network only | VPN-only, per-peer rules |
 
-**Not affected**: DHIS2 web app on ports 80/443 through the proxy stays public.
+**Not affected**: SSH on port 22 and the DHIS2 web app on ports 80/443 stay public. The lockdown only touches operational/admin services.
+
+### Per-component control
+
+Each lockdown step has its own tag so you can opt into or out of a subset. Tags work whether the playbook runs via `dhis2.yml` or standalone:
+
+| Tag | Effect |
+|---|---|
+| `lockdown-proxy` | Empties monitoring upstream configs on nginx/apache; re-renders DHIS2 vhosts without `/glowroot` blocks |
+| `lockdown-monitor` | UFW rules: allow Grafana/Prometheus/Munin from VPN subnet only; remove proxy → Grafana and proxy → Munin rules |
+| `lockdown-postgres` | Per-peer `pg_hba.conf` rules from `wireguard_peers[*].pg_access`; UFW rule allowing 5432 from VPN subnet |
+| `lockdown-instances` | UFW rule allowing Glowroot 4000 from VPN subnet; munin-node 4949 restricted to monitor container |
+| `wireguard-lockdown` | Umbrella tag matching all four of the above (used by `--skip-tags wireguard-lockdown`) |
+
+```bash
+# Deploy with the mesh up but PostgreSQL still LXD-only (e.g. while a
+# remote DBA hasn't been onboarded to the VPN yet):
+sudo ansible-playbook dhis2.yml --skip-tags lockdown-postgres
+
+# Re-run only the proxy lockdown after editing inventory:
+sudo ansible-playbook playbooks/wireguard-lockdown.yml --tags lockdown-proxy
+```
 
 ### PostgreSQL VPN access
 
@@ -213,17 +298,31 @@ If a peer's `allowed_ips` routes additional networks (comma-separated CIDRs), se
 
 App-level pg_hba entries (added by the `create-instance` role) are unaffected — they continue to work over the LXD bridge.
 
-The role manages all `pg_access`-derived rules inside a single `blockinfile` block delimited by `# BEGIN/END ANSIBLE MANAGED — wireguard per-peer pg_access`. Removing a peer (or its `pg_access` entry) and re-running the role removes the corresponding `hostssl` line. A blanket `host all all <lxd_gateway_ip>/32` grant added by older versions of this role is removed on upgrade.
+The role manages all `pg_access`-derived rules inside a single `blockinfile` block delimited by `# BEGIN/END ANSIBLE MANAGED — wireguard per-peer pg_access`. Removing a peer (or its `pg_access` entry) and re-running `playbooks/wireguard-lockdown.yml` removes the corresponding `hostssl` line.
 
-### Restoring public monitoring access
+### Skipping or reverting the lockdown
 
-Set `wireguard_lockdown_monitoring: false` and re-run:
+Because lockdown is now part of `dhis2.yml`, "skipping" and "reverting" are the same operation: tell `dhis2.yml` not to run the lockdown tag(s) you want to undo. The mesh is unaffected — only the firewall and proxy hardening flips back.
 
 ```bash
-sudo ansible-playbook dhis2.yml --tags monitoring,proxy-install,wireguard
+# Skip the whole lockdown for this run (mesh stays up, services revert
+# to public). Idempotent: re-runs without the flag will re-lock them.
+sudo ansible-playbook dhis2.yml --skip-tags wireguard-lockdown
+
+# Revert one component only — e.g. unlock PostgreSQL while a remote DBA
+# joins the VPN, then drop the flag once they're on:
+sudo ansible-playbook dhis2.yml --skip-tags lockdown-postgres
 ```
 
-The monitoring and proxy roles recreate the deleted config files idempotently.
+Important: skipping a lockdown tag on its own does **not** restore the original UFW rules / nginx vhost content — it just stops the lockdown tasks from running on that play. To re-create the pre-lockdown state, also re-run the role that originally produced those rules:
+
+```bash
+# Restore proxy → monitoring UFW rules and the /glowroot proxy block:
+sudo ansible-playbook dhis2.yml --tags monitoring,proxy-install \
+  --skip-tags wireguard-lockdown
+```
+
+To turn WireGuard off completely (mesh + lockdown), set `wireguard_enabled=false` in inventory and re-run `dhis2.yml`. The mesh plays no-op and the lockdown plays no-op — but again, services that were already locked down won't auto-revert; run the `dhis2.yml --tags monitoring,proxy-install --skip-tags wireguard-lockdown` recipe above to restore them.
 
 ## Configuration reference
 
@@ -245,7 +344,7 @@ All variables are set in `deploy/roles/wireguard/defaults/main.yml` and can be o
 | `wireguard_client_config_dir` | `/etc/wireguard/clients` | Directory on the hub for peer configs |
 | `wireguard_client_key_dir` | `/etc/wireguard/clients/keys` | Directory on the hub for peer keys |
 | `wireguard_prune_orphans` | `false` | Remove files for peers no longer in inventory |
-| `wireguard_lockdown_monitoring` | `true` | Restrict monitoring/DB to VPN-only |
+| `wireguard_lockdown_monitoring` | `false` | Gates the `/glowroot` proxy block in `roles/create-instance/templates/{nginx,apache2}/instance.j2`. Default `false` keeps `/glowroot` reachable through the public proxy. `playbooks/wireguard-lockdown.yml` (`lockdown_proxy.yml`) sets it to `true` via task vars when re-rendering, which strips the block. Re-run `dhis2.yml --tags proxy-install` to revert. Not normally set in inventory |
 | `wireguard_peers` | `[]` | List of human/admin peers |
 
 ### Peer definition (human peers only)
@@ -293,15 +392,20 @@ AllowedIPs = 0.0.0.0/0
 
 ### Adding a new peer
 
-Add the peer to `wireguard_peers` and re-run:
+Add the peer to `wireguard_peers` (and a `pg_access` entry if they need database access), then re-run the full deploy:
 
 ```bash
-sudo ansible-playbook dhis2.yml --tags wireguard
+sudo ansible-playbook dhis2.yml
 ```
 
-Then retrieve the config from `/etc/wireguard/clients/<name>.conf` inside the hub container.
+The mesh stage adds the peer and applies the change with `wg syncconf` (no existing tunnels dropped); the lockdown stage immediately after picks up the new `pg_access` entries and writes them to `pg_hba.conf`. Retrieve the new peer's config from `/etc/wireguard/clients/<name>.conf` inside the hub container.
 
-The hub uses `wg syncconf` to apply peer changes **without dropping existing VPN sessions**.
+If you want to do just the WireGuard portion without re-running the rest of `dhis2.yml`:
+
+```bash
+sudo ansible-playbook playbooks/wireguard.yml \
+  && sudo ansible-playbook playbooks/wireguard-lockdown.yml --tags lockdown-postgres
+```
 
 ### Removing a peer
 
@@ -312,7 +416,7 @@ Remove the peer entry and re-run. Set `wireguard_prune_orphans: true` to also cl
 ```bash
 # On the LXD host, reach into the hub container:
 sudo lxc exec wireguard -- rm /etc/wireguard/clients/keys/sysadmin.{key,pub,psk}
-sudo ansible-playbook dhis2.yml --tags wireguard
+sudo ansible-playbook dhis2.yml
 ```
 
 The affected peer must re-import their updated `.conf`.
@@ -362,11 +466,23 @@ Old `10.8.0.0/24` client `.conf` files will not work — re-import the freshly g
 
 ## Disabling WireGuard
 
-Set `wireguard_enabled=false` in the inventory. Subsequent playbook runs skip WG tasks but do **not** tear down an existing hub container. To fully remove:
+Set `wireguard_enabled=false` in the inventory. Subsequent `dhis2.yml` runs no-op both the mesh and the lockdown — every play in `playbooks/wireguard.yml` and `playbooks/wireguard-lockdown.yml` gates on `wireguard_enabled`.
+
+This **stops future WireGuard changes** but does **not** tear down an existing hub container or revert UFW / `pg_hba.conf` / proxy edits already applied by previous lockdown runs. To fully remove:
 
 ```bash
+# 1. Stop and remove the hub container (LXD setups only).
 sudo lxc stop wireguard && sudo lxc delete wireguard
 sudo lxc network forward port remove lxdbr1 <host-ip> udp 51820
-```
 
-Then revert any UFW lockdown rules and re-enable proxy monitoring paths if needed by re-running the monitoring and proxy roles.
+# 2. Stop wg-quick on each app container.
+for c in proxy postgres dhis monitor; do
+  sudo lxc exec "$c" -- systemctl disable --now wg-quick@wg0
+  sudo lxc exec "$c" -- rm -rf /etc/wireguard
+done
+
+# 3. Restore public access to services that the lockdown playbook
+#    locked down. Re-running the upstream DHIS2 roles re-creates the
+#    original UFW and proxy configs idempotently:
+sudo ansible-playbook dhis2.yml --tags monitoring,proxy-install
+```

@@ -41,8 +41,6 @@
   changed_when: true
   when: wireguard_endpoint_listen_resolved not in _listen_addrs
 
-# lxc network forward DNATs in PREROUTING — packets go to the container
-# via FORWARD chain, never hit the host INPUT chain. No host UFW rule needed.
 - name: WireGuard | Add UDP forward to hub container
   vars:
     ansible_connection: local
@@ -57,10 +55,3 @@
     - wireguard_port_fwd.rc != 0
     - "'already exists' not in wireguard_port_fwd.stderr"
     - "'Duplicate' not in wireguard_port_fwd.stderr"
-
-- name: WireGuard | Remove legacy host UFW UDP rule (no longer needed with lxc forward)
-  community.general.ufw:
-    rule: allow
-    port: "{{ wireguard_port | string }}"
-    proto: udp
-    delete: true
