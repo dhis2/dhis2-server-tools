@@ -1,0 +1,21 @@
+{{ ansible_managed | comment }}
+# WireGuard hub config — runs inside the {{ wireguard_hub_inventory_hostname }} container.
+# Spoke ↔ spoke routing happens via kernel forwarding on this hub
+# (net.ipv4.ip_forward=1 + iptables FORWARD wg0↔wg0 ACCEPT).
+
+[Interface]
+Address = {{ wireguard_server_ip }}/24
+ListenPort = {{ wireguard_port }}
+PrivateKey = {{ wireguard_server_private_key_data.content | b64decode | trim }}
+SaveConfig = false
+
+{% for peer in wireguard_peers_resolved %}
+[Peer]
+# {{ peer.name }} ({{ peer.endpoint_kind }})
+PublicKey = {{ peer.public_key }}
+AllowedIPs = {{ peer.allowed_ips }}
+{% if peer._preshared_key is defined and peer._preshared_key %}
+PresharedKey = {{ peer._preshared_key }}
+{% endif %}
+
+{% endfor %}

@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  author: DHIS2
+  description: WireGuard VPN for securing DHIS2 monitoring and database access
+  license: BSD-3-Clause
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy    # 22.04
+        - noble    # 24.04
+  galaxy_tags:
+    - wireguard
+    - vpn
+    - security
+    - dhis2
+
+dependencies: []

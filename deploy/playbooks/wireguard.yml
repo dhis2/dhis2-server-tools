@@ -1,0 +1,106 @@
+---
+# WireGuard VPN bring-up — standalone playbook.
+#
+# Brings up the WireGuard mesh in three independent stages so each can be
+# debugged or re-run on its own:
+#   1. host_portforward — provision the hub LXD container and the lxc network
+#      forward into it (LXD deployments only; SSH/distributed setups expose
+#      the hub VM directly via the operator's firewall).
+#   2. hub              — install/configure WireGuard server inside the hub.
+#   3. peer             — install/configure WireGuard on every app host.
+#
+# This playbook does NOT alter Grafana/Prometheus/Munin/Glowroot/PostgreSQL
+# access rules. To restrict those services to VPN-only access, run
+# `playbooks/wireguard-lockdown.yml` AFTER verifying the mesh works.
+#
+# Auto-imported from dhis2.yml when wireguard_enabled=true. May also be run
+# directly:
+#   ansible-playbook playbooks/wireguard.yml
+
+- name: WireGuard | Provision hub on localhost
+  hosts: 127.0.0.1
+  become: true
+  gather_facts: false
+  tags:
+    - wireguard
+    - wireguard-bring-up
+  tasks:
+    # Capture the inventory-level deployment mode. We must read it from the
+    # wireguard hub host's hostvars (not from 127.0.0.1's), because when this
+    # playbook is imported by dhis2.yml the pre-install role has already
+    # set_fact'd ansible_connection=local on 127.0.0.1, which would make
+    # this read 'local' instead of the inventory's 'lxd'. The hub host's
+    # ansible_connection comes straight from [all:vars] and is never
+    # clobbered.
+    - name: WireGuard | Capture deployment mode (lxd vs ssh)
+      vars:
+        ansible_connection: local
+      ansible.builtin.set_fact:
+        wireguard_deploy_mode: >-
+          {{ hostvars[wireguard_hub_inventory_hostname | default('wireguard')]['ansible_connection']
+             | default('lxd') }}
+
+    - name: WireGuard | Set Ansible connection to local
+      vars:
+        ansible_connection: local
+      ansible.builtin.set_fact:
+        ansible_connection: local
+
+    - name: WireGuard | Gather network facts on host
+      ansible.builtin.setup:
+        gather_subset:
+          - network
+          - '!min'
+
+    - name: WireGuard | Validate configuration
+      ansible.builtin.include_role:
+        name: wireguard
+        tasks_from: validate.yml
+      when: wireguard_enabled | default(false) | bool
+
+    - name: WireGuard | Provision hub LXD container (LXD only)
+      ansible.builtin.include_role:
+        name: wireguard
+        tasks_from: lxd_container.yml
+      when:
+        - wireguard_enabled | default(false) | bool
+        - wireguard_deploy_mode == 'lxd'
+
+    - name: WireGuard | LXD host port-forward (LXD only)
+      ansible.builtin.include_role:
+        name: wireguard
+        tasks_from: host_portforward.yml
+      when:
+        - wireguard_enabled | default(false) | bool
+        - wireguard_deploy_mode == 'lxd'
+
+- name: WireGuard | Configure hub server
+  hosts: "{{ wireguard_hub_inventory_hostname | default('wireguard') }}"
+  become: true
+  gather_facts: false
+  tags:
+    - wireguard
+    - wireguard-bring-up
+  tasks:
+    - name: WireGuard | Hub
+      ansible.builtin.include_role:
+        name: wireguard
+        tasks_from: hub.yml
+      when: wireguard_enabled | default(false) | bool
+
+- name: WireGuard | Configure peers across app hosts
+  hosts: "all:!127.0.0.1:!{{ wireguard_hub_inventory_hostname | default('wireguard') }}"
+  become: true
+  gather_facts: false
+  tags:
+    - wireguard
+    - wireguard-bring-up
+  tasks:
+    - name: WireGuard | Peer
+      ansible.builtin.include_role:
+        name: wireguard
+        tasks_from: peer.yml
+      when:
+        - wireguard_enabled | default(false) | bool
+        - hostvars[inventory_hostname].wireguard_ip is defined
+        - hostvars[inventory_hostname].wireguard_ip | length > 0

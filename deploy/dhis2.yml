@@ -10,7 +10,7 @@
   gather_facts: false
   force_handlers: true
   become: true
-  hosts: all:!127.0.0.1
+  hosts: all:!127.0.0.1:!{{ wireguard_hub_inventory_hostname | default('wireguard') }}
   vars_files:
     - vars/vars.yml
   roles:
@@ -43,6 +43,20 @@
   become: true
   roles:
     - role: backups
+
+- name: WireGuard VPN bring-up
+  ansible.builtin.import_playbook: playbooks/wireguard.yml
+
+# Lockdown is auto-imported. Every play inside gates on wireguard_enabled,
+# so this is a no-op when WireGuard is disabled. To deploy the mesh without
+# locking services down (e.g. during initial cut-over while not all admins
+# are on the VPN yet), run:
+#   ansible-playbook dhis2.yml --skip-tags wireguard-lockdown
+# To revert a specific component without disabling WireGuard, use the
+# per-component skip-tags listed in docs/WireGuard-VPN.md (lockdown-proxy,
+# lockdown-monitor, lockdown-postgres, lockdown-instances).
+- name: WireGuard VPN service lockdown
+  ansible.builtin.import_playbook: playbooks/wireguard-lockdown.yml
 
 - import_playbook: playbooks/delete-dhis2-instance.yml
   tags: [never, delete-instance]

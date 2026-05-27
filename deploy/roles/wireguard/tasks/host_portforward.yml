@@ -1,0 +1,57 @@
+---
+# Forwards UDP {{ wireguard_port }} from a host-owned IP into the hub
+# container via `lxc network forward`.
+#
+# wireguard_endpoint_listen is the host-side bind IP (LXD forwards bind on
+# host-side only). wireguard_endpoint_public is what home peers dial; it's
+# resolved in hub.yml. On cloud VMs with 1:1 NAT (e.g. AWS EIP) the listen
+# IP is the private primary and public IP must be set explicitly.
+
+- name: WireGuard | Resolve listen address for `lxc network forward`
+  ansible.builtin.set_fact:
+    wireguard_endpoint_listen_resolved: >-
+      {{ wireguard_endpoint_listen
+         if (wireguard_endpoint_listen | length > 0)
+         else ansible_default_ipv4.address }}
+
+- name: WireGuard | Resolve public endpoint advertised to home peers
+  ansible.builtin.set_fact:
+    wireguard_endpoint_public_resolved: >-
+      {{ wireguard_endpoint_public
+         if (wireguard_endpoint_public | length > 0)
+         else wireguard_endpoint_listen_resolved }}
+
+- name: WireGuard | List existing LXD network forwards
+  vars:
+    ansible_connection: local
+  ansible.builtin.command:
+    cmd: lxc network forward list {{ lxd_bridge_interface }} --format json
+  register: wireguard_lxd_forwards
+  changed_when: false
+
+- name: WireGuard | Ensure LXD network forward exists for listen address
+  vars:
+    ansible_connection: local
+    _listen_addrs: >-
+      {{ wireguard_lxd_forwards.stdout | from_json | map(attribute='listen_address') | list }}
+  ansible.builtin.command:
+    cmd: >-
+      lxc network forward create {{ lxd_bridge_interface }}
+      {{ wireguard_endpoint_listen_resolved }}
+  changed_when: true
+  when: wireguard_endpoint_listen_resolved not in _listen_addrs
+
+- name: WireGuard | Add UDP forward to hub container
+  vars:
+    ansible_connection: local
+  ansible.builtin.command:
+    cmd: >-
+      lxc network forward port add {{ lxd_bridge_interface }}
+      {{ wireguard_endpoint_listen_resolved }} udp {{ wireguard_port }}
+      {{ wireguard_hub_lxd_ip }} {{ wireguard_port }}
+  register: wireguard_port_fwd
+  changed_when: wireguard_port_fwd.rc == 0
+  failed_when:
+    - wireguard_port_fwd.rc != 0
+    - "'already exists' not in wireguard_port_fwd.stderr"
+    - "'Duplicate' not in wireguard_port_fwd.stderr"

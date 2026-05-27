@@ -1,0 +1,144 @@
+---
+argument_specs:
+  main:
+    short_description: "WireGuard VPN for securing DHIS2 monitoring and database access"
+    description:
+      - Deploys a WireGuard VPN hub inside a dedicated LXD container.
+      - Each app container (proxy/postgres/dhis/monitor) joins as a WG peer.
+      - Optionally locks down monitoring dashboards and PostgreSQL to VPN-only access.
+    options:
+      wireguard_enabled:
+        description: "Master switch — enable the WireGuard VPN role"
+        type: bool
+        default: false
+      wireguard_stage:
+        description: >-
+          Legacy per-play stage selector retained for backward compatibility
+          when the role is invoked the old way
+          (roles: [{ role: wireguard, vars: { wireguard_stage: ... } }]).
+          The current playbooks (playbooks/wireguard.yml,
+          playbooks/wireguard-lockdown.yml) call task files directly via
+          include_role tasks_from: and ignore this variable.
+          One of: host_portforward, hub, peer, or empty.
+        type: str
+        default: ""
+        choices: ["", "host_portforward", "hub", "peer"]
+      wireguard_network:
+        description: "VPN subnet in CIDR notation"
+        type: str
+        default: "10.0.0.0/24"
+      wireguard_server_ip:
+        description: "Hub IP address on the VPN subnet"
+        type: str
+        default: "10.0.0.1"
+      wireguard_hub_inventory_hostname:
+        description: "Inventory hostname of the wireguard hub container"
+        type: str
+        default: "wireguard"
+      wireguard_hub_lxd_ip:
+        description: "Static LXD IP assigned to the wireguard hub container"
+        type: str
+        default: "172.19.2.200"
+      wireguard_endpoint_listen:
+        description: >-
+          Listen address used by `lxc network forward` on the LXD host.
+          Must be an IP owned by the host itself. Empty = auto-detect via
+          ansible_default_ipv4.address. On cloud VMs behind 1:1 NAT this
+          is the private primary IP, NOT the public IP.
+        type: str
+        default: ""
+      wireguard_endpoint_public:
+        description: >-
+          Public IP/hostname advertised to home/admin peers as their
+          Endpoint = line. Empty falls back to wireguard_endpoint_listen.
+          On cloud VMs with 1:1 NAT this MUST be set explicitly to the
+          public IP/hostname or home peers will receive an unroutable
+          Endpoint.
+        type: str
+        default: ""
+      wireguard_port:
+        description: "UDP listen port for WireGuard"
+        type: int
+        default: 51820
+      wireguard_interface:
+        description: "WireGuard network interface name"
+        type: str
+        default: "wg0"
+      lxd_bridge_interface:
+        description: "LXD bridge interface name (must match the LXD network)"
+        type: str
+        default: "lxdbr1"
+      lxd_network:
+        description: "LXD container subnet in CIDR notation"
+        type: str
+        default: "172.19.2.0/24"
+      lxd_gateway_ip:
+        description: "Host-side IP of the LXD bridge"
+        type: str
+        default: "172.19.2.1"
+      wireguard_peers:
+        description: >-
+          List of human/admin VPN peers (laptops, home machines).
+          App containers are auto-derived from inventory wireguard_ip; do NOT
+          list them here. Each entry requires name and allowed_ips.
+          public_key is required only when wireguard_auto_generate_keys is false.
+          Optional: preshared_key.
+          Optional: peer_ip (single CIDR ending in /32) — used for per-peer
+          pg_hba.conf rules when allowed_ips routes additional networks. If
+          omitted, the first CIDR in allowed_ips is used.
+          Optional: pg_access (list of {database, user}) — generates per-peer
+          pg_hba.conf entries on the databases host. Database and user names
+          must match ^[a-zA-Z0-9_]+$ (PostgreSQL keyword 'all' is allowed).
+          Peers without pg_access have no PostgreSQL access.
+        type: list
+        elements: dict
+        default: []
+      wireguard_auto_generate_keys:
+        description: >-
+          When true, generate peer keypairs hub-side and produce
+          complete, ready-to-import client configs. When false, peers
+          must supply their own public_key.
+        type: bool
+        default: true
+      wireguard_auto_generate_psk:
+        description: >-
+          When true, generate a pre-shared key (PSK) for each peer that does
+          not supply an explicit preshared_key, and embed it into both the
+          hub and peer configs. Adds a symmetric post-quantum hedge.
+          Off by default — enabling on an existing deployment forces all
+          affected clients to re-import their .conf.
+        type: bool
+        default: false
+      wireguard_client_config_dir:
+        description: "Directory on the hub for generated peer config files"
+        type: str
+        default: "/etc/wireguard/clients"
+      wireguard_client_key_dir:
+        description: "Directory on the hub for generated peer key files"
+        type: str
+        default: "/etc/wireguard/clients/keys"
+      wireguard_prune_orphans:
+        description: >-
+          When true, remove peer key/PSK/config files for peers no longer
+          present in inventory or wireguard_peers. Off by default to avoid
+          accidental destruction.
+        type: bool
+        default: false
+      wireguard_lockdown_monitoring:
+        description: >-
+          Gates the `/glowroot` proxy block in
+          roles/create-instance/templates/{nginx,apache2}/instance.j2.
+          Default false. The proxy role's first render during `dhis2.yml`
+          keeps `/glowroot` present; `playbooks/wireguard-lockdown.yml`
+          (lockdown_proxy.yml), which is auto-imported by `dhis2.yml`
+          immediately after the mesh playbook, sets this to true via task
+          vars and re-renders the same files to strip the block. Net
+          result of a full `dhis2.yml` run with wireguard_enabled=true:
+          `/glowroot` is absent. To preserve `/glowroot` while keeping the
+          VPN, run with `--skip-tags lockdown-proxy`.
+        type: bool
+        default: false
+      grafana_port:
+        description: "Grafana HTTP port — used for VPN-only UFW rules"
+        type: int
+        default: 3000

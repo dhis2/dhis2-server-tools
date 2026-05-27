@@ -1,0 +1,51 @@
+---
+# The role is normally driven from playbooks/wireguard.yml and
+# playbooks/wireguard-lockdown.yml via include_role tasks_from:, so this
+# dispatcher is only used when the role is invoked the legacy way
+# (roles: [{ role: wireguard, vars: { wireguard_stage: ... } }]).
+#
+# Stages:
+#   host_portforward — provision hub LXD container + lxc network forward
+#                      (LXD deployments only).
+#   hub              — install/configure WireGuard server inside the hub.
+#   peer             — install/configure WireGuard on each app host.
+#
+# Lockdown stages (lockdown_proxy, lockdown_monitor, lockdown_postgres,
+# lockdown_instances) are NOT exposed here; run
+# playbooks/wireguard-lockdown.yml explicitly after the mesh is verified.
+
+- name: WireGuard | Validate configuration
+  ansible.builtin.include_tasks: validate.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_stage == 'host_portforward'
+  tags:
+    - always
+
+- name: WireGuard | Provision hub LXD container (LXD only)
+  ansible.builtin.include_tasks: lxd_container.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_stage == 'host_portforward'
+    - ansible_connection | default('lxd') == 'lxd'
+
+- name: WireGuard | LXD host port-forward (LXD only)
+  ansible.builtin.include_tasks: host_portforward.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_stage == 'host_portforward'
+    - ansible_connection | default('lxd') == 'lxd'
+
+- name: WireGuard | Hub container setup
+  ansible.builtin.include_tasks: hub.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_stage == 'hub'
+
+- name: WireGuard | Peer setup
+  ansible.builtin.include_tasks: peer.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_stage == 'peer'
+    - hostvars[inventory_hostname].wireguard_ip is defined
+    - hostvars[inventory_hostname].wireguard_ip | length > 0

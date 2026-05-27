@@ -1,0 +1,210 @@
+---
+- name: Hub | Wait for LXD connection to be usable
+  ansible.builtin.wait_for_connection:
+    timeout: 60
+    sleep: 3
+
+- name: Hub | Install WireGuard packages
+  ansible.builtin.apt:
+    name:
+      - wireguard
+      - wireguard-tools
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Hub | Ensure /etc/wireguard exists with secure permissions
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Hub | Ensure clients config directory exists
+  ansible.builtin.file:
+    path: '{{ wireguard_client_config_dir }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Hub | Check if hub private key exists
+  ansible.builtin.stat:
+    path: /etc/wireguard/server_private.key
+  register: wireguard_private_key_stat
+
+- name: Hub | Generate hub keypair
+  ansible.builtin.shell: |
+    set -o pipefail
+    umask 077
+    wg genkey | tee /etc/wireguard/server_private.key | wg pubkey > /etc/wireguard/server_public.key
+  args:
+    executable: /bin/bash
+  when: not wireguard_private_key_stat.stat.exists
+  changed_when: true
+
+- name: Hub | Set restrictive permissions on hub key files
+  ansible.builtin.file:
+    path: '/etc/wireguard/{{ item }}'
+    owner: root
+    group: root
+    mode: '0600'
+  loop:
+    - server_private.key
+    - server_public.key
+
+- name: Hub | Read hub private key
+  ansible.builtin.slurp:
+    src: /etc/wireguard/server_private.key
+  register: wireguard_server_private_key_data
+  no_log: true
+
+- name: Hub | Read hub public key
+  ansible.builtin.slurp:
+    src: /etc/wireguard/server_public.key
+  register: wireguard_server_public_key_data
+
+- name: Hub | Display hub public key
+  ansible.builtin.debug:
+    msg: >-
+      WireGuard Hub Public Key:
+      {{ wireguard_server_public_key_data.content | b64decode | trim }}
+
+- name: Hub | Enable IPv4 forwarding (spoke ↔ spoke routing)
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+    reload: true
+    sysctl_set: true
+
+- name: Hub | Allow wg0 ↔ wg0 FORWARD (mesh relay)
+  ansible.builtin.iptables:
+    chain: FORWARD
+    in_interface: '{{ wireguard_interface }}'
+    out_interface: '{{ wireguard_interface }}'
+    jump: ACCEPT
+    state: present
+
+# Normalize app-container and human peers into one shape so downstream
+# templates and key generation can iterate uniformly.
+- name: Hub | Build app-container peer entries from inventory
+  ansible.builtin.set_fact:
+    _wireguard_app_peers_normalized: >-
+      {{ _wireguard_app_peers_normalized | default([]) + [
+        {
+          'name': item,
+          'allowed_ips': hostvars[item].wireguard_ip ~ '/32',
+          'wireguard_ip': hostvars[item].wireguard_ip,
+          'endpoint_kind': 'internal'
+        }
+      ] }}
+  loop: "{{ groups['all'] | difference(['127.0.0.1', wireguard_hub_inventory_hostname]) }}"
+  loop_control:
+    label: "{{ item }}"
+  when: hostvars[item].wireguard_ip is defined
+
+- name: Hub | Normalize human peers from wireguard_peers
+  ansible.builtin.set_fact:
+    _wireguard_human_peers_normalized: >-
+      {{ _wireguard_human_peers_normalized | default([]) + [
+        item | combine({
+          'wireguard_ip': item.allowed_ips.split(',')[0] | trim | regex_replace('/[0-9]+$', ''),
+          'endpoint_kind': 'external'
+        })
+      ] }}
+  loop: "{{ wireguard_peers }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Hub | Combine app + human peers into unified list
+  ansible.builtin.set_fact:
+    _wireguard_unified_peers: >-
+      {{ (_wireguard_app_peers_normalized | default([]))
+         + (_wireguard_human_peers_normalized | default([])) }}
+
+- name: Hub | Resolve public endpoint for home/admin peers
+  ansible.builtin.set_fact:
+    wireguard_endpoint_public_resolved: >-
+      {{ wireguard_endpoint_public
+         if (wireguard_endpoint_public | length > 0)
+         else hostvars['127.0.0.1']['wireguard_endpoint_public_resolved']
+              | default(hostvars['127.0.0.1']['wireguard_endpoint_listen_resolved']
+                        | default(hostvars['127.0.0.1']['ansible_default_ipv4']['address']
+                                  | default('127.0.0.1'))) }}
+
+- name: Hub | Generate keys for all peers (auto-generate mode)
+  ansible.builtin.include_tasks: generate_client_keys.yml
+  vars:
+    wg_keygen_peers: "{{ _wireguard_unified_peers }}"
+  when:
+    - wireguard_auto_generate_keys | bool
+    - _wireguard_unified_peers | length > 0
+
+- name: Hub | Use unified peer list as resolved (no auto-generate)
+  ansible.builtin.set_fact:
+    wireguard_peers_resolved: '{{ _wireguard_unified_peers }}'
+  when: not (wireguard_auto_generate_keys | bool) or _wireguard_unified_peers | length == 0
+
+# Two render paths so live VPN sessions survive peer changes: first run
+# starts fresh from the file; subsequent runs notify `wg syncconf` instead
+# of restarting the unit.
+- name: Hub | Render wg0.conf
+  ansible.builtin.template:
+    src: wg0.conf.j2
+    dest: '/etc/wireguard/{{ wireguard_interface }}.conf'
+    owner: root
+    group: root
+    mode: '0600'
+  register: wireguard_hub_conf
+  notify: Sync WireGuard peers
+  when: wireguard_private_key_stat.stat.exists
+
+- name: Hub | Render wg0.conf (first run)
+  ansible.builtin.template:
+    src: wg0.conf.j2
+    dest: '/etc/wireguard/{{ wireguard_interface }}.conf'
+    owner: root
+    group: root
+    mode: '0600'
+  when: not wireguard_private_key_stat.stat.exists
+
+- name: Hub | Enable and start WireGuard service
+  ansible.builtin.systemd:
+    name: 'wg-quick@{{ wireguard_interface }}'
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: Hub | Warn when no peers are configured
+  ansible.builtin.debug:
+    msg: >-
+      WARNING: no WireGuard peers found (no app containers with wireguard_ip
+      and no entries in wireguard_peers). The hub will start but nothing can
+      connect.
+  when: _wireguard_unified_peers | length == 0
+
+- name: Hub | Render per-peer client configs
+  ansible.builtin.template:
+    src: client.conf.j2
+    dest: '{{ wireguard_client_config_dir }}/{{ item.name }}.conf'
+    owner: root
+    group: root
+    mode: '0600'
+  no_log: true
+  loop: '{{ wireguard_peers_resolved }}'
+  loop_control:
+    label: '{{ item.name }} ({{ item.endpoint_kind }})'
+  when: item._private_key is defined and item._private_key | length > 0
+
+- name: Hub | Display peer config retrieval instructions
+  ansible.builtin.debug:
+    msg: |
+      {{ wireguard_peers_resolved | length }} peer config(s) generated on the hub.
+
+      App-container configs are pulled automatically by the peer stage.
+
+      Human peer configs ({{ _wireguard_human_peers_normalized | default([]) | length }}):
+        sudo lxc exec {{ wireguard_hub_inventory_hostname }} -- cat {{ wireguard_client_config_dir }}/<name>.conf
+  when: wireguard_peers_resolved | default([]) | length > 0

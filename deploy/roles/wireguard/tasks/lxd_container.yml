@@ -1,0 +1,66 @@
+---
+# user.type="wireguard" is required so custom_lxd dynamic inventory can
+# discover the container.
+
+- name: WireGuard | Create wireguard hub container
+  vars:
+    ansible_connection: local
+  community.general.lxd_container:
+    config:
+      boot.autostart.priority: "5"
+      user.type: "wireguard"
+    name: "{{ wireguard_hub_inventory_hostname }}"
+    state: started
+    profiles: [default]
+    ignore_volatile_options: false
+    wait_for_container: true
+    wait_for_ipv4_addresses: true
+    timeout: 60
+    source:
+      type: image
+      mode: pull
+      server: "{{ lxd_source_server | default('https://cloud-images.ubuntu.com/releases') }}"
+      protocol: "{{ lxd_source_protocol | default('simplestreams') }}"
+      alias: "{{ guest_os }}/{{ guest_os_arch | default('amd64') }}"
+    devices:
+      eth0:
+        nictype: bridged
+        parent: "{{ lxd_bridge_interface | default('lxdbr1') }}"
+        type: nic
+        ipv4.address: "{{ wireguard_hub_lxd_ip }}"
+  register: wireguard_create_status
+
+- name: WireGuard | Ensure hub container has its static IP  # noqa: no-handler
+  vars:
+    ansible_connection: local
+  community.general.lxd_container:
+    name: "{{ wireguard_hub_inventory_hostname }}"
+    state: restarted
+    wait_for_ipv4_addresses: true
+  when: wireguard_create_status.changed
+  register: wireguard_restart_status
+
+- name: WireGuard | Wait for systemd inside hub container
+  ansible.builtin.command:
+    cmd: >-
+      lxc exec {{ wireguard_hub_inventory_hostname }} --
+      test -d /run/systemd/system
+  changed_when: false
+  retries: 30
+  delay: 2
+  register: wireguard_systemd_check
+  until: wireguard_systemd_check.rc == 0
+  when: wireguard_create_status.changed or (wireguard_restart_status.changed | default(false))
+
+- name: WireGuard | Wait for cloud-init to finish inside hub container
+  ansible.builtin.command:
+    cmd: >-
+      lxc exec {{ wireguard_hub_inventory_hostname }} --
+      cloud-init status --wait
+  changed_when: false
+  failed_when: false
+  retries: 3
+  delay: 5
+  register: wireguard_cloud_init_check
+  until: wireguard_cloud_init_check.rc in [0, 2]
+  when: wireguard_create_status.changed or (wireguard_restart_status.changed | default(false))

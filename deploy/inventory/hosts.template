@@ -3,25 +3,30 @@
  
 # proxy
 [web]
-proxy  ansible_host=172.19.2.2
+proxy  ansible_host=172.19.2.2  wireguard_ip=10.0.0.2
 
 
 # database hosts
 # To use SSH for a specific host instead of lxd, add ansible_connection=ssh ansible_user=<user>
 # EXAMPLE: postgres  ansible_host=192.168.1.50  ansible_connection=ssh  ansible_user=ubuntu
 [databases]
-postgres  ansible_host=172.19.2.20
+postgres  ansible_host=172.19.2.20  wireguard_ip=10.0.0.3
 
 # dhis2 hosts
 # EXAMPLE:  dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.42  fqdn=dhis.example.org  dhis2_auto_upgrade=true  proxy_rewrite=True
 # NOTE:  dhis2_auto_upgrade=true automates upgrading to the versision set in  dhis2_version=2.42 
 [instances]
-dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.42 proxy_rewrite=True
+dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.42 proxy_rewrite=True  wireguard_ip=10.0.0.4
 
 
 # monitoring hosts
 [monitoring]
-monitor   ansible_host=172.19.2.30 
+monitor   ansible_host=172.19.2.30  wireguard_ip=10.0.0.5
+
+# WireGuard hub container. wireguard_ip must match wireguard_server_ip.
+# Group is wireguard_hub (not wireguard) to avoid Ansible's "host and group share name" warning.
+[wireguard_hub]
+wireguard  ansible_host=172.19.2.200  wireguard_ip=10.0.0.1
 
 [backup_servers]
 backup  ansible_host=172.19.2.100
@@ -52,6 +57,11 @@ postgresql_version=16
 # monitoring
 server_monitoring=munin
 app_monitoring=glowroot
+
+# WireGuard VPN — restricts Grafana, Prometheus, Munin, Glowroot and PostgreSQL to VPN-only access.
+# App containers above are auto-derived as WG peers via inline wireguard_ip.
+# Human/admin peers (laptops, home machines) live in group_vars/all/vars.yml.
+wireguard_enabled=false
 
 
 # lxd

@@ -1,0 +1,42 @@
+---
+- name: Restart WireGuard
+  ansible.builtin.systemd:
+    name: "wg-quick@{{ wireguard_interface }}"
+    state: restarted
+    daemon_reload: true
+
+- name: Sync WireGuard peers
+  ansible.builtin.shell: |
+    wg syncconf {{ wireguard_interface }} <(wg-quick strip /etc/wireguard/{{ wireguard_interface }}.conf)
+  args:
+    executable: /bin/bash
+  changed_when: true
+
+- name: Reload UFW
+  community.general.ufw:
+    state: reloaded
+
+- name: Reload Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded
+
+- name: Reload Apache2
+  ansible.builtin.service:
+    name: apache2
+    state: reloaded
+
+- name: Restart Grafana
+  ansible.builtin.service:
+    name: grafana-server
+    state: restarted
+
+- name: Restart Apache2
+  ansible.builtin.service:
+    name: apache2
+    state: restarted
+
+- name: Reload PostgreSQL
+  ansible.builtin.service:
+    name: postgresql
+    state: reloaded

@@ -1,0 +1,105 @@
+---
+- name: Check if Grafana is installed
+  ansible.builtin.stat:
+    path: /etc/grafana/grafana.ini
+  register: wireguard_grafana_ini_stat
+
+- name: Reset Grafana root_url for direct access
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: server
+    option: root_url
+    value: '%(protocol)s://%(domain)s:%(http_port)s/'
+    mode: '0640'
+    owner: root
+    group: grafana
+  notify: Restart Grafana
+  when: wireguard_grafana_ini_stat.stat.exists
+
+- name: Disable Grafana serve_from_sub_path
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: server
+    option: serve_from_sub_path
+    value: 'false'
+    mode: '0640'
+    owner: root
+    group: grafana
+  notify: Restart Grafana
+  when: wireguard_grafana_ini_stat.stat.exists
+
+- name: Ensure Grafana listens on all container interfaces
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: server
+    option: http_addr
+    value: '0.0.0.0'
+    mode: '0640'
+    owner: root
+    group: grafana
+  notify: Restart Grafana
+  when: wireguard_grafana_ini_stat.stat.exists
+
+- name: Check if Prometheus is installed
+  ansible.builtin.stat:
+    path: /etc/prometheus/prometheus.yml
+  register: wireguard_prometheus_stat
+
+- name: Lockdown | Allow Grafana from VPN subnet
+  community.general.ufw:
+    rule: allow
+    port: "{{ grafana_port }}"
+    src: '{{ wireguard_network }}'
+    proto: tcp
+    state: enabled
+    comment: 'Grafana — VPN access only'
+  when: wireguard_grafana_ini_stat.stat.exists
+
+- name: Lockdown | Remove proxy -> Grafana UFW rule (replaced by VPN access)
+  community.general.ufw:
+    rule: allow
+    port: "{{ grafana_port }}"
+    src: "{{ hostvars[item]['ansible_host'] }}"
+    proto: tcp
+    delete: true
+  loop: "{{ groups.get('web', []) }}"
+  loop_control:
+    label: '{{ item }}'
+  when: wireguard_grafana_ini_stat.stat.exists
+
+- name: Lockdown | Allow Prometheus (9090/tcp) from VPN subnet
+  community.general.ufw:
+    rule: allow
+    port: '9090'
+    src: '{{ wireguard_network }}'
+    proto: tcp
+    state: enabled
+    comment: 'Prometheus — VPN access only'
+  when: wireguard_prometheus_stat.stat.exists
+
+- name: Lockdown | Check if Munin is installed
+  ansible.builtin.stat:
+    path: /etc/munin/munin.conf
+  register: wireguard_munin_conf_stat
+
+- name: Lockdown | Allow Munin (80/tcp) from VPN subnet
+  community.general.ufw:
+    rule: allow
+    port: '80'
+    src: '{{ wireguard_network }}'
+    proto: tcp
+    state: enabled
+    comment: 'Munin — VPN access only'
+  when: wireguard_munin_conf_stat.stat.exists
+
+- name: Lockdown | Remove proxy -> Munin UFW rule (replaced by VPN access)
+  community.general.ufw:
+    rule: allow
+    port: '80'
+    src: "{{ hostvars[item]['ansible_host'] }}"
+    proto: tcp
+    delete: true
+  loop: "{{ groups.get('web', []) }}"
+  loop_control:
+    label: '{{ item }}'
+  when: wireguard_munin_conf_stat.stat.exists
