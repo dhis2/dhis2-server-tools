@@ -1,4 +1,9 @@
 ---
+- name: Hub | Wait for LXD connection to be usable
+  ansible.builtin.wait_for_connection:
+    timeout: 60
+    sleep: 3
+
 - name: Hub | Install WireGuard packages
   ansible.builtin.apt:
     name:

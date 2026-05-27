@@ -30,8 +30,6 @@
         ipv4.address: "{{ wireguard_hub_lxd_ip }}"
   register: wireguard_create_status
 
-# Restart-on-create (not a handler) so the static IP takes effect within
-# the same play.
 - name: WireGuard | Ensure hub container has its static IP  # noqa: no-handler
   vars:
     ansible_connection: local
@@ -48,8 +46,21 @@
       lxc exec {{ wireguard_hub_inventory_hostname }} --
       test -d /run/systemd/system
   changed_when: false
-  retries: 10
+  retries: 30
   delay: 2
   register: wireguard_systemd_check
   until: wireguard_systemd_check.rc == 0
+  when: wireguard_create_status.changed or (wireguard_restart_status.changed | default(false))
+
+- name: WireGuard | Wait for cloud-init to finish inside hub container
+  ansible.builtin.command:
+    cmd: >-
+      lxc exec {{ wireguard_hub_inventory_hostname }} --
+      cloud-init status --wait
+  changed_when: false
+  failed_when: false
+  retries: 3
+  delay: 5
+  register: wireguard_cloud_init_check
+  until: wireguard_cloud_init_check.rc in [0, 2]
   when: wireguard_create_status.changed or (wireguard_restart_status.changed | default(false))

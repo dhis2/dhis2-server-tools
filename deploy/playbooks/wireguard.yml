@@ -25,15 +25,20 @@
     - wireguard
     - wireguard-bring-up
   tasks:
-    # Capture the inventory-level deployment mode BEFORE the local-connection
-    # bootstrap overrides ansible_connection. Used by downstream tasks to
-    # gate LXD-only behavior. Read via hostvars[] so the task's `vars:`
-    # override of ansible_connection doesn't poison the value we record.
+    # Capture the inventory-level deployment mode. We must read it from the
+    # wireguard hub host's hostvars (not from 127.0.0.1's), because when this
+    # playbook is imported by dhis2.yml the pre-install role has already
+    # set_fact'd ansible_connection=local on 127.0.0.1, which would make
+    # this read 'local' instead of the inventory's 'lxd'. The hub host's
+    # ansible_connection comes straight from [all:vars] and is never
+    # clobbered.
     - name: WireGuard | Capture deployment mode (lxd vs ssh)
       vars:
         ansible_connection: local
       ansible.builtin.set_fact:
-        wireguard_deploy_mode: "{{ hostvars[inventory_hostname]['ansible_connection'] | default('lxd') }}"
+        wireguard_deploy_mode: >-
+          {{ hostvars[wireguard_hub_inventory_hostname | default('wireguard')]['ansible_connection']
+             | default('lxd') }}
 
     - name: WireGuard | Set Ansible connection to local
       vars:
