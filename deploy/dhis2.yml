@@ -5,6 +5,7 @@
   gather_facts: false
   roles:
     - role: pre-install
+    - role: mail-client
 
 - name: DHIS2 setup
   gather_facts: false
@@ -18,6 +19,8 @@
       tags: [postgresql-install]
     - role: mail
       tags: [mail]
+    - role: mail-client
+      tags: [mail-client]
     - role: proxy
       tags: [proxy-install]
     - role: monitoring

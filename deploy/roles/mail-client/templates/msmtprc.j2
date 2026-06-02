@@ -1,0 +1,10 @@
+# /etc/msmtprc - managed by Ansible
+defaults
+auth           off
+tls            off
+syslog         on
+
+account        default
+host           {{ hostvars[groups['mail'][0]]['ansible_host'] }}
+port           25
+from           no-reply@{{ fqdn | default(inventory_hostname) }}

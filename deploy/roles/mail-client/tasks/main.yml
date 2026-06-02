@@ -1,0 +1,23 @@
+---
+- name: Install msmtp mail client
+  ansible.builtin.apt:
+    name:
+      - msmtp
+      - msmtp-mta
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when:
+    - groups['mail'] | default([]) | length > 0
+    - inventory_hostname not in groups['mail']
+
+- name: Configure msmtp
+  ansible.builtin.template:
+    src: msmtprc.j2
+    dest: /etc/msmtprc
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - groups['mail'] | default([]) | length > 0
+    - inventory_hostname not in groups['mail']
