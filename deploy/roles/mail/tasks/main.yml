@@ -1,0 +1,56 @@
+---
+- name: Include tasks for {{ ansible_connection }}
+  ansible.builtin.include_tasks: "{{ ansible_connection }}.yml"
+  when: inventory_hostname in groups['mail']
+
+- name: Install postfix and sasl auth library
+  ansible.builtin.apt:
+    name:
+      - postfix
+      - libsasl2-modules
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: inventory_hostname in groups['mail']
+
+- name: Configure postfix main.cf
+  ansible.builtin.template:
+    src: main.cf.j2
+    dest: /etc/postfix/main.cf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart postfix
+  when: inventory_hostname in groups['mail']
+
+- name: Configure sender rewrite
+  ansible.builtin.template:
+    src: sender_canonical.j2
+    dest: /etc/postfix/sender_canonical
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart postfix
+  when: inventory_hostname in groups['mail']
+
+- name: Configure header checks
+  ansible.builtin.template:
+    src: header_checks.j2
+    dest: /etc/postfix/header_checks
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart postfix
+  when: inventory_hostname in groups['mail']
+
+- name: Configure SASL credentials
+  ansible.builtin.template:
+    src: sasl_passwd.j2
+    dest: /etc/postfix/sasl_passwd
+    owner: root
+    group: root
+    mode: "0600"
+  notify:
+    - Update sasl_passwd db
+    - Restart postfix
+  when: inventory_hostname in groups['mail']

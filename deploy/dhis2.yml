@@ -16,6 +16,8 @@
   roles:
     - role: postgres
       tags: [postgresql-install]
+    - role: mail
+      tags: [mail]
     - role: proxy
       tags: [proxy-install]
     - role: monitoring

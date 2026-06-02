@@ -1,0 +1,25 @@
+---
+- name: Get host facts
+  ansible.builtin.setup:
+    gather_subset:
+      - network
+      - "!min"
+
+- name: Installing acl package
+  ansible.builtin.apt:
+    name: acl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Allow ssh port 22 on ufw
+  community.general.ufw:
+    rule: limit
+    port: "{{ ansible_port | default('22') }}"
+    src: "0.0.0.0/0"
+    proto: tcp
+    comment: Allow ssh access to the instance
+
+- name: Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"

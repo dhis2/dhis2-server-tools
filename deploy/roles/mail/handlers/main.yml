@@ -1,0 +1,11 @@
+---
+- name: Update sasl_passwd db
+  ansible.builtin.command:
+    cmd: postmap /etc/postfix/sasl_passwd
+  listen: Update sasl_passwd db
+
+- name: Restart postfix
+  ansible.builtin.service:
+    name: postfix
+    state: restarted
+  listen: Restart postfix

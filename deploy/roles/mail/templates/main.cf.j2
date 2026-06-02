@@ -1,0 +1,35 @@
+# Postfix main.cf - managed by Ansible
+smtpd_banner = $myhostname ESMTP
+biff = no
+append_dot_mydomain = no
+readme_directory = no
+
+myhostname = {{ fqdn | default(inventory_hostname) }}
+myorigin = {{ fqdn | default(inventory_hostname) }}
+mydestination = localhost
+inet_interfaces = all
+inet_protocols = ipv4
+
+# Accept relay from localhost and the LXD container network
+mynetworks = 127.0.0.0/8 {{ lxd_network | ansible.utils.ipaddr('network/prefix') }}
+smtpd_relay_restrictions = permit_mynetworks, reject
+
+# Forward all mail via smarthost
+relayhost = [{{ mail_smarthost }}]:{{ mail_smarthost_port }}
+
+# SASL authentication to smarthost
+smtp_sasl_auth_enable = yes
+smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+smtp_sasl_security_options = noanonymous
+
+# Require TLS to smarthost
+smtp_tls_security_level = encrypt
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+
+# Rewrite all senders to no-reply@fqdn and strip display names
+sender_canonical_maps = regexp:/etc/postfix/sender_canonical
+sender_canonical_classes = envelope_sender, header_sender
+header_checks = regexp:/etc/postfix/header_checks
+smtp_header_checks = regexp:/etc/postfix/header_checks
+
+message_size_limit = 10240000

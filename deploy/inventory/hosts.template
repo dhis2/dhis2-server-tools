@@ -26,6 +26,11 @@ monitor   ansible_host=172.19.2.30
 [backup_servers]
 backup  ansible_host=172.19.2.100
 
+# mail relay container — send-only MTA via external smarthost (e.g. Brevo)
+# NOTE: store mail_smarthost_password in ansible-vault, not plaintext
+[mail]
+# smtp  ansible_host=172.19.2.5  mail_smarthost=smtp-relay.brevo.com  mail_smarthost_username=user@example.com  mail_smarthost_password=your_api_key
+
 # integration server/container
 [integration]
 
