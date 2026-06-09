@@ -6,7 +6,7 @@ wireguard_server_ip: "10.0.0.1"
 wireguard_port: 51820
 wireguard_interface: wg0
 
-# Hub container — dedicated LXD container running the WireGuard server.
+# Hub container - dedicated LXD container running the WireGuard server.
 wireguard_hub_inventory_hostname: "wireguard"
 wireguard_hub_lxd_ip: "172.19.2.200"
 

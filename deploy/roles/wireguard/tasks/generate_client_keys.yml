@@ -1,6 +1,6 @@
 ---
 # Hub-side keypair + PSK generator.
-# Caller passes `wg_keygen_peers` — a list of normalized peer dicts (name,
+# Caller passes `wg_keygen_peers` - a list of normalized peer dicts (name,
 # allowed_ips, wireguard_ip, endpoint_kind, optional public_key/preshared_key).
 # Produces wireguard_peers_resolved enriched with public_key, _private_key,
 # and _preshared_key per entry.

@@ -52,7 +52,7 @@
     src: '{{ wireguard_network }}'
     proto: tcp
     state: enabled
-    comment: 'Grafana — VPN access only'
+    comment: 'Grafana - VPN access only'
   when: wireguard_grafana_ini_stat.stat.exists
 
 - name: Lockdown | Remove proxy -> Grafana UFW rule (replaced by VPN access)
@@ -74,7 +74,7 @@
     src: '{{ wireguard_network }}'
     proto: tcp
     state: enabled
-    comment: 'Prometheus — VPN access only'
+    comment: 'Prometheus - VPN access only'
   when: wireguard_prometheus_stat.stat.exists
 
 - name: Lockdown | Check if Munin is installed
@@ -89,7 +89,7 @@
     src: '{{ wireguard_network }}'
     proto: tcp
     state: enabled
-    comment: 'Munin — VPN access only'
+    comment: 'Munin - VPN access only'
   when: wireguard_munin_conf_stat.stat.exists
 
 - name: Lockdown | Remove proxy -> Munin UFW rule (replaced by VPN access)

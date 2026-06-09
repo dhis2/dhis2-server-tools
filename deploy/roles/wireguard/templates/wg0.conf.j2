@@ -1,7 +1,7 @@
 {{ ansible_managed | comment }}
-# WireGuard hub config — runs inside the {{ wireguard_hub_inventory_hostname }} container.
-# Spoke ↔ spoke routing happens via kernel forwarding on this hub
-# (net.ipv4.ip_forward=1 + iptables FORWARD wg0↔wg0 ACCEPT).
+# WireGuard hub config - runs inside the {{ wireguard_hub_inventory_hostname }} container.
+# Spoke-to-spoke routing happens via kernel forwarding on this hub
+# (net.ipv4.ip_forward=1 + iptables FORWARD wg0-to-wg0 ACCEPT).
 
 [Interface]
 Address = {{ wireguard_server_ip }}/24

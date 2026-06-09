@@ -8,7 +8,7 @@ argument_specs:
       - Optionally locks down monitoring dashboards and PostgreSQL to VPN-only access.
     options:
       wireguard_enabled:
-        description: "Master switch — enable the WireGuard VPN role"
+        description: "Master switch - enable the WireGuard VPN role"
         type: bool
         default: false
       wireguard_stage:
@@ -83,13 +83,17 @@ argument_specs:
           list them here. Each entry requires name and allowed_ips.
           public_key is required only when wireguard_auto_generate_keys is false.
           Optional: preshared_key.
-          Optional: peer_ip (single CIDR ending in /32) — used for per-peer
+          Optional: peer_ip (single CIDR ending in /32) - used for per-peer
           pg_hba.conf rules when allowed_ips routes additional networks. If
           omitted, the first CIDR in allowed_ips is used.
-          Optional: pg_access (list of {database, user}) — generates per-peer
-          pg_hba.conf entries on the databases host. Database and user names
-          must match ^[a-zA-Z0-9_]+$ (PostgreSQL keyword 'all' is allowed).
-          Peers without pg_access have no PostgreSQL access.
+          Optional: pg_access - generates per-peer pg_hba.conf entries on the
+          databases host. Each entry is either { instance: <hostname> }, which
+          derives database and user from the named [instances] host's LXD
+          container name (db == role == owner == container name), or explicit
+          { database, user } for wildcards such as { database: all, user: all }.
+          Resolved database/user names must match ^[a-zA-Z0-9_]+$ (PostgreSQL
+          keyword 'all' is allowed). Peers without pg_access have no PostgreSQL
+          access.
         type: list
         elements: dict
         default: []
@@ -105,7 +109,7 @@ argument_specs:
           When true, generate a pre-shared key (PSK) for each peer that does
           not supply an explicit preshared_key, and embed it into both the
           hub and peer configs. Adds a symmetric post-quantum hedge.
-          Off by default — enabling on an existing deployment forces all
+          Off by default - enabling on an existing deployment forces all
           affected clients to re-import their .conf.
         type: bool
         default: false
@@ -128,17 +132,12 @@ argument_specs:
         description: >-
           Gates the `/glowroot` proxy block in
           roles/create-instance/templates/{nginx,apache2}/instance.j2.
-          Default false. The proxy role's first render during `dhis2.yml`
-          keeps `/glowroot` present; `playbooks/wireguard-lockdown.yml`
-          (lockdown_proxy.yml), which is auto-imported by `dhis2.yml`
-          immediately after the mesh playbook, sets this to true via task
-          vars and re-renders the same files to strip the block. Net
-          result of a full `dhis2.yml` run with wireguard_enabled=true:
-          `/glowroot` is absent. To preserve `/glowroot` while keeping the
-          VPN, run with `--skip-tags lockdown-proxy`.
+          lockdown_proxy.yml sets this true to re-render the proxy configs
+          without `/glowroot`. Use `--skip-tags lockdown-proxy` to keep
+          `/glowroot` reachable while the VPN is enabled.
         type: bool
         default: false
       grafana_port:
-        description: "Grafana HTTP port — used for VPN-only UFW rules"
+        description: "Grafana HTTP port - used for VPN-only UFW rules"
         type: int
         default: 3000

@@ -10,7 +10,7 @@
 #   ansible-playbook playbooks/wireguard-lockdown.yml
 #
 # Every play below gates on wireguard_enabled, so this is a no-op when
-# WireGuard is disabled — that's what lets dhis2.yml import it
+# WireGuard is disabled - that's what lets dhis2.yml import it
 # unconditionally.
 #
 # Selective skip via --skip-tags (works whether run via dhis2.yml or
@@ -27,7 +27,7 @@
     - wireguard
     - wireguard-lockdown
   tasks:
-    # Informational only — surfaces "lockdown is about to run" in the play
+    # Informational only - surfaces "lockdown is about to run" in the play
     # output. When wireguard_enabled is false the rest of this playbook
     # short-circuits via per-play `when:` guards.
     - name: Lockdown | Announce service hardening

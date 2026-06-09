@@ -11,7 +11,7 @@
     src: '{{ wireguard_network }}'
     proto: tcp
     state: enabled
-    comment: 'Glowroot APM — VPN access only'
+    comment: 'Glowroot APM - VPN access only'
   when:
     - app_monitoring is defined
     - app_monitoring | trim == 'glowroot'
@@ -23,7 +23,7 @@
     src: "{{ hostvars[groups['monitoring'][0]]['ansible_host'] }}"
     proto: tcp
     state: enabled
-    comment: 'munin-node — monitor container access only'
+    comment: 'munin-node - monitor container access only'
   when:
     - wireguard_munin_node_stat.stat.exists
     - groups.get('monitoring', []) | length > 0

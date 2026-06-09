@@ -1,40 +1,72 @@
 ---
 # Per-peer pg_hba.conf rules managed via a single blockinfile so that peer
-# removal is idempotent — lineinfile cannot remove a previously-added line
+# removal is idempotent: lineinfile cannot remove a previously-added line
 # when the entry disappears from inventory.
 
-- name: Lockdown | Find pg_hba.conf
-  ansible.builtin.shell: |
-    set -o pipefail
-    find /etc/postgresql -name pg_hba.conf -type f | head -1
-  args:
-    executable: /bin/bash
-  register: wireguard_pg_hba_path
-  changed_when: false
+# Discover the active cluster directory off disk as root rather than via
+# `become_user: postgres` + postgresql_info. On idmapped LXD mounts the
+# become-to-unprivileged-user step cannot chown the temp file it transfers
+# ("Unprivileged become user would be unable to read the file"), which aborts
+# the lockdown run before lockdown_instances ever applies. Reading the cluster
+# directory needs no unprivileged become and works on every connection type.
+- name: Lockdown | Discover PostgreSQL cluster directories
+  ansible.builtin.find:
+    paths: /etc/postgresql
+    file_type: directory
+    depth: 1
+    patterns: '[0-9]*'
+    use_regex: false
+  register: wireguard_pg_clusters
 
+- name: Lockdown | Resolve pg_hba.conf path (highest installed major)
+  ansible.builtin.set_fact:
+    wireguard_pg_hba_path: >-
+      /etc/postgresql/{{
+        wireguard_pg_clusters.files
+        | map(attribute='path')
+        | map('basename')
+        | map('int')
+        | max
+      }}/main/pg_hba.conf
+  when: wireguard_pg_clusters.files | length > 0
+
+- name: Lockdown | Verify pg_hba.conf exists
+  ansible.builtin.stat:
+    path: "{{ wireguard_pg_hba_path | default('') }}"
+  register: wireguard_pg_hba_stat
+  when: wireguard_pg_hba_path is defined
+
+# database/user are derived from item.1.instance (the DHIS2 instance's LXD
+# container name, which equals its db name, role and owner, see
+# roles/create-instance/tasks/postgresql-db.yml). An explicit database/user
+# on the entry overrides the derived value (e.g. { database: all, user: all }).
 - name: Lockdown | Build per-peer pg_hba lines
   ansible.builtin.set_fact:
     _wireguard_pg_hba_lines: >-
       {{ _wireguard_pg_hba_lines | default([]) + [
-           'hostssl    ' ~ item.1.database
-           ~ '    ' ~ item.1.user
+           'hostssl    ' ~ (item.1.database | default(item.1.instance))
+           ~ '    ' ~ (item.1.user | default(item.1.instance))
            ~ '    ' ~ (item.0.peer_ip | default(item.0.allowed_ips.split(',')[0] | trim))
            ~ '    scram-sha-256'
          ] }}
   loop: "{{ wireguard_peers | subelements('pg_access', skip_missing=True) }}"
   loop_control:
-    label: "{{ item.0.name }} -> {{ item.1.database }}/{{ item.1.user }}"
+    label: >-
+      {{ item.0.name }} ->
+      {{ item.1.database | default(item.1.instance) }}/{{ item.1.user | default(item.1.instance) }}
 
 - name: Lockdown | Manage per-peer pg_hba block
   ansible.builtin.blockinfile:
-    path: "{{ wireguard_pg_hba_path.stdout | trim }}"
+    path: "{{ wireguard_pg_hba_path }}"
     marker: "# {mark} ANSIBLE MANAGED — wireguard per-peer pg_access"
     block: "{{ _wireguard_pg_hba_lines | default([]) | join('\n') }}"
     state: "{{ 'present' if (_wireguard_pg_hba_lines | default([]) | length > 0) else 'absent' }}"
     insertbefore: EOF
     create: false
   notify: Reload PostgreSQL
-  when: wireguard_pg_hba_path.stdout | trim | length > 0
+  when:
+    - wireguard_pg_hba_path is defined
+    - wireguard_pg_hba_stat.stat.exists | default(false)
 
 - name: Lockdown | Allow PostgreSQL (5432/tcp) from VPN subnet
   community.general.ufw:
@@ -43,4 +75,4 @@
     src: '{{ wireguard_network }}'
     proto: tcp
     state: enabled
-    comment: 'PostgreSQL — VPN access only'
+    comment: 'PostgreSQL - VPN access only'

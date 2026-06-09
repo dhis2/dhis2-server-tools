@@ -5,10 +5,10 @@
 # (roles: [{ role: wireguard, vars: { wireguard_stage: ... } }]).
 #
 # Stages:
-#   host_portforward — provision hub LXD container + lxc network forward
+#   host_portforward - provision hub LXD container + lxc network forward
 #                      (LXD deployments only).
-#   hub              — install/configure WireGuard server inside the hub.
-#   peer             — install/configure WireGuard on each app host.
+#   hub              - install/configure WireGuard server inside the hub.
+#   peer             - install/configure WireGuard on each app host.
 #
 # Lockdown stages (lockdown_proxy, lockdown_monitor, lockdown_postgres,
 # lockdown_instances) are NOT exposed here; run

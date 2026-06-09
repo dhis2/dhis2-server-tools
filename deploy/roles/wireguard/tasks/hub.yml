@@ -71,7 +71,7 @@
       WireGuard Hub Public Key:
       {{ wireguard_server_public_key_data.content | b64decode | trim }}
 
-- name: Hub | Enable IPv4 forwarding (spoke ↔ spoke routing)
+- name: Hub | Enable IPv4 forwarding (spoke to spoke routing)
   ansible.posix.sysctl:
     name: net.ipv4.ip_forward
     value: '1'
@@ -79,7 +79,7 @@
     reload: true
     sysctl_set: true
 
-- name: Hub | Allow wg0 ↔ wg0 FORWARD (mesh relay)
+- name: Hub | Allow wg0 to wg0 FORWARD (mesh relay)
   ansible.builtin.iptables:
     chain: FORWARD
     in_interface: '{{ wireguard_interface }}'
