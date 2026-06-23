@@ -398,13 +398,13 @@
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
+        owner: doris
+        group: doris
         mode: '0755'
       loop:
         - /usr/local/doris/fe/jdbc_drivers
         - /usr/local/doris/be/jdbc_drivers
-      when:
-        - hostvars[item]['apache_doris_db'] is defined
-        - inventory_hostname == hostvars[item]['apache_doris_db']
+      when: inventory_hostname == "doris"
 
     - name: Download PostgreSQL JDBC driver
       ansible.builtin.get_url:
@@ -413,9 +413,7 @@
         group: doris
         dest: /tmp/postgresql-42.7.8.jar
         mode: '0644'
-      when:
-        - hostvars[item]['apache_doris_db'] is defined
-        - inventory_hostname == hostvars[item]['apache_doris_db']
+      when: inventory_hostname == "doris"
 
     - name: Copy JDBC driver to FE and BE
       ansible.builtin.copy:
@@ -428,9 +426,7 @@
       loop:
         - /usr/local/doris/fe/jdbc_drivers/
         - /usr/local/doris/be/jdbc_drivers
-      when:
-        - hostvars[item]['apache_doris_db'] is defined
-        - inventory_hostname == hostvars[item]['apache_doris_db']
+      when: inventory_hostname == "doris"
 
     - name: Debug
       loop: "{{ groups['instances'] }}"
