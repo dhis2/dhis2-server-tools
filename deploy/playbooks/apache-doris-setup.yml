@@ -173,6 +173,21 @@
         - hostvars[item]['apache_doris_db'] is defined
         - inventory_hostname == hostvars[item]['apache_doris_db']
 
+    # lower_case_table_names is immutable once the FE metadata is bootstrapped,
+    # so it MUST be written to fe.conf before the FE is started for the first
+    # time. DHIS2 requires it set to 1 (case-insensitive, names stored lowercase).
+    - name: Set lower_case_table_names in fe.conf (before first FE start)
+      ansible.builtin.lineinfile:
+        path: "{{ doris_home }}/fe/conf/fe.conf"
+        mode: '0600'
+        regexp: '^\s*lower_case_table_names\s*='
+        line: 'lower_case_table_names = 1'
+        create: true
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
 
     - name: Configure JAVA_HOME in be.conf
       ansible.builtin.lineinfile:
