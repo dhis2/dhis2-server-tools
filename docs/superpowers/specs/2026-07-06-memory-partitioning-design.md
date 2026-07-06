@@ -83,13 +83,16 @@ Applying this to an already-running container updates its cgroup limit live
 ### 2. Doris FE/BE memory tuning
 
 Two new optional variables, applied in `apache-doris-setup.yml` using the
-same `lineinfile`-based approach already used there for `JAVA_HOME` and
-`lower_case_table_names` (not a new templating mechanism):
+same `lineinfile`/`replace`-based approach already used there for
+`JAVA_HOME` and `lower_case_table_names` (not a new templating mechanism):
 
-- `doris_fe_heap_size` (e.g. `8192m`) — when defined, sets/updates
-  `JAVA_OPTS="${JAVA_OPTS} -Xmx{{ doris_fe_heap_size }} -Xms{{ doris_fe_heap_size }}"`
-  in `fe.conf`. Gated on `when: doris_fe_heap_size is defined`; unset
-  leaves Doris's own shipped default (`-Xmx8192m`) untouched.
+- `doris_fe_heap_size` (e.g. `8192m`) — when defined, applied via
+  `ansible.builtin.replace` with regex `-Xmx\S+`, surgically replacing only
+  the `-Xmx` token's value inside Doris's existing `JAVA_OPTS` line in
+  `fe.conf`. `-Xms` and every other JVM flag Doris ships by default (GC
+  settings, metaspace, etc.) are deliberately left untouched — a whole-line
+  replace risked destroying them. Gated on `when: doris_fe_heap_size is
+  defined`; unset leaves Doris's own shipped default (`-Xmx8192m`) untouched.
 - `doris_be_mem_limit` (e.g. `32G`) — when defined, sets/updates
   `mem_limit = {{ doris_be_mem_limit }}` in `be.conf`. Gated on
   `when: doris_be_mem_limit is defined`; unset leaves Doris's own default
