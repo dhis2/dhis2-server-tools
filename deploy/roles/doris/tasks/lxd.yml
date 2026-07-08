@@ -72,7 +72,7 @@
     ansible_connection: local
   ansible.builtin.setup:
     gather_subset:
-      - "!all"
+      - hardware
       - "!min"
   delegate_to: 127.0.0.1
   delegate_facts: true
