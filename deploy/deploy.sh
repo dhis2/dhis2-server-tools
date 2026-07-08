@@ -80,8 +80,8 @@ if ! command -v ansible &> /dev/null; then
     ansible-galaxy collection install community.general
 fi
 
-# Ensure community general collections are upgraded
-ansible-galaxy collection install community.general --upgrade
+# Ensure required collections are installed/upgraded
+ansible-galaxy collection install community.general community.mysql --upgrade
 
 # Check if any host explicitly uses ssh connection (per-host or per-group override)
 # Hosts may use lxd (default) or ssh individually — Ansible handles per-host connection natively.
