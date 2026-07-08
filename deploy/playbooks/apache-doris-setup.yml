@@ -23,6 +23,7 @@
         - inventory_hostname == hostvars[item]['apache_doris_db']
       community.general.lxd_container:
         name: "{{ inventory_hostname }}"
+        config: "{{ {'limits.memory': lxd_memory_limit} if lxd_memory_limit is defined else {} }}"
         state: started
         profiles: [default]
         ignore_volatile_options: false
@@ -188,6 +189,18 @@
         - hostvars[item]['apache_doris_db'] is defined
         - inventory_hostname == hostvars[item]['apache_doris_db']
 
+    - name: Set FE JVM max heap size (Xmx) in fe.conf
+      ansible.builtin.replace:
+        path: "{{ doris_home }}/fe/conf/fe.conf"
+        regexp: '-Xmx\S+'
+        replace: '-Xmx{{ doris_fe_heap_size }}'
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+        - doris_fe_heap_size is defined
+      notify: Restart Doris FE
+
 
     - name: Configure JAVA_HOME in be.conf
       ansible.builtin.lineinfile:
@@ -200,6 +213,20 @@
       when:
         - hostvars[item]['apache_doris_db'] is defined
         - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Set BE memory limit in be.conf
+      ansible.builtin.lineinfile:
+        path: "{{ doris_home }}/be/conf/be.conf"
+        mode: '0600'
+        regexp: '^\s*mem_limit\s*='
+        line: 'mem_limit = {{ doris_be_mem_limit }}'
+        create: true
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+        - doris_be_mem_limit is defined
+      notify: Restart Doris BE
 
 
     - name: Create systemd unit for Doris Frontend
@@ -528,3 +555,14 @@
         - hostvars[item]['apache_doris_db'] is defined
         - hostvars[hostvars[item]['apache_doris_db']] is defined
         - inventory_hostname == hostvars[item]['database_host']
+
+  handlers:
+    - name: Restart Doris FE
+      ansible.builtin.systemd:
+        name: doris-fe
+        state: restarted
+
+    - name: Restart Doris BE
+      ansible.builtin.systemd:
+        name: doris-be
+        state: restarted

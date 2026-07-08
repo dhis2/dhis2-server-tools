@@ -4,10 +4,7 @@
   vars:
     ansible_connection: local
   community.general.lxd_container:
-    config:
-      boot.autostart.priority: "0"
-      security.protection.delete: "true"
-      user.type: "{{ group_names[0] }}"
+    config: "{{ {'boot.autostart.priority': '0', 'security.protection.delete': 'true', 'user.type': group_names[0]} | combine({'limits.memory': lxd_memory_limit} if lxd_memory_limit is defined else {}) }}"
     name: "{{ inventory_hostname }}"
     state: started
     profiles: [default]
