@@ -1,0 +1,402 @@
+---
+# This role runs across every host in the "DHIS2 setup" play (instances,
+# database, proxy, monitoring), not just the apache_doris host: tasks below
+# filter themselves to the right host via these two facts. is_doris_host is
+# true only on the single host configured as some instance's
+# apache_doris_db; doris_instance_map lists every apache_doris_db value in
+# use, for the swap-disabling tasks that must run once regardless of which
+# host is being visited.
+- name: Determine which hosts are configured as a Doris backend
+  ansible.builtin.set_fact:
+    doris_instance_map: "{{ groups['instances'] | map('extract', hostvars, 'apache_doris_db') | select('string') | list }}"
+
+- name: Determine whether this host is the configured Doris host
+  ansible.builtin.set_fact:
+    is_doris_host: "{{ inventory_hostname in doris_instance_map }}"
+
+- name: Creating Doris container for lxd setup
+  vars:
+    ansible_connection: local
+  when: is_doris_host
+  community.general.lxd_container:
+    name: "{{ inventory_hostname }}"
+    config: "{{ {'limits.memory': lxd_memory_limit} if lxd_memory_limit is defined else {} }}"
+    state: started
+    profiles: [default]
+    ignore_volatile_options: false
+    wait_for_ipv4_addresses: true
+    timeout: 600
+    source:
+      type: image
+      mode: pull
+      server: "{{ lxd_source_server | default('https://cloud-images.ubuntu.com/releases') }}"
+      protocol: "{{ lxd_source_protocol | default('simplestreams') }}"
+      alias: "{{ guest_os }}/{{ guest_os_arch | default('amd64') }}"
+    devices:
+      eth0:
+        nictype: bridged
+        parent: "{{ lxd_bridge_interface | default('lxdbr1') }}"
+        type: nic
+        ipv4.address: "{{ ansible_host | ansible.utils.ipaddr(lxd_network) }}"
+
+- name: Ensure system is updated
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: dist
+    cache_valid_time: 3600
+  when: is_doris_host
+
+- name: Set file descriptor limits
+  ansible.builtin.lineinfile:
+    path: /etc/security/limits.conf
+    owner: root
+    group: root
+    mode: '0600'
+    line: "{{ item }}"
+    create: true
+  loop:
+    - "* soft nofile 1000000"
+    - "* hard nofile 1000000"
+  when: is_doris_host
+
+- name: Increase virtual memory area limit
+  ansible.posix.sysctl:
+    name: vm.max_map_count
+    value: "2000000"
+    state: present
+    reload: true
+  when: is_doris_host
+
+- name: Gather LXD host facts
+  vars:
+    ansible_connection: local
+  ansible.builtin.setup:
+    gather_subset:
+      - "!all"
+      - "!min"
+  delegate_to: 127.0.0.1
+  delegate_facts: true
+  run_once: true
+  when: doris_instance_map | length > 0
+
+- name: Disable swap temporarily on the LXD host
+  vars:
+    ansible_connection: local
+  ansible.builtin.command: swapoff -a
+  delegate_to: 127.0.0.1
+  run_once: true
+  when:
+    - doris_instance_map | length > 0
+    - hostvars['127.0.0.1']['ansible_swaptotal_mb'] | default(0) | int > 0
+  changed_when: true
+
+- name: Disable swap permanently in fstab on the LXD host
+  vars:
+    ansible_connection: local
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*swap.*)$'
+    replace: '# \1'
+  delegate_to: 127.0.0.1
+  run_once: true
+  when: doris_instance_map | length > 0
+
+- name: Install Java 17 runtime
+  ansible.builtin.apt:
+    name: openjdk-17-jre-headless
+    state: present
+  when: is_doris_host
+
+- name: Create Doris system user
+  ansible.builtin.user:
+    name: "{{ doris_user }}"
+    comment: "Doris Application User"
+    home: "{{ doris_home }}"
+    shell: /bin/bash
+    system: true
+    create_home: true
+  when: is_doris_host
+
+- name: Download Doris binaries
+  become: true
+  become_user: "{{ doris_user }}"
+  ansible.builtin.get_url:
+    url: "{{ doris_download_url }}"
+    dest: "{{ doris_home }}/apache-doris-{{ doris_version }}.tar.gz"
+    mode: '0644'
+  when: is_doris_host
+
+- name: Extract Doris binaries into {{ doris_home }}
+  become_user: "{{ doris_user }}"
+  become: true
+  ansible.builtin.unarchive:
+    src: "{{ doris_home }}/apache-doris-{{ doris_version }}.tar.gz"
+    dest: "{{ doris_home }}"
+    remote_src: true
+    extra_opts: [--strip-components=1]
+    creates: "{{ doris_home }}/fe"
+  when: is_doris_host
+
+- name: Configure JAVA_HOME in fe.conf
+  ansible.builtin.lineinfile:
+    path: "{{ doris_home }}/fe/conf/fe.conf"
+    mode: '0600'
+    regexp: '^JAVA_HOME='
+    line: 'JAVA_HOME="{{ java_home }}"'
+    create: true
+  when: is_doris_host
+
+# lower_case_table_names is immutable once the FE metadata is bootstrapped,
+# so it MUST be written to fe.conf before the FE is started for the first
+# time. DHIS2 requires it set to 1 (case-insensitive, names stored lowercase).
+- name: Set lower_case_table_names in fe.conf (before first FE start)
+  ansible.builtin.lineinfile:
+    path: "{{ doris_home }}/fe/conf/fe.conf"
+    mode: '0600'
+    regexp: '^\s*lower_case_table_names\s*='
+    line: 'lower_case_table_names = 1'
+    create: true
+  when: is_doris_host
+
+- name: Set FE JVM max heap size (Xmx) in fe.conf
+  ansible.builtin.replace:
+    path: "{{ doris_home }}/fe/conf/fe.conf"
+    regexp: '-Xmx\S+'
+    replace: '-Xmx{{ doris_fe_heap_size }}'
+  when:
+    - is_doris_host
+    - doris_fe_heap_size is defined
+  notify: Restart Doris FE
+
+- name: Configure JAVA_HOME in be.conf
+  ansible.builtin.lineinfile:
+    path: "{{ doris_home }}/be/conf/be.conf"
+    mode: '0600'
+    regexp: '^JAVA_HOME='
+    line: 'JAVA_HOME="{{ java_home }}"'
+    create: true
+  when: is_doris_host
+
+- name: Set BE memory limit in be.conf
+  ansible.builtin.lineinfile:
+    path: "{{ doris_home }}/be/conf/be.conf"
+    mode: '0600'
+    regexp: '^\s*mem_limit\s*='
+    line: 'mem_limit = {{ doris_be_mem_limit }}'
+    create: true
+  when:
+    - is_doris_host
+    - doris_be_mem_limit is defined
+  notify: Restart Doris BE
+
+- name: Create systemd unit for Doris Frontend
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/doris-fe.service
+    group: root
+    owner: root
+    mode: '0600'
+    content: |
+      [Unit]
+      Description=Apache Doris Frontend (FE)
+      After=network.target
+
+      [Service]
+      Type=forking
+      User={{ doris_user }}
+      WorkingDirectory={{ doris_home }}/fe
+      ExecStart={{ doris_home }}/fe/bin/start_fe.sh --daemon
+      ExecStop={{ doris_home }}/fe/bin/stop_fe.sh
+      Restart=on-failure
+
+      [Install]
+      WantedBy=multi-user.target
+  when: is_doris_host
+
+- name: Create systemd unit for Doris Backend
+  ansible.builtin.copy:
+    group: root
+    owner: root
+    mode: '0600'
+    dest: /etc/systemd/system/doris-be.service
+    content: |
+      [Unit]
+      Description=Apache Doris Backend (BE)
+      After=network-online.target
+
+      [Service]
+      Type=forking
+      User={{ doris_user }}
+      LimitCORE=infinity
+      LimitNOFILE=200000
+      WorkingDirectory={{ doris_home }}/be
+      ExecStart={{ doris_home }}/be/bin/start_be.sh --daemon
+      ExecStop={{ doris_home }}/be/bin/stop_be.sh
+      Restart=on-failure
+
+      [Install]
+      WantedBy=multi-user.target
+  when: is_doris_host
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: is_doris_host
+
+- name: Enable and start Doris FE
+  ansible.builtin.systemd:
+    name: doris-fe
+    enabled: true
+    state: started
+  when: is_doris_host
+
+- name: Enable and start Doris BE
+  ansible.builtin.systemd:
+    name: doris-be
+    enabled: true
+    state: started
+  when: is_doris_host
+
+- name: Ensure PyMySQL is installed (required for community.mysql modules)
+  ansible.builtin.apt:
+    name: python3-pymysql
+    state: present
+  when: is_doris_host
+
+- name: Install MySQL client (optional, for connecting to Doris)
+  ansible.builtin.apt:
+    name: mysql-client-core-8.0
+    state: present
+  when: is_doris_host
+
+- name: Wait for Doris FE port to be available
+  ansible.builtin.wait_for:
+    host: "127.0.0.1"
+    port: 9030
+    delay: 5
+    timeout: 60
+  when: is_doris_host
+
+- name: Register Doris BE with FE
+  community.mysql.mysql_query:
+    login_user: root
+    login_host: 127.0.0.1
+    login_port: 9030
+    query: "ALTER SYSTEM ADD BACKEND '127.0.0.1:9050';"
+  failed_when: false
+  when: is_doris_host
+
+- name: Extra buffer for Doris BE to fully initialize
+  ansible.builtin.pause:
+    seconds: 10
+  when: is_doris_host
+
+- name: Ensure analytics database exists
+  community.mysql.mysql_db:
+    name: analytics
+    state: present
+    login_user: root
+    login_host: 127.0.0.1
+    login_port: 9030
+  when: is_doris_host
+
+- name: Ensure Doris user exists
+  community.mysql.mysql_query:
+    login_user: root
+    login_password: "{{ mysql_root_password | default(omit) }}"
+    login_host: 127.0.0.1
+    login_port: 9030
+    query: >
+      CREATE USER IF NOT EXISTS
+      '{{ apache_doris_db_user | default("doris_user") }}'@'%'
+      IDENTIFIED BY '{{ apache_doris_db_password |
+        default(lookup("password",
+        "/opt/ansible/secrets/apache_doris_db_password length=24 chars=ascii_letters,digits")) }}';
+  when: is_doris_host
+
+- name: Ensure Doris DB admin user has full privileges on analytics
+  community.mysql.mysql_query:
+    login_user: root
+    login_password: "{{ mysql_root_password | default(omit) }}"
+    login_host: 127.0.0.1
+    login_port: 9030
+    query: >
+      GRANT ALL ON *.*.* TO '{{ apache_doris_db_user | default("doris_user") }}'@'%';
+  when: is_doris_host
+
+- name: Ensure JDBC directories exist (FE and BE)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ doris_user }}"
+    group: "{{ doris_user }}"
+    mode: '0755'
+  loop:
+    - "{{ doris_home }}/fe/jdbc_drivers"
+    - "{{ doris_home }}/be/jdbc_drivers"
+  when: is_doris_host
+
+- name: Download PostgreSQL JDBC driver
+  ansible.builtin.get_url:
+    url: https://jdbc.postgresql.org/download/postgresql-42.7.8.jar
+    owner: "{{ doris_user }}"
+    group: "{{ doris_user }}"
+    dest: /tmp/postgresql-42.7.8.jar
+    mode: '0644'
+  when: is_doris_host
+
+- name: Copy JDBC driver to FE and BE
+  ansible.builtin.copy:
+    src: /tmp/postgresql-42.7.8.jar
+    owner: "{{ doris_user }}"
+    group: "{{ doris_user }}"
+    dest: "{{ item }}/postgresql.jar"
+    remote_src: true
+    mode: '0644'
+  loop:
+    - "{{ doris_home }}/fe/jdbc_drivers/"
+    - "{{ doris_home }}/be/jdbc_drivers"
+  when: is_doris_host
+
+- name: Checking postgresql Version
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_info:
+    filter: ver*
+  register: postgresql_version_info
+  loop: "{{ groups['instances'] }}"
+  when:
+    - hostvars[item]['apache_doris_db'] is defined
+    - hostvars[hostvars[item]['apache_doris_db']] is defined
+    - inventory_hostname == hostvars[item]['database_host']
+  tags:
+    - pg_version
+
+- name: Edit postgresql pg_hba.conf
+  loop: "{{ groups['instances'] }}"
+  loop_control:
+    index_var: idx
+  ansible.builtin.lineinfile:
+    path: /etc/postgresql/{{ postgresql_version_info.results[idx].version.major }}/main/pg_hba.conf
+    regexp: "^(host|hostssl)\\s+{{ item }}\\s+{{ hostvars[item]['apache_doris_db'] }}\\s+{{ hostvars[hostvars[item]['apache_doris_db']]['ansible_host'] }}(/32)?\\s+.*$"
+    insertafter: EOF
+    line: "hostssl {{ item }} {{ item }} {{ hostvars[hostvars[item]['apache_doris_db']]['ansible_host'] }}/32 scram-sha-256"
+  when:
+    - hostvars[item]['apache_doris_db'] is defined
+    - hostvars[hostvars[item]['apache_doris_db']] is defined
+    - inventory_hostname == hostvars[item]['database_host']
+  tags:
+    - pg_version
+
+- name: Firewall | Open port 5432 from doris instances
+  community.general.ufw:
+    rule: allow
+    port: "{{ postgresql_port | default('5432') }}"
+    src: "{{ hostvars[hostvars[item]['apache_doris_db']]['ansible_host'] }}"
+    proto: tcp
+    comment: "Allow access from {{ hostvars[hostvars[item]['apache_doris_db']]['ansible_host'] }} Doris instance"
+    state: enabled
+  loop: "{{ groups['instances'] }}"
+  when:
+    - hostvars[item]['apache_doris_db'] is defined
+    - hostvars[hostvars[item]['apache_doris_db']] is defined
+    - inventory_hostname == hostvars[item]['database_host']

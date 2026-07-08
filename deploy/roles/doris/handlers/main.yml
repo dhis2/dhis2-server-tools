@@ -1,0 +1,10 @@
+---
+- name: Restart Doris FE
+  ansible.builtin.systemd:
+    name: doris-fe
+    state: restarted
+
+- name: Restart Doris BE
+  ansible.builtin.systemd:
+    name: doris-be
+    state: restarted
