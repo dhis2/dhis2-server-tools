@@ -51,7 +51,7 @@
   community.general.ufw:
     rule: allow
     port: "{{ munin_http_port | default('80') }}"
-    src: "{{ hostvars[item]['ansible_host'] }}"
+    src: "{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}"
     proto: tcp
     comment: "Allow access from {{ item }} instance "
     state: enabled

@@ -11,6 +11,17 @@ argument_specs:
         description: "Master switch - enable the WireGuard VPN role"
         type: bool
         default: false
+      wireguard_data_plane:
+        description: >-
+          When true, the computed service_ip resolves to each host's wireguard_ip so all
+          inter-service traffic (DB/JDBC, proxy upstreams, monitoring) rides the
+          encrypted wg0 tunnel, and the mesh is brought up before the service
+          roles. Off by default so LXD and existing single-VPC SSH deployments
+          are byte-for-byte unchanged. Implies (and is asserted to require)
+          ansible_connection=ssh, wireguard_enabled=true, and a non-empty
+          wireguard_endpoint_public.
+        type: bool
+        default: false
       wireguard_stage:
         description: >-
           Legacy per-play stage selector retained for backward compatibility
@@ -39,6 +50,16 @@ argument_specs:
         description: "Static LXD IP assigned to the wireguard hub container"
         type: str
         default: "172.19.2.200"
+      wireguard_hub_endpoint_internal:
+        description: >-
+          Endpoint that app/container ("internal") peers dial to reach the
+          hub. Defaults to wireguard_hub_lxd_ip in LXD mode (sibling-container
+          bridge IP) and to the resolved public endpoint in SSH/distributed
+          mode, where peers live on separate VMs with no shared LXD bridge.
+          Lazily evaluated on the hub host after the public endpoint is
+          resolved. Override only for split-horizon/custom routing.
+        type: str
+        default: "{{ wireguard_hub_lxd_ip }}"
       wireguard_endpoint_listen:
         description: >-
           Listen address used by `lxc network forward` on the LXD host.
@@ -130,13 +151,17 @@ argument_specs:
         default: false
       wireguard_lockdown_monitoring:
         description: >-
-          Gates the `/glowroot` proxy block in
-          roles/create-instance/templates/{nginx,apache2}/instance.j2.
-          lockdown_proxy.yml sets this true to re-render the proxy configs
-          without `/glowroot`. Use `--skip-tags lockdown-proxy` to keep
-          `/glowroot` reachable while the VPN is enabled.
+          Master switch for restricting monitoring (Grafana/Prometheus/Munin)
+          and the `/glowroot` proxy block to the WireGuard VPN. Combined with
+          wireguard_enabled into the computed wireguard_monitoring_locked
+          (group_vars/all/vars.yml), which the monitoring/proxy/create-instance
+          roles render against AND the lockdown phase gates on, so both agree
+          and a re-run is idempotent. Defaults to true (mesh up => monitoring
+          locked); set false in inventory for cut-over (keep services
+          proxy-accessible). `--skip-tags lockdown-*` still skips the lockdown
+          phase ad hoc, but the provisioning roles follow this flag.
         type: bool
-        default: false
+        default: true
       grafana_port:
         description: "Grafana HTTP port - used for VPN-only UFW rules"
         type: int

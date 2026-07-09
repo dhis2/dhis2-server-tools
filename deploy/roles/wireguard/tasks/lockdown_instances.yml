@@ -20,7 +20,7 @@
   community.general.ufw:
     rule: allow
     port: '4949'
-    src: "{{ hostvars[groups['monitoring'][0]]['ansible_host'] }}"
+    src: "{{ hostvars[groups['monitoring'][0]]['service_ip'] | default(hostvars[groups['monitoring'][0]]['ansible_host']) }}"
     proto: tcp
     state: enabled
     comment: 'munin-node - monitor container access only'

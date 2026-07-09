@@ -1,21 +1,13 @@
 ---
-# WireGuard human/admin peers (laptops, home machines, sysadmins).
-# App containers (proxy/postgres/dhis/monitor) are auto-derived from the
-# inventory's inline `wireguard_ip` and must NOT be listed here.
-# The hub itself uses 10.0.0.1; assign human peers from 10.0.0.6 upward
-# (10.0.0.2-.5 are reserved for app containers in the default inventory).
+service_ip: >-
+  {{ (wireguard_ip | default(ansible_host))
+     if (wireguard_data_plane | default(false) | bool)
+     else ansible_host }}
 
-#
-# Optional pg_access: a list of entries that produce per-peer pg_hba.conf
-# rules on the databases host. Peers without pg_access have no PostgreSQL
-# access. Each entry is one of:
-#   - { instance: <hostname> }   preferred - derives both database and user
-#                                from the DHIS2 instance's LXD container name
-#                                (db name == role == owner == container name).
-#                                Reference a host from the [instances] group so
-#                                the rule tracks the instance instead of being
-#                                hardcoded.
-#   - { database: all, user: all }   explicit - for wildcard/superuser access.
+wireguard_monitoring_locked: >-
+  {{ (wireguard_enabled | default(false) | bool)
+     and (wireguard_lockdown_monitoring | default(true) | bool) }}
+
 wireguard_peers:
   - name: sysadmin
     allowed_ips: "10.0.0.6/32"

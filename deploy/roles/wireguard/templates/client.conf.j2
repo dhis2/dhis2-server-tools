@@ -14,7 +14,7 @@ PublicKey = {{ wireguard_server_public_key_data.content | b64decode | trim }}
 PresharedKey = {{ item._preshared_key }}
 {% endif %}
 {% if item.endpoint_kind == 'internal' %}
-Endpoint = {{ wireguard_hub_lxd_ip }}:{{ wireguard_port }}
+Endpoint = {{ wireguard_hub_endpoint_internal }}:{{ wireguard_port }}
 {% else %}
 Endpoint = {{ wireguard_endpoint_public_resolved }}:{{ wireguard_port }}
 {% endif %}

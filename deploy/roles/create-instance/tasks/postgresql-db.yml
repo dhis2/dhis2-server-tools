@@ -12,8 +12,8 @@
   ansible.builtin.lineinfile:
     path: /etc/postgresql/{{ postgresql_version_info.version.major }}/main/pg_hba.conf
     insertafter: EOF
-    regexp: "^(host|hostssl)\\s+{{ item }}\\s+{{ item }}\\s+{{ hostvars[item]['ansible_host'] }}(/32)?\\s+.*$"
-    line: hostssl     {{ item }}    {{ item }}  {{ hostvars[item]['ansible_host'] }}/32  scram-sha-256
+    regexp: "^(host|hostssl)\\s+{{ item }}\\s+{{ item }}\\s+{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}(/32)?\\s+.*$"
+    line: hostssl     {{ item }}    {{ item }}  {{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}/32  scram-sha-256
   loop: "{{ groups['instances'] }}"
   when:
     - hostvars[item]['instance_state'] is undefined
@@ -26,7 +26,7 @@
   community.general.ufw:
     rule: allow
     port: "{{ postgresql_port | default('5432') }}"
-    src: "{{ hostvars[item]['ansible_host'] }}"
+    src: "{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}"
     proto: tcp
     comment: "Allow access from {{ item }} instance "
     state: enabled

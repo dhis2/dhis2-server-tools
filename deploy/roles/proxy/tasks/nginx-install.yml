@@ -123,8 +123,8 @@
 
 - name: Location configs {{ server_monitoring }}
   ansible.builtin.template:
-    src: nginx/{{ server_monitoring | trim }}.j2
-    dest: /etc/nginx/conf.d/upstream/{{ server_monitoring }}.conf
+    src: nginx/{{ monitoring_upstream_name }}.j2
+    dest: /etc/nginx/conf.d/upstream/{{ monitoring_upstream_name }}.conf
     owner: root
     group: root
     mode: "0640"
@@ -134,6 +134,24 @@
   when:
     - groups['monitoring'] | length > 0
     - server_monitoring is defined
+    - not (wireguard_monitoring_locked | default(false) | bool)
+
+# nginx site.j2 hard-`include`s conf.d/upstream/<monitoring>.conf, so the file
+# MUST exist or `nginx -t` fails. When locked we still need the file present but
+# empty - matching the exact content+mode lockdown_proxy.yml writes, so the two
+# phases produce identical state and a re-run is idempotent.
+- name: Disable monitoring proxy config when locked to VPN
+  ansible.builtin.copy:
+    content: "# Monitoring disabled by WireGuard lockdown\n"
+    dest: /etc/nginx/conf.d/upstream/{{ monitoring_upstream_name }}.conf
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Reload Nginx
+  when:
+    - groups['monitoring'] | length > 0
+    - server_monitoring is defined
+    - wireguard_monitoring_locked | default(false) | bool
 
 - name: Flushing handlers
   ansible.builtin.meta: flush_handlers

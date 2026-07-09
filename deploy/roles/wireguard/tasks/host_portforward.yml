@@ -1,12 +1,4 @@
 ---
-# Forwards UDP {{ wireguard_port }} from a host-owned IP into the hub
-# container via `lxc network forward`.
-#
-# wireguard_endpoint_listen is the host-side bind IP (LXD forwards bind on
-# host-side only). wireguard_endpoint_public is what home peers dial; it's
-# resolved in hub.yml. On cloud VMs with 1:1 NAT (e.g. AWS EIP) the listen
-# IP is the private primary and public IP must be set explicitly.
-
 - name: WireGuard | Resolve listen address for `lxc network forward`
   ansible.builtin.set_fact:
     wireguard_endpoint_listen_resolved: >-

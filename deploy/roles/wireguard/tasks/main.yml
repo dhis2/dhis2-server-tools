@@ -1,19 +1,4 @@
 ---
-# The role is normally driven from playbooks/wireguard.yml and
-# playbooks/wireguard-lockdown.yml via include_role tasks_from:, so this
-# dispatcher is only used when the role is invoked the legacy way
-# (roles: [{ role: wireguard, vars: { wireguard_stage: ... } }]).
-#
-# Stages:
-#   host_portforward - provision hub LXD container + lxc network forward
-#                      (LXD deployments only).
-#   hub              - install/configure WireGuard server inside the hub.
-#   peer             - install/configure WireGuard on each app host.
-#
-# Lockdown stages (lockdown_proxy, lockdown_monitor, lockdown_postgres,
-# lockdown_instances) are NOT exposed here; run
-# playbooks/wireguard-lockdown.yml explicitly after the mesh is verified.
-
 - name: WireGuard | Validate configuration
   ansible.builtin.include_tasks: validate.yml
   when:

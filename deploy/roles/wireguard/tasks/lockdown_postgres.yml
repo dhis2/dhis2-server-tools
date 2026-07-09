@@ -1,14 +1,4 @@
 ---
-# Per-peer pg_hba.conf rules managed via a single blockinfile so that peer
-# removal is idempotent: lineinfile cannot remove a previously-added line
-# when the entry disappears from inventory.
-
-# Discover the active cluster directory off disk as root rather than via
-# `become_user: postgres` + postgresql_info. On idmapped LXD mounts the
-# become-to-unprivileged-user step cannot chown the temp file it transfers
-# ("Unprivileged become user would be unable to read the file"), which aborts
-# the lockdown run before lockdown_instances ever applies. Reading the cluster
-# directory needs no unprivileged become and works on every connection type.
 - name: Lockdown | Discover PostgreSQL cluster directories
   ansible.builtin.find:
     paths: /etc/postgresql
@@ -36,10 +26,6 @@
   register: wireguard_pg_hba_stat
   when: wireguard_pg_hba_path is defined
 
-# database/user are derived from item.1.instance (the DHIS2 instance's LXD
-# container name, which equals its db name, role and owner, see
-# roles/create-instance/tasks/postgresql-db.yml). An explicit database/user
-# on the entry overrides the derived value (e.g. { database: all, user: all }).
 - name: Lockdown | Build per-peer pg_hba lines
   ansible.builtin.set_fact:
     _wireguard_pg_hba_lines: >-

@@ -86,9 +86,7 @@
     out_interface: '{{ wireguard_interface }}'
     jump: ACCEPT
     state: present
-
-# Normalize app-container and human peers into one shape so downstream
-# templates and key generation can iterate uniformly.
+    
 - name: Hub | Build app-container peer entries from inventory
   ansible.builtin.set_fact:
     _wireguard_app_peers_normalized: >-
@@ -100,7 +98,7 @@
           'endpoint_kind': 'internal'
         }
       ] }}
-  loop: "{{ groups['all'] | difference(['127.0.0.1', wireguard_hub_inventory_hostname]) }}"
+  loop: "{{ groups['all'] | difference(['127.0.0.1', wireguard_hub_inventory_hostname]) | sort }}"
   loop_control:
     label: "{{ item }}"
   when: hostvars[item].wireguard_ip is defined
@@ -124,7 +122,12 @@
       {{ (_wireguard_app_peers_normalized | default([]))
          + (_wireguard_human_peers_normalized | default([])) }}
 
-- name: Hub | Resolve public endpoint for home/admin peers
+- name: Hub | Resolve public endpoint for home/admin peers (SSH/distributed)
+  ansible.builtin.set_fact:
+    wireguard_endpoint_public_resolved: "{{ wireguard_endpoint_public }}"
+  when: (ansible_connection | default('lxd')) != 'lxd'
+
+- name: Hub | Resolve public endpoint for home/admin peers (LXD)
   ansible.builtin.set_fact:
     wireguard_endpoint_public_resolved: >-
       {{ wireguard_endpoint_public
@@ -133,6 +136,7 @@
               | default(hostvars['127.0.0.1']['wireguard_endpoint_listen_resolved']
                         | default(hostvars['127.0.0.1']['ansible_default_ipv4']['address']
                                   | default('127.0.0.1'))) }}
+  when: (ansible_connection | default('lxd')) == 'lxd'
 
 - name: Hub | Generate keys for all peers (auto-generate mode)
   ansible.builtin.include_tasks: generate_client_keys.yml

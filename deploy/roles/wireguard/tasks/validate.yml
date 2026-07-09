@@ -1,7 +1,4 @@
 ---
-# Pre-flight validation. Runs early to fail fast before template rendering
-# produces cryptic WireGuard errors.
-
 - name: WireGuard | Assert each peer has required fields
   ansible.builtin.assert:
     that:
@@ -137,6 +134,77 @@
     quiet: true
   run_once: true
 
+- name: WireGuard | Assert public endpoint is set for SSH/distributed mode
+  ansible.builtin.assert:
+    that:
+      - wireguard_endpoint_public is defined
+      - wireguard_endpoint_public | length > 0
+    fail_msg: >-
+      wireguard_endpoint_public must be set to the hub's reachable
+      IP/hostname when deploying over SSH (ansible_connection=ssh). It is
+      advertised to every peer (both app hosts and home/admin peers) as their
+      Endpoint = line. Set it in the inventory [wireguard] host or [all:vars].
+    quiet: true
+  when: (wireguard_deploy_mode | default('lxd')) != 'lxd'
+  run_once: true
+
+- name: WireGuard | Assert data-plane prerequisites when wireguard_data_plane is enabled
+  ansible.builtin.assert:
+    that:
+      - (wireguard_deploy_mode | default('lxd')) == 'ssh'
+      - wireguard_enabled | default(false) | bool
+      - wireguard_endpoint_public is defined
+      - wireguard_endpoint_public | length > 0
+    fail_msg: >-
+      wireguard_data_plane=true requires ansible_connection=ssh (got deploy
+      mode '{{ wireguard_deploy_mode | default('lxd') }}'),
+      wireguard_enabled=true, and a non-empty wireguard_endpoint_public.
+      The data plane moves all
+      inter-service traffic onto wg0, which is only valid for a distributed SSH
+      mesh with a reachable hub. Fix the inventory or leave wireguard_data_plane
+      false (service_ip then equals ansible_host).
+    quiet: true
+  when: wireguard_data_plane | default(false) | bool
+  run_once: true
+
+- name: WireGuard | Assert service_ip equals ansible_host when data plane is disabled
+  ansible.builtin.assert:
+    that:
+      - (hostvars[item].service_ip | default(hostvars[item].ansible_host))
+          == hostvars[item].ansible_host
+    fail_msg: >-
+      Host '{{ item }}' has service_ip='{{ hostvars[item].service_ip
+      | default('(unset)') }}' which differs from
+      ansible_host='{{ hostvars[item].ansible_host }}' while
+      wireguard_data_plane is false. With the data plane disabled service_ip
+      must resolve to ansible_host. Do not override service_ip directly; enable
+      wireguard_data_plane instead.
+    quiet: true
+  loop: "{{ groups['all'] | difference(['127.0.0.1']) | sort }}"
+  loop_control:
+    label: "{{ item }}"
+  when: not (wireguard_data_plane | default(false) | bool)
+  run_once: true
+
+- name: WireGuard | Assert backup servers have wireguard_ip when data plane is enabled
+  ansible.builtin.assert:
+    that:
+      - hostvars[item].wireguard_ip is defined
+      - hostvars[item].wireguard_ip | length > 0
+    fail_msg: >-
+      Host '{{ item }}' is in [backup_servers] but has no wireguard_ip while
+      wireguard_data_plane is true. With the data plane active PostgreSQL
+      listens only on localhost + its wireguard_ip, so a backup host that is
+      not a WireGuard peer cannot reach the database. Add
+      'wireguard_ip=<10.0.0.x>' to the backup host, or disable
+      wireguard_data_plane.
+    quiet: true
+  loop: "{{ groups.get('backup_servers', []) | sort }}"
+  loop_control:
+    label: "{{ item }}"
+  when: wireguard_data_plane | default(false) | bool
+  run_once: true
+
 - name: WireGuard | Assert every app host (web/databases/instances/monitoring) has wireguard_ip
   ansible.builtin.assert:
     that:
@@ -155,9 +223,6 @@
     label: "{{ item }}"
   run_once: true
 
-# Two regex passes (split CIDR list, then strip mask) for portability across
-# Ansible/Jinja versions. For human peers with comma-separated allowed_ips,
-# this picks the peer's own VPN IP, not a downstream subnet.
 - name: WireGuard | Build canonical peer IP list for uniqueness check
   ansible.builtin.set_fact:
     _wireguard_human_peer_ips: >-

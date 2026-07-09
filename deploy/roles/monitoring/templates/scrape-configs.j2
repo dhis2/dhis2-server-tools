@@ -2,7 +2,7 @@
   - job_name: {{ database_host }}
     static_configs:
       - targets:
-         - {{ hostvars[database_host]['ansible_host'] }}:9187
+         - {{ hostvars[database_host]['service_ip'] | default(hostvars[database_host]['ansible_host']) }}:9187
 {% endfor %} 
 {% for dhis2_host in groups['instances'] %}
   - job_name: {{ hostvars[dhis2_host]['dhis2_base_path'] | default(dhis2_host) | to_fixed_string }}
@@ -12,7 +12,7 @@
       password: district
     static_configs:
       - targets:
-        - {{ hostvars[dhis2_host]['ansible_host'] }}:8080
+        - {{ hostvars[dhis2_host]['service_ip'] | default(hostvars[dhis2_host]['ansible_host']) }}:8080
 {% endfor %}
 {% if ansible_connection == "lxd" %}
   - job_name: LXD Host

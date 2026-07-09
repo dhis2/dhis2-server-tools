@@ -1,7 +1,4 @@
 ---
-# user.type="wireguard" is required so custom_lxd dynamic inventory can
-# discover the container.
-
 - name: WireGuard | Create wireguard hub container
   vars:
     ansible_connection: local

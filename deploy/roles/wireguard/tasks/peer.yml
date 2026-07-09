@@ -1,6 +1,8 @@
 ---
-# Runs INSIDE each app container (proxy/postgres/dhis/monitor).
-# Pulls the pre-rendered wg0 config from the hub and starts the WG service.
+- name: Peer | Wait for connection to be usable
+  ansible.builtin.wait_for_connection:
+    timeout: 60
+    sleep: 3
 
 - name: Peer | Install WireGuard packages
   ansible.builtin.apt:
@@ -19,10 +21,6 @@
     group: root
     mode: '0700'
 
-# `ansible_lxd_host` is set in inventory to `{{ inventory_hostname }}`, but
-# under delegate_to that template still resolves with the ORIGINAL host's
-# inventory_hostname (peer name) rather than the delegate target. Override
-# explicitly so the LXD connection plugin execs into the hub container.
 - name: Peer | Slurp pre-rendered config from hub
   ansible.builtin.slurp:
     src: "{{ wireguard_client_config_dir }}/{{ inventory_hostname }}.conf"

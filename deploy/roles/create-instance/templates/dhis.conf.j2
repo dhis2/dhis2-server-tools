@@ -11,7 +11,7 @@ connection.driver_class = org.postgresql.Driver
 # Database connection URL
 {% for host in groups['databases'] %}
     {% if hostvars[inventory_hostname]['database_host'] == host %}
-connection.url = jdbc:postgresql://{{ hostvars[host]['ansible_host'] }}/{{ inventory_hostname }}
+connection.url = jdbc:postgresql://{{ hostvars[host]['service_ip'] | default(hostvars[host]['ansible_host']) }}/{{ inventory_hostname }}
     {% endif %}
 {% endfor %}
 # Database username
@@ -142,7 +142,7 @@ monitoring.cpu.enabled = on
 # Analytics database management system
 analytics.database = doris
 analytics.connection.driver_class = com.mysql.cj.jdbc.Driver
-analytics.connection.url = jdbc:mysql://{{ hostvars[apache_doris_db]['ansible_host'] }}:9030/analytics 
+analytics.connection.url = jdbc:mysql://{{ hostvars[apache_doris_db]['service_ip'] | default(hostvars[apache_doris_db]['ansible_host']) }}:9030/analytics 
 analytics.connection.username = {{ apache_doris_db_user | default('doris_user') }}
 analytics.connection.password = {{ apache_doris_db_password | default(lookup('password', '/opt/ansible/secrets/apache_doris_db_password')) }}
 # END ANSIBLE MANAGED DORIS CONFIG

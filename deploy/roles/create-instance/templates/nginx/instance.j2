@@ -1,8 +1,8 @@
 {% set _glowroot_enabled = app_monitoring is defined and app_monitoring | trim == 'glowroot' %}
-{% set _glowroot_locked = wireguard_enabled | default(false) | bool and wireguard_lockdown_monitoring | default(false) | bool %}
+{% set _glowroot_locked = wireguard_monitoring_locked | default(false) | bool %}
 {% if  hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string == "ROOT"  %}
 location / {
-   proxy_pass  http://{{hostvars[item]['ansible_host']+':8080' }};
+   proxy_pass  http://{{(hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']))+':8080' }};
    include /etc/nginx/proxy_params;
    proxy_redirect off;
    proxy_set_header X-Frame-Options "SAMEORIGIN";  # protect against clickjacking attacks
@@ -15,7 +15,7 @@ location / {
 {% if _glowroot_enabled and not _glowroot_locked %}
 {# glowroot location block configs #} 
 location /glowroot/ {
-   proxy_pass http://{{ hostvars[item]['ansible_host']+':4000' }}/glowroot/;
+   proxy_pass http://{{ (hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']))+':4000' }}/glowroot/;
    include /etc/nginx/proxy_params;
    proxy_redirect off;
    proxy_set_header X-Frame-Options "SAMEORIGIN";  # To mitigate the risk of clickjacking attacks
@@ -29,7 +29,7 @@ location /glowroot/ {
 {% else %}
 location /{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}/ {
    {# instance location block configs #} 
-   proxy_pass http://{{hostvars[item]['ansible_host']+':8080' }}/{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}/;
+   proxy_pass http://{{(hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']))+':8080' }}/{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}/;
    include /etc/nginx/proxy_params;
    proxy_redirect off;
    proxy_set_header X-Frame-Options "SAMEORIGIN";  # protect against clickjacking attacks
@@ -42,7 +42,7 @@ location /{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string
 {% if _glowroot_enabled and not _glowroot_locked %}
 {# glowroot location block configs #} 
 location /{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}-glowroot {
-   proxy_pass http://{{ hostvars[item]['ansible_host']+':4000' }}/{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}-glowroot;
+   proxy_pass http://{{ (hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']))+':4000' }}/{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}-glowroot;
    include /etc/nginx/proxy_params;
    proxy_redirect off;
    proxy_set_header X-Frame-Options "SAMEORIGIN";  # To mitigate the risk of clickjacking attacks

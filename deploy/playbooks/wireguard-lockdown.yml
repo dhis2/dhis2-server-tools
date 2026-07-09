@@ -1,23 +1,4 @@
 ---
-# WireGuard VPN lockdown.
-#
-# Restricts Grafana, Prometheus, Munin, Glowroot and PostgreSQL access to
-# the WireGuard subnet only. Auto-imported by dhis2.yml immediately after
-# playbooks/wireguard.yml, so a single `deploy.sh` / `dhis2.yml` run with
-# `wireguard_enabled=true` brings up the mesh AND locks services down in
-# one go. May also be run standalone to (re-)apply lockdown after manual
-# UFW changes:
-#   ansible-playbook playbooks/wireguard-lockdown.yml
-#
-# Every play below gates on wireguard_enabled, so this is a no-op when
-# WireGuard is disabled - that's what lets dhis2.yml import it
-# unconditionally.
-#
-# Selective skip via --skip-tags (works whether run via dhis2.yml or
-# standalone):
-#   ansible-playbook dhis2.yml --skip-tags lockdown-postgres
-#   ansible-playbook dhis2.yml --skip-tags wireguard-lockdown   # all of it
-
 - name: WireGuard lockdown | Pre-flight
   hosts: 127.0.0.1
   connection: local
@@ -27,9 +8,6 @@
     - wireguard
     - wireguard-lockdown
   tasks:
-    # Informational only - surfaces "lockdown is about to run" in the play
-    # output. When wireguard_enabled is false the rest of this playbook
-    # short-circuits via per-play `when:` guards.
     - name: Lockdown | Announce service hardening
       ansible.builtin.debug:
         msg: >-
@@ -54,7 +32,7 @@
       ansible.builtin.include_role:
         name: wireguard
         tasks_from: lockdown_proxy.yml
-      when: wireguard_enabled | default(false) | bool
+      when: wireguard_monitoring_locked | default(false) | bool
 
 - name: WireGuard lockdown | Monitoring
   hosts: monitoring
@@ -69,7 +47,7 @@
       ansible.builtin.include_role:
         name: wireguard
         tasks_from: lockdown_monitor.yml
-      when: wireguard_enabled | default(false) | bool
+      when: wireguard_monitoring_locked | default(false) | bool
 
 - name: WireGuard lockdown | PostgreSQL
   hosts: databases
