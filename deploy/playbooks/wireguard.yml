@@ -1,0 +1,89 @@
+---
+- name: WireGuard | Provision hub on localhost
+  hosts: 127.0.0.1
+  become: true
+  gather_facts: false
+  tags:
+    - wireguard
+    - wireguard-bring-up
+  tasks:
+    - name: WireGuard | Capture deployment mode (lxd vs ssh)
+      vars:
+        ansible_connection: local
+      ansible.builtin.set_fact:
+        wireguard_deploy_mode: >-
+          {{ hostvars[wireguard_hub_inventory_hostname | default('wireguard')]['ansible_connection']
+             | default('lxd') }}
+
+    - name: WireGuard | Set Ansible connection to local
+      vars:
+        ansible_connection: local
+      ansible.builtin.set_fact:
+        ansible_connection: local
+
+    - name: WireGuard | Gather network facts on host
+      ansible.builtin.setup:
+        gather_subset:
+          - network
+          - '!min'
+    - name: WireGuard | Validate configuration
+      ansible.builtin.include_role:
+        name: wireguard
+        tasks_from: validate.yml
+      when: >-
+        (wireguard_enabled | default(false) | bool)
+        or (wireguard_data_plane | default(false) | bool)
+
+    - name: WireGuard | Provision hub LXD container (LXD only)
+      ansible.builtin.include_role:
+        name: wireguard
+        tasks_from: lxd_container.yml
+      when:
+        - wireguard_enabled | default(false) | bool
+        - wireguard_deploy_mode == 'lxd'
+
+    - name: WireGuard | LXD host port-forward (LXD only)
+      ansible.builtin.include_role:
+        name: wireguard
+        tasks_from: host_portforward.yml
+      when:
+        - wireguard_enabled | default(false) | bool
+        - wireguard_deploy_mode == 'lxd'
+
+- name: WireGuard | Configure hub server
+  hosts: "{{ wireguard_hub_inventory_hostname | default('wireguard') }}"
+  become: true
+  gather_facts: false
+  tags:
+    - wireguard
+    - wireguard-bring-up
+  tasks:
+    - name: WireGuard | Hub
+      ansible.builtin.include_role:
+        name: wireguard
+        tasks_from: hub.yml
+      when: wireguard_enabled | default(false) | bool
+
+- name: WireGuard | Configure peers across app hosts
+  hosts: "all:!127.0.0.1:!{{ wireguard_hub_inventory_hostname | default('wireguard') }}"
+  become: true
+  gather_facts: false
+  tags:
+    - wireguard
+    - wireguard-bring-up
+  tasks:
+    - name: WireGuard | Restore peer connection (undo backups ansible_connection leak)
+      ansible.builtin.set_fact:
+        ansible_connection: >-
+          {{ hostvars[wireguard_hub_inventory_hostname | default('wireguard')]['ansible_connection']
+             | default('lxd') }}
+      when: wireguard_enabled | default(false) | bool
+
+    - name: WireGuard | Peer
+      ansible.builtin.include_role:
+        name: wireguard
+        tasks_from: peer.yml
+      when:
+        - wireguard_enabled | default(false) | bool
+        - hostvars[inventory_hostname].wireguard_ip is defined
+        - hostvars[inventory_hostname].wireguard_ip | length > 0

@@ -190,7 +190,7 @@
     backup_server_ips: >-
       {{
         groups['backup_servers']
-        | map('extract', hostvars, 'ansible_host')
+        | map('extract', hostvars, 'service_ip')
         | select('defined')
         | list
       }}

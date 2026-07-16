@@ -1,0 +1,21 @@
+---
+service_ip: >-
+  {{ (wireguard_ip | default(ansible_host))
+     if (wireguard_data_plane | default(false) | bool)
+     else ansible_host }}
+
+wireguard_monitoring_locked: >-
+  {{ (wireguard_enabled | default(false) | bool)
+     and (wireguard_lockdown_monitoring | default(true) | bool) }}
+
+wireguard_peers:
+  - name: sysadmin
+    allowed_ips: "10.0.0.6/32"
+    # public_key: "<peer-public-key>"          # only needed if wireguard_auto_generate_keys: false
+    # preshared_key: "<peer-preshared-key>"    # optional - for post-quantum resistance
+    pg_access:
+      - { instance: dhis }                      # access the 'dhis' instance's database as its own role
+  # - name: superuser
+  #   allowed_ips: "10.0.0.7/32"
+  #   pg_access:
+  #     - { database: all, user: all }          # superuser-equivalent - allows access to all databases as any user

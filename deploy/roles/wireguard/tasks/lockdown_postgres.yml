@@ -1,0 +1,64 @@
+---
+- name: Lockdown | Discover PostgreSQL cluster directories
+  ansible.builtin.find:
+    paths: /etc/postgresql
+    file_type: directory
+    depth: 1
+    patterns: '[0-9]*'
+    use_regex: false
+  register: wireguard_pg_clusters
+
+- name: Lockdown | Resolve pg_hba.conf path (highest installed major)
+  ansible.builtin.set_fact:
+    wireguard_pg_hba_path: >-
+      /etc/postgresql/{{
+        wireguard_pg_clusters.files
+        | map(attribute='path')
+        | map('basename')
+        | map('int')
+        | max
+      }}/main/pg_hba.conf
+  when: wireguard_pg_clusters.files | length > 0
+
+- name: Lockdown | Verify pg_hba.conf exists
+  ansible.builtin.stat:
+    path: "{{ wireguard_pg_hba_path | default('') }}"
+  register: wireguard_pg_hba_stat
+  when: wireguard_pg_hba_path is defined
+
+- name: Lockdown | Build per-peer pg_hba lines
+  ansible.builtin.set_fact:
+    _wireguard_pg_hba_lines: >-
+      {{ _wireguard_pg_hba_lines | default([]) + [
+           'hostssl    ' ~ (item.1.database | default(item.1.instance))
+           ~ '    ' ~ (item.1.user | default(item.1.instance))
+           ~ '    ' ~ (item.0.peer_ip | default(item.0.allowed_ips.split(',')[0] | trim))
+           ~ '    scram-sha-256'
+         ] }}
+  loop: "{{ wireguard_peers | subelements('pg_access', skip_missing=True) }}"
+  loop_control:
+    label: >-
+      {{ item.0.name }} ->
+      {{ item.1.database | default(item.1.instance) }}/{{ item.1.user | default(item.1.instance) }}
+
+- name: Lockdown | Manage per-peer pg_hba block
+  ansible.builtin.blockinfile:
+    path: "{{ wireguard_pg_hba_path }}"
+    marker: "# {mark} ANSIBLE MANAGED — wireguard per-peer pg_access"
+    block: "{{ _wireguard_pg_hba_lines | default([]) | join('\n') }}"
+    state: "{{ 'present' if (_wireguard_pg_hba_lines | default([]) | length > 0) else 'absent' }}"
+    insertbefore: EOF
+    create: false
+  notify: Reload PostgreSQL
+  when:
+    - wireguard_pg_hba_path is defined
+    - wireguard_pg_hba_stat.stat.exists | default(false)
+
+- name: Lockdown | Allow PostgreSQL (5432/tcp) from VPN subnet
+  community.general.ufw:
+    rule: allow
+    port: '5432'
+    src: '{{ wireguard_network }}'
+    proto: tcp
+    state: enabled
+    comment: 'PostgreSQL - VPN access only'

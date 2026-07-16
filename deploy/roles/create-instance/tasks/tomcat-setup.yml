@@ -111,7 +111,7 @@
   community.general.ufw:
     rule: allow
     port: "{{ tomcat_port | default('8080') }}"
-    src: "{{ hostvars[item]['ansible_host'] }}"
+    src: "{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}"
     proto: tcp
     state: enabled
     comment: tomcat access from the proxy
@@ -121,7 +121,7 @@
   community.general.ufw:
     rule: allow
     port: "{{ glow_root_port | default('4000') }}"
-    src: "{{ hostvars[item]['ansible_host'] }}"
+    src: "{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}"
     proto: tcp
     comment: Glowroot monitor access from proxy
     state: enabled

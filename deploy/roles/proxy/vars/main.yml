@@ -1,1 +1,7 @@
 ---
+# Canonical basename for the monitoring upstream config file the vhost templates
+# `include`. `server_monitoring` can be "grafana/prometheus" (the "/" is invalid
+# in a filename and caused the crash) or "prometheus" (no matching template);
+# the vhosts always include grafana.conf for the whole grafana family and
+# munin.conf for munin, so producer tasks must resolve to that same basename.
+monitoring_upstream_name: "{{ 'munin' if (server_monitoring | default('') | trim == 'munin') else 'grafana' }}"

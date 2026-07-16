@@ -1,10 +1,10 @@
 {% for host in groups['monitoring'] %}
 {% if hostvars['proxy']['munin_base_path'] is defined  and  hostvars['proxy']['munin_base_path'] is not none and  hostvars['proxy']['munin_base_path'] | trim != '' %}
 location /{{ munin_base_path }} {
-  proxy_pass http://{{hostvars[host]['ansible_host']+':80' }}/{{ munin_base_path }};
+  proxy_pass http://{{(hostvars[host]['service_ip'] | default(hostvars[host]['ansible_host']))+':80' }}/{{ munin_base_path }};
 {% else  %}
 location /{{ server_monitoring }} {
-  proxy_pass http://{{hostvars[host]['ansible_host']+':80' }}/{{ server_monitoring }};
+  proxy_pass http://{{(hostvars[host]['service_ip'] | default(hostvars[host]['ansible_host']))+':80' }}/{{ server_monitoring }};
 {% endif  %}
   include /etc/nginx/proxy_params;
   proxy_redirect off;
@@ -18,6 +18,6 @@ location /{{ server_monitoring }} {
   auth_basic "Restricted Content";
   auth_basic_user_file /etc/nginx/.htpasswd;
 {%endfor%}
-# {% endif %}
+{# {% endif %} #}
 }
 {% endfor %}

@@ -42,7 +42,7 @@ JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote.ssl=false"
 JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote.rmi.port=9090"
 JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote.local.only=false"
 JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote.authenticate=false"
-JAVA_OPTS="${JAVA_OPTS} -Djava.rmi.server.hostname={{ansible_host}}"
+JAVA_OPTS="${JAVA_OPTS} -Djava.rmi.server.hostname={{ service_ip | default(ansible_host) }}"
 {% endif %}
 
 # Custom Log4j2.xml

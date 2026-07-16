@@ -4,5 +4,5 @@
     rule: allow
     port: 8080
     proto: tcp
-    from_ip: "{{ hostvars[item]['ansible_host'] }}"
+    from_ip: "{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}"
   loop: "{{ groups['integration'] }}"

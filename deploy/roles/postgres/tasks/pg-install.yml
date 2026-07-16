@@ -58,11 +58,17 @@
     name: root
     role_attr_flags: SUPERUSER
 
-- name: Postgresql | listen_addresses '*'
+# When the WireGuard data plane is active, bind only to loopback and this
+# host's own service_ip (its wireguard_ip) so PostgreSQL never listens on the
+# public NIC - the public 5432 surface disappears. In LXD / single-VPC SSH
+# (data plane off) service_ip == ansible_host and we keep the original '*'.
+- name: Postgresql | Configure listen_addresses
   ansible.builtin.lineinfile:
     dest: /etc/postgresql/{{ postgresql_version }}/main/postgresql.conf
     regex: ^#?listen_addresses
-    line: listen_addresses '*'
+    line: >-
+      listen_addresses '{{ "localhost," + (service_ip | default(ansible_host))
+      if (wireguard_data_plane | default(false) | bool) else "*" }}'
   notify: Restart Postgres
 
 - name: Flushing Handlers
