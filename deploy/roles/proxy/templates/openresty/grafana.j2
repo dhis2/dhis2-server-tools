@@ -1,13 +1,13 @@
 {% if hostvars['proxy']['grafana_base_path'] is defined  and  hostvars['proxy']['grafana_base_path'] is not none and  hostvars['proxy']['grafana_base_path'] | trim != '' %}
 location /{{ grafana_base_path }} {
-  proxy_pass http://{{(hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']))+':3000' }}/{{ grafana_base_path }};
+  proxy_pass http://{{hostvars[item]['ansible_host']+':3000' }}/{{ grafana_base_path }};
 {% else  %}
 location /{{ server_monitoring }} {
-  proxy_pass http://{{(hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']))+':3000' }}/{{ server_monitoring }};
+  proxy_pass http://{{hostvars[item]['ansible_host']+':3000' }}/{{ server_monitoring }};
 {% endif  %}
-  include /etc/nginx/proxy_params;
+  include /usr/local/openresty/nginx/conf/proxy_params;
   proxy_redirect off;
   proxy_hide_header X-Powered-By;
   proxy_hide_header Server;
-  include /etc/nginx/security_headers.conf;
+  include /usr/local/openresty/nginx/conf/security_headers.conf;
 }

@@ -39,6 +39,55 @@
       - "!min"
   tags: [always] # DISCUSS: why is always needed here
 
+- name: Delete container if OS is incompatible with target DHIS2 version
+  become: true
+  vars:
+    ansible_connection: local
+  community.general.lxd_container:
+    name: "{{ inventory_hostname }}"
+    state: absent
+  when:
+    - dhis2_auto_upgrade | bool
+    - GUEST_OS == '24.04'
+    - ansible_facts['distribution_version'] == '22.04'
+  register: deleted_incompatible_container
+
+- name: Recreate container with correct OS after deletion
+  become: true
+  vars:
+    ansible_connection: local
+  community.general.lxd_container:
+    config:
+      boot.autostart.priority: "2"
+      user.type: "{{ group_names[0] }}"
+    name: "{{ inventory_hostname }}"
+    state: started
+    profiles: [default]
+    ignore_volatile_options: false
+    wait_for_ipv4_addresses: true
+    timeout: 600
+    source:
+      type: image
+      mode: pull
+      server: "{{ lxd_source_server | default('https://cloud-images.ubuntu.com/releases') }}"
+      protocol: "{{ lxd_source_protocol | default('simplestreams') }}"
+      alias: "{{ GUEST_OS | default(guest_os) }}/{{ guest_os_arch | default('amd64') }}"
+    devices:
+      eth0:
+        nictype: bridged
+        parent: "{{ lxd_bridge_interface | default('lxdbr1') }}"
+        type: nic
+        ipv4.address: "{{ ansible_host | ansible.utils.ipaddr(lxd_network) }}"
+  when: deleted_incompatible_container.changed
+  register: create_lxd_container_status
+
+- name: Regather facts after OS migration
+  ansible.builtin.setup:
+    gather_subset:
+      - network
+      - "!min"
+  when: deleted_incompatible_container.changed
+
 - name: Ensuring container has configured static ip address
   become: true
   vars:

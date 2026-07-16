@@ -1,0 +1,123 @@
+---
+- name: Open http port {{ http_port | default('80') }}
+  community.general.ufw:
+    rule: allow
+    port: "{{ http_port | default('80') }}"
+    proto: tcp
+    comment: http
+    state: enabled
+
+- name: Open https port {{ https_port | default('443') }}
+  community.general.ufw:
+    rule: allow
+    port: "{{ https_port | default('443') }}"
+    proto: tcp
+    comment: https
+
+- name: Stop and disable other proxy services
+  ansible.builtin.include_tasks: stop-other-proxies.yml
+
+- name: Updating and Upgrading
+  ansible.builtin.apt:
+    upgrade: "yes"
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install prerequisites for OpenResty repo
+  ansible.builtin.apt:
+    name:
+      - curl
+      - gnupg2
+      - ca-certificates
+      - lsb-release
+    state: present
+
+- name: Add OpenResty signing key
+  ansible.builtin.shell:
+    cmd: curl -fsSL https://openresty.org/package/pubkey.gpg | gpg --dearmor -o /usr/share/keyrings/openresty-archive-keyring.gpg
+    creates: /usr/share/keyrings/openresty-archive-keyring.gpg
+
+- name: Add OpenResty official repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/openresty-archive-keyring.gpg] https://openresty.org/package/ubuntu {{ ansible_distribution_release }} main"
+    state: present
+    filename: openresty
+
+- name: Installing OpenResty
+  ansible.builtin.apt:
+    name:
+      - openresty
+      - libwww-perl   # required for munin monitoring
+    state: latest
+    update_cache: true
+
+- name: Creating OpenResty config directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  loop:
+    - '/usr/local/openresty/nginx/conf/conf.d/upstream'
+    - '/usr/local/openresty/nginx/conf/static'
+
+- name: Deploy main nginx.conf
+  ansible.builtin.template:
+    src: openresty/nginx.conf.j2
+    dest: /usr/local/openresty/nginx/conf/nginx.conf
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Reload Openresty
+
+- name: Create proxy_params file
+  ansible.builtin.copy:
+    dest: /usr/local/openresty/nginx/conf/proxy_params
+    content: |
+      proxy_set_header Host $http_host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      # Keepalive to upstream — requires HTTP/1.1 and an empty Connection header.
+      # Activates only when proxy_pass targets an upstream{} block with keepalive set.
+      proxy_http_version 1.1;
+      proxy_set_header Connection "";
+      # Timeouts for long-running DHIS2 operations (analytics, imports)
+      proxy_connect_timeout 60s;
+      proxy_send_timeout 300s;
+      proxy_read_timeout 300s;
+    owner: root
+    group: root
+    mode: "0640"
+
+- name: Deploy security_headers.conf
+  ansible.builtin.copy:
+    src: security_headers.conf
+    dest: /usr/local/openresty/nginx/conf/security_headers.conf
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Reload Openresty
+
+- name: Generating Diffie-Hellman key parameters, takes a while, you may grab some coffee
+  ansible.builtin.command: openssl dhparam -out /usr/local/openresty/nginx/conf/dhparams.pem 2048
+  args:
+    creates: /usr/local/openresty/nginx/conf/dhparams.pem
+  notify: Reload Openresty
+
+- name: Location configs {{ server_monitoring }}
+  ansible.builtin.template:
+    src: openresty/{{ server_monitoring | trim }}.j2
+    dest: /usr/local/openresty/nginx/conf/conf.d/upstream/{{ server_monitoring }}.conf
+    owner: root
+    group: root
+    mode: "0640"
+  loop: "{{ groups['monitoring'] }}"
+  notify: Reload Openresty
+  when:
+    - groups['monitoring'] | length > 0
+    - server_monitoring is defined
+
+- name: Flushing handlers
+  ansible.builtin.meta: flush_handlers

@@ -83,4 +83,4 @@
     path: /etc/ufw/before.rules
     marker: "# {mark} NAT configuration"
     state: absent
-  notify: Reload UFW
+  notify: Restart UFW

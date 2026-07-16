@@ -3,9 +3,9 @@
 # during future Ansible runs.
 
 # Please place any custom configurations in the following file
-# /etc/nginx/custom/default.conf
+# /usr/local/openresty/nginx/conf/custom/default.conf
 
-# configurations in  /etc/nginx/static/default.conf are be included in this nginx configuration.
+# configurations in /usr/local/openresty/nginx/conf/static/default.conf are included in this openresty configuration.
 
 # Tomcat upstreams with keepalive — for instances without an FQDN
 {% for instance in groups['instances']
@@ -64,8 +64,8 @@ server {
 {% endfor %}
 
 # location configs for dhis2 instances
-{% for instance  in groups['instances']  if (hostvars[instance]['instance_state'] is not defined) 
-and not (hostvars[instance]['fqdn'] | default('', true) | trim) %} 
+{% for instance  in groups['instances']  if (hostvars[instance]['instance_state'] is not defined)
+and not (hostvars[instance]['fqdn'] | default('', true) | trim) %}
   include  conf.d/upstream/{{ instance | to_fixed_string }}.conf;
 {%endfor%}
 
@@ -77,7 +77,7 @@ and not (hostvars[instance]['fqdn'] | default('', true) | trim) %}
   # Location config for Grafana/Prometheus backend
   include conf.d/upstream/grafana.conf;
 {% elif monitoring %}
-  # server_monitoring is defined but not recognized:  {{ server_monitoring }}
+  # server_monitoring is defined but not recognized: {{ server_monitoring }}
 {% else %}
   # server_monitoring is not defined or empty
 {% endif %}
@@ -91,4 +91,3 @@ location / {
 {%endif%}
 {%endfor%}
 }
-

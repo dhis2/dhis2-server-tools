@@ -8,6 +8,14 @@
   community.general.ufw:
     state: reloaded
 
+- name: Restart UFW
+  vars:
+    ansible_connection: local
+  become: true
+  become_user: root
+  ansible.builtin.shell: ufw disable && ufw --force enable
+  changed_when: true
+
 # Restarting unattended-upgrades
 - name: Restart Unattended-upgrades
   vars:
