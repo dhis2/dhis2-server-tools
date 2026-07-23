@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.8.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.7.0...v1.8.0) (2026-07-16)
+
+
+### 🎉 New Features
+
+* add support for wireguard vpn ([29f517c](https://github.com/dhis2/dhis2-server-tools/commit/29f517c7c26841105df4c8675b97328f40539508))
+* enhance instance configuration templates for Glowroot monitoring ([dc425a0](https://github.com/dhis2/dhis2-server-tools/commit/dc425a00eee44b20feb2bfb8594c0796fe77b45d))
+* enhance WireGuard configuration with automatic key generation server-side ([4941c83](https://github.com/dhis2/dhis2-server-tools/commit/4941c83a2cbe77eafa57209da67b6fb383e9b0b6))
+* enhance WireGuard deployment with new playbooks and lockdown features ([13adeea](https://github.com/dhis2/dhis2-server-tools/commit/13adeea27979a9c0eff30a75eb9f1b32b5af4dbd))
+* enhance WireGuard integration and service configurations ([717a798](https://github.com/dhis2/dhis2-server-tools/commit/717a79861ffddbabb835f0e2a1d1f20436e0b771))
+* enhance WireGuard role with new hub and peer configurations ([d3e5613](https://github.com/dhis2/dhis2-server-tools/commit/d3e56134065e4a1efe6621a2180e26539912a357))
+* enhance WireGuard role with validation and improved configuration ([9a61baf](https://github.com/dhis2/dhis2-server-tools/commit/9a61baf33561443523e97dbc1dc5c6790d1e1081))
+
+
+### 🐛 Bug Fixes
+
+* correct WireGuard peer connection and postgres lockdown on LXD ([c03b779](https://github.com/dhis2/dhis2-server-tools/commit/c03b77971096f3c4f7a021bca73abd1d503c9119))
+* improve WireGuard deployment tasks and connection handling ([68637f7](https://github.com/dhis2/dhis2-server-tools/commit/68637f72a3ae4f3a944d08eac8418e2e953fc7be))
+* update PostgreSQL VPN access configuration to require SSL ([8335973](https://github.com/dhis2/dhis2-server-tools/commit/8335973c844863361e2d77ffa3076479ac1d5d7a))
+* update SCP command in WireGuard server configuration ([2a085f8](https://github.com/dhis2/dhis2-server-tools/commit/2a085f8f71e8cc8f5e5ff856b77933c157f774c6))
+
+
+### 📚 Documentation
+
+* add WireGuard documentation ([8062bef](https://github.com/dhis2/dhis2-server-tools/commit/8062bef578dd903c583f908e126ade4cdfa0ccc1))
+* update WireGuard VPN guide ([1af9426](https://github.com/dhis2/dhis2-server-tools/commit/1af942677a90168bf8f86d0717297461a42d052c))
+
 ## [1.7.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.6.1...v1.7.0) (2026-04-02)
 
 
