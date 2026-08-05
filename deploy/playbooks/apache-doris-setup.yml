@@ -1,0 +1,722 @@
+---
+- name: Install and configure Apache Doris on Ubuntu 24.04
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    doris_version: "3.0.5"
+    doris_user: "doris"
+    doris_home: "/usr/local/doris"
+    java_home: "/usr/lib/jvm/java-17-openjdk-amd64"
+    # Doris's stock x64 build requires AVX2. On a CPU without it (QEMU's default
+    # qemu64 model, pre-Haswell hardware) BE dies with SIGILL the instant it
+    # starts while FE — being Java — runs fine, so the symptom is a registered
+    # backend stuck at "not alive". Apache ships a noavx2 build for those hosts;
+    # pick it from the target's CPU flags. The variant is part of the tarball
+    # name so switching hosts re-downloads instead of reusing the wrong build.
+    doris_build_variant: "{{ '' if 'avx2' in (ansible_flags | default([])) else '-noavx2' }}"
+    doris_tarball: "apache-doris-{{ doris_version }}-bin-x64{{ doris_build_variant }}.tar.gz"
+    doris_download_url: "https://apache-doris-releases.oss-accelerate.aliyuncs.com/{{ doris_tarball }}"
+    # Doris ships fe.conf with -Xms8192m -Xmx8192m and be.conf with mem_limit=80%.
+    # Those defaults assume FE and BE on separate, large nodes. -Xms commits the
+    # whole heap at startup, so on a host smaller than ~10GB the FE JVM aborts
+    # immediately and systemd crash-loops it; and 80% for BE leaves nothing for a
+    # co-located FE. Size both from the target's real RAM instead.
+    # FE is capped at Doris's stock 8192m; BE is a straight percentage (no cap),
+    # since its stock is proportional too. Override either var in inventory to
+    # pin exact values.
+    doris_fe_heap_mb: "{{ [[ansible_memtotal_mb | int * 25 // 100, 8192] | min, 512] | max }}"
+    doris_be_mem_limit_mb: "{{ [ansible_memtotal_mb | int * 35 // 100, 512] | max }}"
+  # TODO, postgresql UFW allow
+  # TODO, postgresql pg_hba.conf
+  # TODO, dhis.conf
+  tasks:
+    # The mysql_query/mysql_db tasks further down talk to Doris over the MySQL
+    # wire protocol on port 9030, so community.mysql must be on the controller.
+    # The full "ansible" package bundles it; bare ansible-core does not. Check
+    # here so a missing collection fails immediately with a fix, rather than
+    # "couldn't resolve module/action" after Doris is already half-provisioned.
+    - name: Preflight | Look for the community.mysql collection
+      vars:
+        ansible_connection: local
+      ansible.builtin.command: ansible-galaxy collection list community.mysql
+      register: doris_mysql_collection
+      changed_when: false
+      failed_when: false
+      delegate_to: 127.0.0.1
+      run_once: true
+
+    - name: Preflight | Fail when community.mysql is not installed
+      vars:
+        ansible_connection: local
+      ansible.builtin.fail:
+        msg: >-
+          This playbook needs the community.mysql collection on the Ansible
+          controller (it configures Doris over the MySQL protocol on port 9030),
+          but it is not installed. Install it with:
+          ansible-galaxy collection install community.mysql
+      delegate_to: 127.0.0.1
+      run_once: true
+      when: "'community.mysql' not in doris_mysql_collection.stdout"
+
+    # - name: Creating Doris container
+    - name: Creating Doris container for lxd setup
+      loop: "{{ groups['instances'] }}"
+      vars:
+        ansible_connection: local
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+        - (hostvars[inventory_hostname]['ansible_connection'] | default('lxd')) == 'lxd'
+      community.general.lxd_container:
+        name: "{{ inventory_hostname }}"
+        state: started
+        profiles: [default]
+        ignore_volatile_options: false
+        wait_for_ipv4_addresses: true
+        timeout: 600
+        source:
+          type: image
+          mode: pull
+          server: "{{ lxd_source_server | default('https://cloud-images.ubuntu.com/releases') }}"
+          protocol: "{{ lxd_source_protocol | default('simplestreams') }}"
+          alias: "{{ GUEST_OS | default(guest_os) }}/{{ guest_os_arch | default('amd64') }}"
+        devices:
+          eth0:
+            nictype: bridged
+            parent: "{{ lxd_bridge_interface | default('lxdbr1') }}"
+            type: nic
+            ipv4.address: "{{ ansible_host | ansible.utils.ipaddr(lxd_network) }}"
+
+    # Most tasks below loop over groups['instances'] so that `item` identifies
+    # which instance's apache_doris_db they are acting for — needed wherever the
+    # result differs per instance (dhis.conf JDBC URL, pg_hba entry, firewall
+    # source). Tasks whose work is the same for every instance only need a
+    # yes/no answer, and a few of them need `item` for their own loop instead.
+    # Resolve the yes/no once here so those tasks don't have to overload `item`.
+    - name: Determine whether this host is a Doris host
+      ansible.builtin.set_fact:
+        is_doris_host: true
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    # Play sets gather_facts: false, but ansible_memtotal_mb is needed below to
+    # size the FE heap and BE memory limit.
+    - name: Gather Doris host facts
+      ansible.builtin.setup:
+        gather_subset:
+          - hardware
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    # Must precede the "Open port 9030" rule at the end of the play: that rule
+    # carries state: enabled, which turns ufw on if it is off. Allowing ssh first
+    # keeps an ssh-connected Doris host reachable. Only relevant for ssh hosts —
+    # lxd containers are reached via lxc exec, which is why the other roles put
+    # this rule in their ssh.yml.
+    - name: Allow ssh on port 22
+      community.general.ufw:
+        rule: limit
+        port: "{{ ansible_port | default('22') }}"
+        src: "0.0.0.0/0"
+        proto: tcp
+        comment: Allow ssh access to the instance
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+        - (hostvars[inventory_hostname]['ansible_connection'] | default('lxd')) != 'lxd'
+
+    - name: Ensure system is updated
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: dist
+        cache_valid_time: 3600
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    # Only needed for ssh connections: become_user to the unprivileged doris user
+    # requires setfacl. The lxd connection runs as root, so chown suffices.
+    - name: Installing acl package
+      ansible.builtin.apt:
+        name: acl
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+        - (hostvars[inventory_hostname]['ansible_connection'] | default('lxd')) != 'lxd'
+
+    - name: Set file descriptor limits
+      ansible.builtin.lineinfile:
+        path: /etc/security/limits.conf
+        owner: root
+        group: root
+        mode: '0600'
+        line: "{{ item }}"
+        create: true
+      with_items:
+        - "* soft nofile 1000000"
+        - "* hard nofile 1000000"
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Increase virtual memory area limit
+      ansible.posix.sysctl:
+        name: vm.max_map_count
+        value: "2000000"
+        state: present
+        reload: true
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Gather localhost facts
+      vars:
+        ansible_connection: local
+      ansible.builtin.setup:
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+      delegate_to: 127.0.0.1
+      run_once: true
+
+    - name: Disable swap temporarily
+      vars:
+        ansible_connection: local
+      ansible.builtin.command: swapoff -a
+      delegate_to: 127.0.0.1
+      run_once: true
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - ansible_swaptotal_mb | int > 0
+
+
+    - name: Disable swap permanently in fstab
+      vars:
+        ansible_connection: local
+      ansible.builtin.replace:
+        path: /etc/fstab
+        regexp: '^([^#].*swap.*)$'
+        replace: '# \1'
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Install Java 17 runtime
+      loop: "{{ groups['instances'] }}"
+      ansible.builtin.apt:
+        name: openjdk-17-jre-headless
+        state: present
+      when: 
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Create Doris system user
+      ansible.builtin.user:
+        name: "{{ doris_user }}"
+        comment: "Doris Application User"
+        home: "{{ doris_home }}"
+        shell: /bin/bash
+        system: true
+        create_home: true
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Download Doris binaries
+      become: true
+      become_user: "{{ doris_user }}"
+      ansible.builtin.get_url:
+        url: "{{ doris_download_url }}"
+        dest: "{{ doris_home }}/{{ doris_tarball }}"
+        mode: '0644'
+      register: doris_tarball_download
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    # Extraction is gated on a marker file touched only after tar exits cleanly,
+    # so it runs exactly once per tarball. Not "creates: {{ doris_home }}/fe" —
+    # fe/ exists the moment tar starts writing, so a crashed extraction still
+    # looks complete and its truncated jars are never repaired. The marker name
+    # carries the tarball name, so switching build variants re-extracts once.
+    - name: Extract Doris binaries into {{ doris_home }}
+      become_user: "{{ doris_user }}"
+      become: true
+      unarchive:
+        src: "{{ doris_home }}/{{ doris_tarball }}"
+        dest: "{{ doris_home }}"
+        remote_src: true
+        extra_opts: [--strip-components=1]
+        creates: "{{ doris_home }}/.installed-{{ doris_tarball }}"
+      register: doris_extract
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Mark Doris build as installed
+      become_user: "{{ doris_user }}"
+      become: true
+      ansible.builtin.file:
+        path: "{{ doris_home }}/.installed-{{ doris_tarball }}"
+        state: touch
+        mode: '0644'
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+        - doris_extract is changed
+
+
+    - name: Configure JAVA_HOME in fe.conf
+      ansible.builtin.lineinfile:
+        path: "{{ doris_home }}/fe/conf/fe.conf"
+        mode: '0600'
+        regexp: '^JAVA_HOME='
+        line: 'JAVA_HOME="{{ java_home }}"'
+        create: true
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+
+    # Doris defaults to 0 (case-sensitive table names). PostgreSQL folds unquoted
+    # identifiers to lowercase, and DHIS2's analytics SQL relies on that — its
+    # table names embed mixed-case UIDs (analytics_event_IpHINAT79UW), so a
+    # CREATE and a later SELECT that differ in case must resolve to one table.
+    # Doris bakes this into FE metadata at first bootstrap and reports
+    # IsMutable: false afterwards, so it has to be set before the FE ever starts.
+    # Changing it later means wiping fe/doris-meta and regenerating analytics.
+    - name: Set lower_case_table_names in fe.conf (before first FE start)
+      ansible.builtin.lineinfile:
+        path: "{{ doris_home }}/fe/conf/fe.conf"
+        mode: '0600'
+        regexp: '^\s*lower_case_table_names\s*='
+        line: 'lower_case_table_names = 1'
+        create: true
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Configure JAVA_HOME in be.conf
+      ansible.builtin.lineinfile:
+        path: "{{ doris_home }}/be/conf/be.conf"
+        mode: '0600'
+        regexp: '^JAVA_HOME='
+        line: 'JAVA_HOME="{{ java_home }}"'
+        create: true
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+
+    # Rewrites every -Xms/-Xmx in fe.conf, so both the JAVA_OPTS and
+    # JAVA_OPTS_FOR_JDK_17 blocks are covered regardless of which one is active.
+    - name: Size FE JVM heap to fit the host
+      ansible.builtin.replace:
+        path: "{{ doris_home }}/fe/conf/fe.conf"
+        regexp: '-Xm([sx])[0-9]+[bBkKmMgG]?'
+        replace: '-Xm\g<1>{{ doris_fe_heap_mb }}m'
+      register: doris_fe_heap_conf
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Cap BE memory usage
+      ansible.builtin.lineinfile:
+        path: "{{ doris_home }}/be/conf/be.conf"
+        regexp: '^\s*#?\s*mem_limit\s*='
+        line: "mem_limit = {{ doris_be_mem_limit_mb }}M"
+      register: doris_be_mem_conf
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Create systemd unit for Doris Frontend
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/doris-fe.service
+        group: root
+        owner: root
+        mode: '0600'
+        content: |
+          [Unit]
+          Description=Apache Doris Frontend (FE)
+          After=network.target
+
+          [Service]
+          Type=forking
+          User={{ doris_user }}
+          WorkingDirectory={{ doris_home }}/fe
+          ExecStart={{ doris_home }}/fe/bin/start_fe.sh --daemon
+          ExecStop={{ doris_home }}/fe/bin/stop_fe.sh
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Create systemd unit for Doris Backend
+      ansible.builtin.copy:
+        group: root
+        owner: root
+        mode: '0600'
+        dest: /etc/systemd/system/doris-be.service
+        content: |
+          [Unit]
+          Description=Apache Doris Backend (BE)
+          After=network-online.target
+
+          [Service]
+          Type=forking
+          User={{ doris_user }}
+          LimitCORE=infinity
+          LimitNOFILE=200000
+          WorkingDirectory={{ doris_home }}/be
+          ExecStart={{ doris_home }}/be/bin/start_be.sh --daemon
+          ExecStop={{ doris_home }}/be/bin/stop_be.sh
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: true
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+
+    - name: Enable and start Doris FE
+      ansible.builtin.systemd:
+        name: doris-fe
+        enabled: true
+        state: started
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Enable and start Doris BE
+      ansible.builtin.systemd:
+        name: doris-be
+        enabled: true
+        state: started
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+
+    # state: started is a no-op on an already-running (or crash-looping) unit, so
+    # a config change has to force the restart explicitly.
+    - name: Restart Doris FE when memory config changed
+      ansible.builtin.systemd:
+        name: doris-fe
+        state: restarted
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+        - doris_fe_heap_conf is changed or doris_extract is changed
+
+    - name: Restart Doris BE when memory config changed
+      ansible.builtin.systemd:
+        name: doris-be
+        state: restarted
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+        - doris_be_mem_conf is changed or doris_extract is changed
+
+    - name: Ensure PyMySQL is installed (required for community.mysql modules)
+      ansible.builtin.apt:
+        name: python3-pymysql
+        state: present
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Install MySQL client (optional, for connecting to Doris)
+      ansible.builtin.apt:
+        name: mysql-client-core-8.0
+        state: present
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Wait for Doris FE port to be available
+      ansible.builtin.wait_for:
+        host: "127.0.0.1"
+        port: 9030
+        delay: 5
+        # First-boot metadata bootstrap on a small host exceeds 60s.
+        timeout: 300
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Register Doris BE with FE
+      community.mysql.mysql_query:
+        login_user: root
+        login_host: 127.0.0.1
+        login_port: 9030
+        query: "ALTER SYSTEM ADD BACKEND '127.0.0.1:9050';"
+      failed_when: false
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+      # changed_when: "'already exists' not in query_result.msg"
+
+    - name: Wait for Doris backend to report alive
+      community.mysql.mysql_query:
+        login_user: root
+        login_host: 127.0.0.1
+        login_port: 9030
+        query: "SHOW BACKENDS;"
+      register: be_status
+      until: "'true' in (be_status.query_result | to_json)"
+      retries: 30    # wait up to 30 * 10s = 5 minutes
+      delay: 10
+      tags: [never]
+
+    - name: Extra buffer for Doris BE to fully initialize
+      ansible.builtin.wait_for:
+      # ansible.builtin.pause:
+        timeout: 10
+        # seconds: 10
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Ensure analytics database exists
+      community.mysql.mysql_db:
+        name: analytics
+        state: present
+        login_user: root
+        # login_password: "{{ mysql_root_password }}"
+        login_host: 127.0.0.1
+        login_port: 9030
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Ensure DB user exists and has privileges on analytics
+      when: inventory_hostname == "doris"
+      community.mysql.mysql_query:
+        login_user: root
+        # login_password: "{{ mysql_root_password }}"
+        login_host: 127.0.0.1
+        login_port: 9030
+        query: |
+          CREATE USER IF NOT EXISTS '{{ apache_doris_db_user | default("doris_user") }}'@'%'
+          IDENTIFIED BY '{{ apache_doris_db_password | default(lookup("password", "/opt/ansible/secrets/apache_doris_db_password length=24 chars=ascii_letters,digits")) }}';
+          GRANT ALL ON analytics.* TO '{{ apache_doris_db_user | default("doris_user") }}'@'%';
+      tags: [never]
+
+    - name: Ensure Doris user exists
+      community.mysql.mysql_query:
+        login_user: root
+        login_password: "{{ mysql_root_password | default(omit)}}"
+        login_host: 127.0.0.1
+        login_port: 9030
+        query: >
+          CREATE USER IF NOT EXISTS
+          '{{ apache_doris_db_user | default("doris_user") }}'@'%'
+          IDENTIFIED BY '{{ apache_doris_db_password |
+            default(lookup("password",
+            "/opt/ansible/secrets/apache_doris_db_password length=24 chars=ascii_letters,digits")) }}';
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Ensure Doris DB admin user has full privileges on analytics
+      community.mysql.mysql_query:
+        login_user: root
+        login_password: "{{ mysql_root_password | default(omit) }}"
+        login_host: 127.0.0.1
+        login_port: 9030
+        query: >
+          GRANT ALL ON *.*.* TO '{{ apache_doris_db_user | default("doris_user") }}'@'%';
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+# GRANT SELECT_PRIV, LOAD_PRIV, ALTER_PRIV, CREATE_PRIV, DROP_PRIV
+# ON internal.analytics.* TO '{{ apache_doris_db_user | default("doris_user") }}'@'%';
+
+    - name: Ensure JDBC directories exist (FE and BE)
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /usr/local/doris/fe/jdbc_drivers
+        - /usr/local/doris/be/jdbc_drivers
+      # item is a path here, not an instance name, so the host gate can't use it.
+      when: is_doris_host | default(false)
+
+    - name: Download PostgreSQL JDBC driver
+      ansible.builtin.get_url:
+        url: https://jdbc.postgresql.org/download/postgresql-42.7.8.jar
+        owner: doris
+        group: doris
+        dest: /tmp/postgresql-42.7.8.jar
+        mode: '0644'
+      # This task has no loop, so the previous hostvars[item] gate could never
+      # evaluate — it errored with "'item' is undefined" on every host.
+      when: is_doris_host | default(false)
+
+    - name: Copy JDBC driver to FE and BE
+      ansible.builtin.copy:
+        src: /tmp/postgresql-42.7.8.jar
+        owner: doris
+        group: doris
+        dest: "{{ item }}/postgresql.jar"
+        remote_src: true
+        mode: '0644'
+      loop:
+        - /usr/local/doris/fe/jdbc_drivers/
+        - /usr/local/doris/be/jdbc_drivers
+      # item is a path here, not an instance name, so the host gate can't use it.
+      when: is_doris_host | default(false)
+
+    - name: Debug
+      loop: "{{ groups['instances'] }}"
+      ansible.builtin.debug:
+        msg: "{{ hostvars[hostvars[item]['apache_doris_db']]['service_ip'] | default(hostvars[hostvars[item]['apache_doris_db']]['ansible_host']) }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - hostvars[hostvars[item]['apache_doris_db']] is defined
+        - inventory_hostname == item
+
+    # - name: Confingure dhis2 config,
+    - name: Insert Doris config into dhis.conf
+      ansible.builtin.blockinfile:
+        path: /opt/dhis2/dhis.conf
+        marker: "# {mark} ANSIBLE MANAGED DORIS CONFIG"
+        block: |
+            # Analytics database management system
+            analytics.database = doris
+            analytics.connection.driver_class = com.mysql.cj.jdbc.Driver
+            analytics.connection.url = jdbc:mysql://{{ hostvars[(hostvars[item]['apache_doris_db'])]['service_ip'] | default(hostvars[(hostvars[item]['apache_doris_db'])]['ansible_host']) }}:9030/analytics
+            analytics.connection.username = {{ hostvars[item]['apache_doris_db_user'] | default('doris_user') }}
+            analytics.connection.password = {{ hostvars[item]['apache_doris_db_password'] | default(lookup('password', '/opt/ansible/secrets/apache_doris_db_password')) }}
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - hostvars[hostvars[item]['apache_doris_db']] is defined
+        - inventory_hostname == item
+        # -  inventory_hostname in groups['instances']
+      # tags: [never]
+
+    - name: Checking postgresql Version
+      loop: "{{ groups['instances'] }}"
+      become: true
+      become_user: postgres
+      community.postgresql.postgresql_info:
+        filter: ver*
+      register: postgresql_version_info
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - hostvars[hostvars[item]['apache_doris_db']] is defined
+        - inventory_hostname == hostvars[item]['database_host']
+      tags:
+        - pg_version
+
+    - name: Debug PG version
+      loop: "{{ groups['instances'] }}"
+      loop_control:
+        index_var: idx
+      ansible.builtin.debug:
+        msg: "{{ item }} → {{ postgresql_version_info.results[idx].version.major }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - hostvars[hostvars[item]['apache_doris_db']] is defined
+        - inventory_hostname == hostvars[item]['database_host']
+      tags:
+        - pg_version
+
+    - name: Edit postgresql pg_hba.conf
+      loop: "{{ groups['instances'] }}"
+      loop_control:
+        index_var: idx
+      ansible.builtin.lineinfile:
+        path: /etc/postgresql/{{ postgresql_version_info.results[idx].version.major }}/main/pg_hba.conf
+        regexp: "^(host|hostssl)\\s+{{ item }}\\s+{{ hostvars[item]['apache_doris_db'] }}\\s+{{ hostvars[ hostvars[item]['apache_doris_db'] ]['service_ip'] | default(hostvars[ hostvars[item]['apache_doris_db'] ]['ansible_host']) }}(/32)?\\s+.*$"
+        insertafter: EOF
+        line: hostssl     {{ item }}    {{ item }}  {{  hostvars[hostvars[item]['apache_doris_db']]['service_ip'] | default(hostvars[hostvars[item]['apache_doris_db']]['ansible_host']) }}/32  scram-sha-256
+      when: 
+        - hostvars[item]['apache_doris_db'] is defined
+        - hostvars[hostvars[item]['apache_doris_db']] is defined
+        - inventory_hostname == hostvars[item]['database_host']
+      tags:
+        - pg_version
+
+    # FE<->BE ports (9010/9020/9050/9060/8040/8060) stay closed: both run on this
+    # host and talk over 127.0.0.1. A multi-node cluster would need them opened.
+    - name: Firewall | Open port 9030 from dhis2 instances
+      community.general.ufw:
+        rule: allow
+        port: "{{ doris_query_port | default('9030') }}"
+        src: "{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}"
+        proto: tcp
+        comment: "Allow doris query access from {{ item }} instance "
+        state: enabled
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
+    - name: Firewall | Open port 5432 from doris instances
+      community.general.ufw:
+        rule: allow
+        port: "{{ postgresql_port | default('5432') }}"
+        src: "{{ hostvars[hostvars[item]['apache_doris_db']]['service_ip'] | default(hostvars[hostvars[item]['apache_doris_db']]['ansible_host']) }}"
+        proto: tcp
+        comment: "Allow access from {{  hostvars[hostvars[item]['apache_doris_db']]['service_ip'] | default(hostvars[hostvars[item]['apache_doris_db']]['ansible_host']) }} instance "
+        state: enabled
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - hostvars[hostvars[item]['apache_doris_db']] is defined
+        - inventory_hostname == hostvars[item]['database_host']
