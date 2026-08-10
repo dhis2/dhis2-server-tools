@@ -1,0 +1,58 @@
+---
+- name: Alerting | Load secrets from controller secrets dir
+  ansible.builtin.include_tasks: load_secrets.yml
+  when:
+    - alerting_enabled | bool
+    - inventory_hostname in groups['monitoring']
+  tags: [always]
+
+- name: Alerting | Validate notification configuration
+  ansible.builtin.include_tasks: validate.yml
+  when:
+    - alerting_enabled | bool
+    - inventory_hostname in groups['monitoring']
+  tags: [always]
+
+- name: Alerting | Install hub on monitoring host
+  ansible.builtin.include_tasks:
+    file: hub.yml
+    apply:
+      tags: [alerting, alerting-install, install]
+  tags: [alerting, alerting-install, install]
+  when:
+    - alerting_enabled | bool
+    - inventory_hostname in groups['monitoring']
+
+- name: Alerting | Wire Prometheus peer
+  ansible.builtin.include_tasks:
+    file: peer_prometheus.yml
+    apply:
+      tags: [alerting, alerting-configure, configure]
+  tags: [alerting, alerting-configure, configure]
+  when:
+    - alerting_enabled | bool
+    - inventory_hostname in groups['monitoring']
+    - server_monitoring | default('') == 'grafana'
+
+- name: Alerting | Wire Grafana peer
+  ansible.builtin.include_tasks:
+    file: peer_grafana.yml
+    apply:
+      tags: [alerting, alerting-configure, configure]
+  tags: [alerting, alerting-configure, configure]
+  when:
+    - alerting_enabled | bool
+    - inventory_hostname in groups['monitoring']
+    - server_monitoring | default('') == 'grafana'
+
+- name: Alerting | Wire Glowroot peer
+  ansible.builtin.include_tasks:
+    file: peer_glowroot.yml
+    apply:
+      tags: [alerting, alerting-configure, configure]
+  tags: [alerting, alerting-configure, configure]
+  when:
+    - alerting_enabled | bool
+    - inventory_hostname in groups['instances']
+    - app_monitoring | default('') == 'glowroot'
+    - instance_state is not defined or instance_state != 'deleted'

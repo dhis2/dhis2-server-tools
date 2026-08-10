@@ -1,0 +1,51 @@
+{{ ansible_managed | comment }}
+global:
+  resolve_timeout: 5m
+{% if alerting_email_addresses | default([]) | length > 0 %}
+  smtp_smarthost: '{{ alerting_smtp_smarthost }}'
+  smtp_from: '{{ alerting_smtp_from }}'
+{% if alerting_smtp_auth_username | default('') | length > 0 %}
+  smtp_auth_username: '{{ alerting_smtp_auth_username }}'
+{% endif %}
+{% if alerting_smtp_auth_password | default('') | length > 0 %}
+  smtp_auth_password_file: /etc/alertmanager/secrets/smtp_password
+{% endif %}
+  smtp_require_tls: {{ alerting_smtp_require_tls | default(true) | bool | lower }}
+{% endif %}
+
+route:
+  receiver: dhis2-default
+  group_by: ['alertname', 'instance', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+inhibit_rules:
+  - source_matchers:
+      - severity = critical
+    target_matchers:
+      - severity = warning
+    equal: ['alertname', 'instance']
+
+receivers:
+  - name: dhis2-default
+{% if alerting_telegram_bot_token | default('') | length > 0 and alerting_telegram_chat_id | default('') | string | length > 0 %}
+    telegram_configs:
+      - bot_token_file: /etc/alertmanager/secrets/telegram_bot_token
+        chat_id: {{ alerting_telegram_chat_id | int }}
+        parse_mode: HTML
+        send_resolved: true
+{% endif %}
+{% if alerting_slack_webhook_url | default('') | length > 0 %}
+    slack_configs:
+      - api_url_file: /etc/alertmanager/secrets/slack_api_url
+        channel: '{{ alerting_slack_channel | default("#dhis2-alerts") }}'
+        send_resolved: true
+{% endif %}
+{% if alerting_email_addresses | default([]) | length > 0 %}
+    email_configs:
+{% for addr in alerting_email_addresses %}
+      - to: '{{ addr }}'
+        send_resolved: true
+{% endfor %}
+{% endif %}

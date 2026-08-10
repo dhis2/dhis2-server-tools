@@ -1,295 +1,202 @@
 # Alerting
 
-DHIS2 server tools supports alerting via Telegram, Slack, and email for both infrastructure monitoring (Grafana/Prometheus) and application monitoring (Glowroot APM).
+Centralized alerting hub co-located on the `[monitoring]` host. Prometheus
+Alertmanager handles routing, dedup, and silencing. Glowroot APM alerts are
+forwarded into the same hub.
 
-## Quick Start: Telegram
+Infra alerts (CPU, memory, disk, PostgreSQL) require `server_monitoring=grafana`
+(the deployable Grafana + Prometheus stack). Glowroot APM alerts work with the
+hub whenever `app_monitoring=glowroot`, including under Munin.
 
-Requires `server_monitoring=grafana` or `server_monitoring=grafana/prometheus`.
+## Architecture
 
-### 1. Create a Telegram Bot
+```
+[monitoring]
+  Prometheus ──127.0.0.1:9093──► Alertmanager ──► Telegram / Slack / Email
+  Grafana    (Alertmanager datasource for silences UI only)
+  Glowroot-fwd :9099 ──loopback──► Alertmanager
 
-- Message [@BotFather](https://t.me/BotFather) on Telegram
-- Send `/newbot`, follow the prompts
-- Save the bot token (e.g., `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`)
+[instances] Glowroot ──HTTP POST──► monitor:9099/?token=...
+[web] proxy ──► Grafana only (never Alertmanager or the forwarder)
+```
 
-### 2. Get Your Chat ID
+- Alertmanager binds `127.0.0.1:9093` (no inbound from other hosts).
+- The Glowroot forwarder binds `0.0.0.0:9099`; UFW allows only `[instances]`
+  source IPs (`ansible_host`, typically the LXD bridge address).
+- Grafana does **not** own alert rules or contact points. Prometheus rules fire
+  into Alertmanager; Grafana’s Alertmanager datasource is for silences / AM UI.
 
-- Add the bot to your Telegram group
-- Message [@getmyid_bot](https://t.me/getmyid_bot) in the group, or use [@userinfobot](https://t.me/userinfobot)
-- Save the chat ID (e.g., `-1001234567890` for groups)
+## Secrets (`/opt/ansible/secrets/`)
 
-### 3. Configure and Deploy
+Same controller directory used for database passwords. Do **not** put tokens in
+`[all:vars]`.
 
-Edit `deploy/inventory/hosts` and update the `[all:vars]` section:
+### User-supplied (create these files)
+
+| File                          | Purpose                            |
+| ----------------------------- | ---------------------------------- |
+| `alerting_telegram_bot_token` | Telegram bot token from @BotFather |
+| `alerting_telegram_chat_id`   | Telegram chat / group ID           |
+| `alerting_slack_webhook_url`  | Slack incoming webhook URL         |
+| `alerting_smtp_auth_password` | Optional SMTP password for email   |
+
+```bash
+sudo mkdir -p /opt/ansible/secrets
+echo -n '123456:ABC-DEF...' | sudo tee /opt/ansible/secrets/alerting_telegram_bot_token
+echo -n '-1001234567890' | sudo tee /opt/ansible/secrets/alerting_telegram_chat_id
+sudo chown "$USER:" /opt/ansible/secrets /opt/ansible/secrets/alerting_*
+sudo chmod 700 /opt/ansible/secrets
+sudo chmod 600 /opt/ansible/secrets/alerting_*
+```
+
+Use at least one channel (Telegram pair, Slack URL, or email settings in
+inventory).
+
+### Auto-generated (created on first run)
+
+| File                                | Purpose                                                 |
+| ----------------------------------- | ------------------------------------------------------- |
+| `alerting_web_password`             | Alertmanager / Prometheus / Grafana basic-auth password |
+| `alerting_glowroot_forwarder_token` | Shared `?token=` for instance → forwarder               |
+
+The Alertmanager bcrypt hash is generated once on the monitoring host under
+`/etc/alertmanager/secrets/web_password.bcrypt` (not on the controller).
+
+No ansible-vault step. Re-runs reuse the same files for idempotence.
+
+## Quick start (Telegram)
+
+1. Create a bot with [@BotFather](https://t.me/BotFather) and note the token.
+2. Add the bot to your chat/group and get the chat ID.
+3. Write the secret files as above.
+4. In `inventory/hosts`:
 
 ```ini
 server_monitoring=grafana
 alerting_enabled=true
 alerting_default_contact_point=telegram
-alerting_telegram_bot_token=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
-alerting_telegram_chat_id=-1001234567890
 ```
 
-Then deploy:
+5. Deploy:
 
 ```bash
-ansible-playbook dhis2.yml --tags monitoring,alerting
+ansible-playbook dhis2.yml --tags alerting
 ```
 
-After deployment, verify alerts are working -- see [Testing Alerts](#testing-alerts) below.
+Or include monitoring/create-instance on a full run so Prometheus/Grafana/Glowroot
+exist before peer wiring.
 
-> **Note:** The `inventory/hosts` file is gitignored, so your token won't be committed to version control. For production hardening, see [Securing Credentials with Vault](#securing-credentials-with-vault) below.
+## Slack / Email
 
-## Quick Start: Slack
+**Slack:** create `/opt/ansible/secrets/alerting_slack_webhook_url` and set
+`alerting_default_contact_point=slack` (optional `alerting_slack_channel` in
+inventory or `host_vars/monitor/vars.yml`).
 
-Same as Telegram, but set these variables instead:
+**Email:** set non-secret SMTP settings in inventory / host_vars
+(`alerting_email_addresses`, `alerting_smtp_smarthost`, `alerting_smtp_from`,
+optional `alerting_smtp_auth_username`). Put the SMTP password in
+`/opt/ansible/secrets/alerting_smtp_auth_password` if needed.
 
-```ini
-alerting_default_contact_point=slack
-alerting_slack_webhook_url=https://hooks.slack.com/services/T.../B.../xxx
-alerting_slack_channel=#dhis2-alerts
-```
+## Glowroot APM
 
-Create an incoming webhook at https://api.slack.com/messaging/webhooks.
+When `alerting_enabled=true` and `app_monitoring=glowroot`, the alerting role
+patches each instance’s Glowroot `admin.json` / `config.json` (change-only) to
+post Slack-formatted webhooks at:
 
----
+`http://<monitor ansible_host>:9099/?token=<shared secret>`
 
-## Alert Rules Reference
+The shared secret is auto-generated on the controller. No per-instance Telegram
+forwarder. Set `alerting_glowroot_force_config=true` only as a break-glass
+rewrite of alert rules.
 
-### Infrastructure Alerts (Grafana/Prometheus)
+On SSH/distributed installs, also allow instance→monitoring TCP 9099 in any
+cloud security group / NACL. UFW on the monitoring host is opened automatically
+from each instance `ansible_host`.
 
-| Alert                  | Condition             | Duration | Severity | Default Threshold |
-| ---------------------- | --------------------- | -------- | -------- | ----------------- |
-| Instance Down          | Target unreachable    | 5m       | critical | up == 0           |
-| High CPU               | CPU usage             | 10m      | warning  | > 85%             |
-| High Memory            | Memory usage          | 5m       | warning  | > 90%             |
-| Disk Space Warning     | Free space low        | 5m       | warning  | < 15%             |
-| Disk Space Critical    | Free space very low   | 5m       | critical | < 5%              |
-| PostgreSQL Down        | DB unreachable        | 2m       | critical | pg_up == 0        |
-| PostgreSQL Connections | Connection saturation | 5m       | warning  | > 80% of max      |
-| Long Running Query     | Query duration        | 5m       | warning  | > 1 hour          |
-| DHIS2 Endpoint Down    | Metrics unreachable   | 5m       | critical | up == 0           |
+## Alert rules
 
-### Glowroot APM Alerts (Optional)
+### Infrastructure (Prometheus → Alertmanager)
 
-| Alert             | Condition         | Duration | Severity | Default Threshold         |
-| ----------------- | ----------------- | -------- | -------- | ------------------------- |
-| Heartbeat         | JVM/agent down    | 5m       | critical | No heartbeat              |
-| Error Rate        | Web errors        | 5m       | critical | > 10%                     |
-| Response Time p95 | Slow responses    | 10m      | high     | > 10,000 ms               |
-| Heap Memory       | JVM heap pressure | 5m       | high     | > 80% of heap_memory_size |
+| Alert                  | Condition             | Duration | Severity | Default    |
+| ---------------------- | --------------------- | -------- | -------- | ---------- |
+| Instance Down          | Target unreachable    | 5m       | critical | up == 0    |
+| High CPU               | CPU usage             | 10m      | warning  | > 85%      |
+| High Memory            | Memory usage          | 5m       | warning  | > 90%      |
+| Disk Space Warning     | Free space low        | 5m       | warning  | < 15%      |
+| Disk Space Critical    | Free space very low   | 5m       | critical | < 5%       |
+| PostgreSQL Down        | DB unreachable        | 2m       | critical | pg_up == 0 |
+| PostgreSQL Connections | Connection saturation | 5m       | warning  | > 80%      |
+| Long Running Query     | Query duration        | 5m       | warning  | > 1 hour   |
+| DHIS2 Endpoint Down    | Metrics unreachable   | 5m       | critical | up == 0    |
 
----
+### Glowroot
 
-## Customizing Thresholds
+| Alert             | Condition         | Duration | Severity | Default            |
+| ----------------- | ----------------- | -------- | -------- | ------------------ |
+| Heartbeat         | JVM/agent down    | 5m       | critical | No heartbeat       |
+| Error Rate        | Web errors        | 5m       | critical | > 10%              |
+| Response Time p95 | Slow responses    | 10m      | high     | > 10,000 ms        |
+| Heap Memory       | JVM heap pressure | 5m       | high     | > 80% of heap size |
 
-Override these variables in `host_vars/monitor/vars.yml` or `inventory/hosts`:
+Threshold variables: `alert_cpu_threshold`, `alert_memory_threshold`,
+`alert_disk_warning_pct`, `alert_disk_critical_pct`, `alert_pg_connection_pct`,
+and the `glowroot_alert_*` defaults in `roles/alerting/defaults/main.yml`.
 
-### Infrastructure Thresholds
+## Munin
 
-| Variable                  | Default | Description                       |
-| ------------------------- | ------- | --------------------------------- |
-| `alert_cpu_threshold`     | 85      | CPU usage percentage              |
-| `alert_memory_threshold`  | 90      | Memory usage percentage           |
-| `alert_disk_warning_pct`  | 15      | Disk free space warning (%)       |
-| `alert_disk_critical_pct` | 5       | Disk free space critical (%)      |
-| `alert_pg_connection_pct` | 80      | PostgreSQL connections (% of max) |
+`alerting_enabled=true` with `server_monitoring=munin` installs the hub and
+Glowroot path only, and prints a warning. Munin is not bridged to Alertmanager.
+Legacy `munin_alerts` contact configuration is unchanged and separate from the hub.
 
-### Glowroot Thresholds
-
-| Variable                                        | Default | Description                         |
-| ----------------------------------------------- | ------- | ----------------------------------- |
-| `glowroot_alert_p95_threshold_ms`               | 10000   | p95 response time (ms)              |
-| `glowroot_alert_p95_time_period_seconds`        | 600     | Evaluation window for p95           |
-| `glowroot_alert_error_rate_threshold`           | 10.0    | Error rate percentage               |
-| `glowroot_alert_error_rate_time_period_seconds` | 300     | Evaluation window for errors        |
-| `glowroot_alert_heartbeat_seconds`              | 300     | Heartbeat timeout                   |
-| `glowroot_alert_min_transaction_count`          | 10      | Min transactions before alert fires |
-
----
-
-## Glowroot APM Alerts
-
-Glowroot alerts on transaction times, error rates, JVM metrics, and heartbeat. These require `app_monitoring=glowroot` (the default) and Grafana/Prometheus alerting configured first (steps 1-3 above) since they share the same bot token and chat ID.
-
-### How It Works
-
-Glowroot supports Slack natively but not Telegram. A Python forwarder bridges the gap:
-
-1. `glowroot-telegram-forwarder.py` runs as a systemd service on each instance host
-2. Glowroot's Slack webhook points at `http://127.0.0.1:9099` (the forwarder)
-3. The forwarder translates the Slack payload to a Telegram Bot API call
-
-The forwarder uses only Python 3 stdlib, binds to localhost, auto-restarts via systemd, and is independent of Tomcat. One forwarder per host serves all instances.
-
-### Enabling Glowroot Alerts
-
-Add to `inventory/hosts`:
-
-```ini
-glowroot_alerting_enabled=true
-```
-
-The forwarder uses the same `alerting_telegram_bot_token` and `alerting_telegram_chat_id` already configured for Grafana.
-
-### Deploying
+## Testing
 
 ```bash
-ansible-playbook dhis2.yml --tags create-instance
-```
-
----
-
-## Munin Alerts
-
-For users running `server_monitoring=munin`, configure the `munin_alerts` variable in `host_vars` or `group_vars`:
-
-### Telegram
-
-```yaml
-munin_alerts:
-  - name: telegram
-    type: telegram
-    bot_token: 'your-bot-token-from-botfather'
-    chat_id: '-1001234567890'
-    level: 'warning critical'
-```
-
-### Slack
-
-```yaml
-munin_alerts:
-  - name: slack
-    type: slack
-    webhook_url: 'https://hooks.slack.com/services/T.../B.../xxx'
-    level: 'warning critical'
-```
-
-### Email (Default)
-
-```yaml
-munin_alerts:
-  - name: admin
-    type: email
-    email: admin@example.com
-    subject: 'Munin Alert'
-    level: 'warning critical'
-```
-
----
-
-## Testing Alerts
-
-### Test Telegram Delivery
-
-```bash
+# Telegram Bot API
 curl -s -X POST "https://api.telegram.org/bot<TOKEN>/sendMessage" \
-  -d "chat_id=<CHAT_ID>" -d "text=Test alert from DHIS2 monitoring"
-```
+  -d "chat_id=<CHAT_ID>" -d "text=Test from DHIS2 alerting hub"
 
-### Test Glowroot Forwarder
+# Forwarder rejects bad token
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+  "http://<monitor-ip>:9099/?token=wrong" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"test"}'
+# expect 401
 
-```bash
-# Check service status
-systemctl status glowroot-telegram-forwarder
-
-# Send a test alert
-curl -s -X POST http://127.0.0.1:9099 \
+# Forwarder → Alertmanager (token from /opt/ansible/secrets/alerting_glowroot_forwarder_token)
+TOKEN=$(sudo cat /opt/ansible/secrets/alerting_glowroot_forwarder_token)
+curl -s -X POST "http://<monitor-ip>:9099/?token=${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "attachments": [{
-      "fallback": "[dhis2] Test alert - triggered",
-      "pretext": "[dhis2] Test alert triggered",
+      "fallback": "[dhis] Test alert - triggered",
+      "pretext": "[dhis] Test alert triggered",
       "color": "danger",
-      "text": "This is a test alert",
-      "ts": 1712500000.0
-    }],
-    "channel": "#alerts"
+      "text": "This is a test alert"
+    }]
   }'
-```
 
-### Verify Grafana Alerting
+# Alertmanager requires basic auth (password in alerting_web_password)
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:9093/api/v2/alerts
+# expect 401 on the monitoring host
 
-```bash
-# List contact points
-curl -u admin:admin http://localhost:3000/grafana/api/v1/provisioning/contact-points
-
-# List alert rules
-curl -u admin:admin http://localhost:3000/grafana/api/v1/provisioning/alert-rules
-```
-
-### Verify Prometheus Rules
-
-```bash
 promtool check rules /etc/prometheus/rules/dhis2-alerts.yml
+amtool check-config /etc/alertmanager/alertmanager.yml
 ```
 
----
+Manual smoke: breach CPU (or temporarily lower `alert_cpu_threshold`) and
+confirm Telegram/Slack; trigger a Glowroot slow-transaction alert and confirm
+the forwarder receives a POST.
 
 ## Troubleshooting
 
-**Bot not sending messages:**
-
-- Ensure the bot is added to the Telegram group/chat
-- Verify the chat ID sign (groups use negative IDs like `-1001234567890`)
-- Test with a direct curl to the Bot API
-
-**Grafana unified alerting not working:**
-
-- Check Grafana version is 9.0+ (`grafana-server -v`)
-- Verify `/etc/grafana/grafana.ini` has `[unified_alerting] enabled = true`
-- Check `/etc/grafana/provisioning/alerting/` directory exists and files are owned by `grafana`
-
-**Glowroot forwarder not running:**
-
-- Check `systemctl status glowroot-telegram-forwarder`
-- Check logs: `journalctl -u glowroot-telegram-forwarder`
-- Verify the script exists: `ls -la /opt/glowroot/glowroot-telegram-forwarder.py`
-
-**Prometheus rules not loading:**
-
-- Validate syntax: `promtool check rules /etc/prometheus/rules/dhis2-alerts.yml`
-- Check `/etc/prometheus/prometheus.yml` has `rule_files:` directive
-- Reload Prometheus: `systemctl reload prometheus`
-
-**No alerts firing:**
-
-- Alerts need the `for` duration to pass before firing (e.g., 5 minutes)
-- Check Grafana UI at `/grafana/alerting/list` for alert states
-- Verify Prometheus targets are being scraped at `/grafana/explore`
-
----
-
-## Securing Credentials with Vault
-
-For production deployments where you want to encrypt tokens at rest, you can optionally move credentials to an ansible-vault encrypted file.
-
-Create the directory structure:
-
-```bash
-cd deploy/inventory
-mkdir -p host_vars/monitor
-```
-
-`host_vars/monitor/vars.yml` (plaintext -- references the vault):
-
-```yaml
-alerting_enabled: true
-alerting_telegram_bot_token: '{{ vault_alerting_telegram_bot_token }}'
-alerting_telegram_chat_id: '-1001234567890'
-```
-
-`host_vars/monitor/vault.yml` (will be encrypted):
-
-```yaml
-vault_alerting_telegram_bot_token: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11'
-```
-
-Encrypt and deploy:
-
-```bash
-ansible-vault encrypt host_vars/monitor/vault.yml
-ansible-playbook dhis2.yml --tags monitoring,alerting --vault-id @prompt
-```
-
-Remove the token from `inventory/hosts` after moving it to the vault.
+- **No infra alerts:** confirm `server_monitoring=grafana`, Prometheus is
+  scraping, and `/etc/prometheus/rules/dhis2-alerts.yml` loads after reload.
+- **No Glowroot alerts:** check UFW allow from the instance `ansible_host` to
+  `:9099` (WireGuard VPN CIDR alone is not enough on LXD), forwarder unit
+  logs, and that Glowroot `slackWebhookId` is `dhis2-hub`.
+- **401 from Alertmanager:** Prometheus `password_file` and Grafana datasource
+  password must match `/opt/ansible/secrets/alerting_web_password`.
+- **Missing channel assert:** ensure token files exist under
+  `/opt/ansible/secrets/` and are readable by the deploy user.
+- **armhf hosts:** upstream Alertmanager builds are amd64/arm64 only; the role
+  fails clearly on unsupported arches.

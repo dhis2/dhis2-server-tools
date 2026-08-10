@@ -1,0 +1,32 @@
+{{ ansible_managed | comment }}
+[Unit]
+Description=Glowroot to Alertmanager webhook forwarder
+Documentation=https://github.com/dhis2/dhis2-server-tools
+Wants=network-online.target alertmanager.service
+After=network-online.target alertmanager.service
+
+[Service]
+User=glowroot_forwarder
+Group=glowroot_forwarder
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/bin/glowroot-forwarder.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadOnlyPaths=/etc/alertmanager/secrets
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

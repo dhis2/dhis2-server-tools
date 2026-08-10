@@ -30,7 +30,10 @@ groups:
           description: "Memory usage is above {{ alert_memory_threshold }}% for more than 5 minutes."
 
       - alert: DiskSpaceWarning
-        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < {{ alert_disk_warning_pct }}
+        expr: >-
+          (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|fuse\\.snapfuse|squashfs",mountpoint!~"/snap/.*|/run/.*|/var/lib/lxd/.*"}
+          / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|fuse\\.snapfuse|squashfs",mountpoint!~"/snap/.*|/run/.*|/var/lib/lxd/.*"})
+          * 100 < {{ alert_disk_warning_pct }}
         for: 5m
         labels:
           severity: warning
@@ -39,7 +42,10 @@ groups:
           description: "Filesystem {{ '{{ $labels.mountpoint }}' }} has less than {{ alert_disk_warning_pct }}% free space."
 
       - alert: DiskSpaceCritical
-        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < {{ alert_disk_critical_pct }}
+        expr: >-
+          (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|fuse\\.snapfuse|squashfs",mountpoint!~"/snap/.*|/run/.*|/var/lib/lxd/.*"}
+          / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|fuse\\.snapfuse|squashfs",mountpoint!~"/snap/.*|/run/.*|/var/lib/lxd/.*"})
+          * 100 < {{ alert_disk_critical_pct }}
         for: 5m
         labels:
           severity: critical
