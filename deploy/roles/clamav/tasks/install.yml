@@ -1,0 +1,205 @@
+---
+- name: ClamAV | Install scanner packages
+  ansible.builtin.apt:
+    name:
+      - clamav-daemon
+      - clamav-freshclam
+      - python3
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  tags: [clamav, clamav-install, install]
+
+- name: ClamAV | Create gateway system user
+  ansible.builtin.user:
+    name: "{{ clamav_gateway_user }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: /nonexistent
+    create_home: false
+    groups: clamav
+    append: true
+  tags: [clamav, clamav-install, install]
+
+- name: ClamAV | Create gateway spool directory
+  ansible.builtin.file:
+    path: "{{ clamav_spool_dir }}"
+    state: directory
+    owner: "{{ clamav_gateway_user }}"
+    group: clamav
+    mode: "2770"
+  tags: [clamav, clamav-install, install]
+
+- name: ClamAV | Deploy clamd.conf
+  ansible.builtin.template:
+    src: clamd.conf.j2
+    dest: /etc/clamav/clamd.conf
+    owner: root
+    group: clamav
+    mode: "0640"
+  notify: Restart clamav-daemon
+  tags: [clamav, clamav-configure, configure]
+
+- name: ClamAV | Deploy freshclam.conf
+  ansible.builtin.template:
+    src: freshclam.conf.j2
+    dest: /etc/clamav/freshclam.conf
+    owner: root
+    group: clamav
+    mode: "0640"
+  notify: Restart clamav-freshclam
+  tags: [clamav, clamav-configure, configure]
+
+- name: ClamAV | Check for clamd AppArmor profile
+  ansible.builtin.stat:
+    path: /etc/apparmor.d/usr.sbin.clamd
+  register: clamav_apparmor_profile
+  tags: [clamav, clamav-configure, configure]
+
+- name: ClamAV | Allow clamd to SCAN the gateway spool
+  ansible.builtin.template:
+    src: usr.sbin.clamd.local.j2
+    dest: /etc/apparmor.d/local/usr.sbin.clamd
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload clamd AppArmor
+    - Restart clamav-daemon
+  when: clamav_apparmor_profile.stat.exists
+  tags: [clamav, clamav-configure, configure]
+
+- name: ClamAV | Check whether official signature databases exist
+  ansible.builtin.shell: |
+    set -o pipefail
+    for name in main daily bytecode; do
+      if [ ! -f "{{ clamav_db_dir }}/${name}.cvd" ] && [ ! -f "{{ clamav_db_dir }}/${name}.cld" ]; then
+        exit 1
+      fi
+    done
+  args:
+    executable: /bin/bash
+  register: clamav_cvd_present
+  changed_when: false
+  failed_when: false
+  tags: [clamav, clamav-install, install]
+
+- name: ClamAV | Stop clamd until signature databases exist
+  ansible.builtin.systemd:
+    name: clamav-daemon
+    state: stopped
+  when: clamav_cvd_present.rc != 0
+  tags: [clamav, clamav-install, install]
+
+- name: ClamAV | Start freshclam
+  ansible.builtin.systemd:
+    name: clamav-freshclam
+    state: started
+    enabled: true
+  tags: [clamav, clamav-install, install]
+
+- name: ClamAV | Wait for official signature databases
+  ansible.builtin.shell: |
+    set -o pipefail
+    for name in main daily bytecode; do
+      if [ ! -f "{{ clamav_db_dir }}/${name}.cvd" ] && [ ! -f "{{ clamav_db_dir }}/${name}.cld" ]; then
+        exit 1
+      fi
+    done
+  args:
+    executable: /bin/bash
+  register: clamav_cvd_wait
+  retries: 60
+  delay: 10
+  until: clamav_cvd_wait.rc == 0
+  changed_when: false
+  when: clamav_cvd_present.rc != 0
+  tags: [clamav, clamav-install, install]
+
+- name: ClamAV | Start clamd
+  ansible.builtin.systemd:
+    name: clamav-daemon
+    state: started
+    enabled: true
+  tags: [clamav, clamav-install, install]
+
+- name: ClamAV | Deploy gateway script
+  ansible.builtin.copy:
+    src: clamav_gateway.py
+    dest: /usr/local/lib/clamav-gateway.py
+    owner: root
+    # Group=clamav in the unit; 0750 root:clamav-gateway is unreadable to that gid.
+    group: clamav
+    mode: "0750"
+  notify: Restart clamav-gateway
+  tags: [clamav, clamav-install, install]
+
+- name: ClamAV | Deploy gateway environment
+  ansible.builtin.template:
+    src: clamav-gateway.default.j2
+    dest: /etc/default/clamav-gateway
+    owner: root
+    group: "{{ clamav_gateway_user }}"
+    mode: "0640"
+  notify: Restart clamav-gateway
+  tags: [clamav, clamav-configure, configure]
+
+- name: ClamAV | Deploy gateway systemd unit
+  ansible.builtin.template:
+    src: clamav-gateway.service.j2
+    dest: /etc/systemd/system/clamav-gateway.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart clamav-gateway
+  tags: [clamav, clamav-install, install]
+
+- name: ClamAV | Flush handlers before enabling gateway
+  ansible.builtin.meta: flush_handlers
+  tags: [clamav, clamav-install, install]
+
+- name: ClamAV | Enable and start gateway
+  ansible.builtin.systemd:
+    name: clamav-gateway
+    state: started
+    enabled: true
+    daemon_reload: true
+  tags: [clamav, clamav-install, install]
+
+- name: ClamAV | Allow gateway port from the reverse proxy
+  community.general.ufw:
+    rule: allow
+    port: "{{ clamav_gateway_port }}"
+    src: "{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}"
+    proto: tcp
+    comment: Upload scan from the reverse proxy
+    state: enabled
+  loop: "{{ groups['web'] | default([]) }}"
+  tags: [clamav, clamav-configure, configure]
+
+- name: ClamAV | Allow gateway metrics from monitoring
+  community.general.ufw:
+    rule: allow
+    port: "{{ clamav_gateway_port }}"
+    src: "{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}"
+    proto: tcp
+    comment: Gateway metrics from monitoring
+    state: enabled
+  loop: "{{ groups['monitoring'] | default([]) }}"
+  when: >
+    server_monitoring is defined
+    and server_monitoring in ['grafana', 'prometheus', 'grafana/prometheus']
+  tags: [clamav, clamav-configure, configure]
+
+- name: ClamAV | Allow Tomcat from the scanner
+  community.general.ufw:
+    rule: allow
+    port: "{{ hostvars[item]['tomcat_port'] | default('8080') }}"
+    src: "{{ hostvars[groups['clamav_servers'][0]]['service_ip']
+       | default(hostvars[groups['clamav_servers'][0]]['ansible_host']) }}"
+    proto: tcp
+    comment: tomcat access from the upload scanner
+    state: enabled
+  loop: "{{ groups['instances'] | default([]) }}"
+  delegate_to: "{{ item }}"
+  tags: [clamav, clamav-configure, configure]

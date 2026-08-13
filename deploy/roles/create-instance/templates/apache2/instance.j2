@@ -3,8 +3,8 @@
 {% if  hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string == "ROOT"  %}
 <Location />
     Require all granted
-    ProxyPass "http://{{ (hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']))+':8080' }}/"
-    ProxyPassReverse "http://{{ (hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']))+':8080'}}/"
+    ProxyPass "http://{{ (hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host'])) | hostport(tomcat_port | default('8080')) }}/"
+    ProxyPassReverse "http://{{ (hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host'])) | hostport(tomcat_port | default('8080')) }}/"
 </Location>
 
 {% if _glowroot_enabled and not _glowroot_locked %}
@@ -17,8 +17,8 @@
 {% else %}
 <Location /{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}>
     Require all granted
-    ProxyPass "http://{{ (hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']))+':8080' }}/{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}"
-    ProxyPassReverse "http://{{ (hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']))+':8080'}}/{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}"
+    ProxyPass "http://{{ (hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host'])) | hostport(tomcat_port | default('8080')) }}/{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}"
+    ProxyPassReverse "http://{{ (hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host'])) | hostport(tomcat_port | default('8080')) }}/{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}"
 </Location>
 
 {% if _glowroot_enabled and not _glowroot_locked %}
@@ -29,4 +29,7 @@
 </Location>
 {% endif %}
 {% endif %}
+{# Location / matches every URL; later LocationMatch sections merge last
+   and override ProxyPass for the upload paths. #}
+{% include 'clamav/apache_locations.j2' %}
 

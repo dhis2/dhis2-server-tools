@@ -1,0 +1,30 @@
+---
+argument_specs:
+  main:
+    short_description: Opt-in ClamAV upload scanning at the reverse proxy
+    options:
+      clamav_enabled:
+        description: Master gate for the scanner host and proxy intercepts
+        type: bool
+        default: false
+      clamav_fail_open:
+        description: Break-glass — forward uploads if clamd is down
+        type: bool
+        default: false
+      clamav_scan_app_zips:
+        description: Intercept POST /api/apps
+        type: bool
+        default: true
+      clamav_scan_ui_assets:
+        description: Intercept custom JS/CSS and logo uploads
+        type: bool
+        default: true
+      clamav_gateway_port:
+        description: Bridge listen port for the scan-and-forward gateway
+        type: int
+        default: 8081
+      clamav_private_mirror:
+        description: >-
+          Air-gapped freshclam mirror (empty uses database.clamav.net)
+        type: str
+        required: false

@@ -89,3 +89,29 @@
     - server_monitoring is defined and server_monitoring in ['grafana', 'prometheus', 'grafana/prometheus']
     - groups['monitoring']  | length > 0
     - inventory_hostname in groups['instances']
+
+- name: ClamAV | Refresh gateway upstream allowlist
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/roles/clamav/templates/clamav-gateway.default.j2"
+    dest: /etc/default/clamav-gateway
+    owner: root
+    group: "{{ clamav_gateway_user | default('clamav-gateway') }}"
+    mode: "0640"
+  delegate_to: "{{ groups['clamav_servers'][0] }}"
+  run_once: true
+  register: clamav_gateway_env
+  when:
+    - clamav_enabled | default(false) | bool
+    - groups['clamav_servers'] | default([]) | length > 0
+
+- name: ClamAV | Restart gateway after allowlist change
+  ansible.builtin.systemd:
+    name: clamav-gateway
+    state: restarted
+  delegate_to: "{{ groups['clamav_servers'][0] }}"
+  run_once: true
+  when:
+    - clamav_enabled | default(false) | bool
+    - groups['clamav_servers'] | default([]) | length > 0
+    - clamav_gateway_env is defined
+    - clamav_gateway_env is changed

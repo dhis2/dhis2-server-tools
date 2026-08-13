@@ -20,3 +20,11 @@
       - targets:
           - {{ lxd_network.split('/')[0] }}:9100
 {% endif %}
+{% if (clamav_enabled | default(false) | bool) and (groups['clamav_servers'] | default([]) | length > 0) %}
+  - job_name: clamav
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - {{ hostvars[groups['clamav_servers'][0]]['service_ip']
+             | default(hostvars[groups['clamav_servers'][0]]['ansible_host']) }}:{{ clamav_gateway_port | default(8081) }}
+{% endif %}

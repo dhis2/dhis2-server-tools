@@ -131,7 +131,13 @@ cetificate location/.
 These files hold upstream configuration files that proxy pass requests to
 dhis2, munin and glowroot application monitor.
 
-These files are loaded from the main configuration file. 
+These files are loaded from the main configuration file.
+
+## Upload scanning
+
+When `clamav_enabled=true` and `[clamav_servers]` has a host, the proxy
+sends DHIS2 file-create URLs to a scan-and-forward gateway. Other traffic
+is unchanged. See [ClamAV upload scanning](clamav.md).
  
 
 

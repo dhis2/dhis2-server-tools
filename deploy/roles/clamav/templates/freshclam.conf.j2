@@ -1,0 +1,17 @@
+{{ ansible_managed | comment }}
+DatabaseOwner clamav
+UpdateLogFile /var/log/clamav/freshclam.log
+LogTime true
+LogRotate true
+DatabaseDirectory {{ clamav_db_dir }}
+{% if clamav_private_mirror | default('') | length > 0 %}
+PrivateMirror {{ clamav_private_mirror }}
+{% else %}
+DatabaseMirror database.clamav.net
+{% endif %}
+Checks 24
+ScriptedUpdates yes
+NotifyClamd /etc/clamav/clamd.conf
+# Load-testing a new CVD in freshclam roughly doubles RAM; skip it under the 4 GiB cap.
+TestDatabases no
+Foreground false

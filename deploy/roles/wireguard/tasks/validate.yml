@@ -205,6 +205,24 @@
   when: wireguard_data_plane | default(false) | bool
   run_once: true
 
+- name: WireGuard | Assert clamav servers have wireguard_ip when data plane is enabled
+  ansible.builtin.assert:
+    that:
+      - hostvars[item].wireguard_ip is defined
+      - hostvars[item].wireguard_ip | length > 0
+    fail_msg: >-
+      Host '{{ item }}' is in [clamav_servers] but has no wireguard_ip while
+      wireguard_data_plane is true. With the data plane active the proxy
+      reaches the scanner via service_ip (wireguard_ip), so the clamav host
+      must be a WireGuard peer. Add 'wireguard_ip=<10.0.0.x>' to the clamav
+      host, or disable wireguard_data_plane.
+    quiet: true
+  loop: "{{ groups.get('clamav_servers', []) | sort }}"
+  loop_control:
+    label: "{{ item }}"
+  when: wireguard_data_plane | default(false) | bool
+  run_once: true
+
 - name: WireGuard | Assert every app host (web/databases/instances/monitoring) has wireguard_ip
   ansible.builtin.assert:
     that:

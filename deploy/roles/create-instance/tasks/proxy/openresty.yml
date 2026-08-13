@@ -18,6 +18,14 @@
     nginx_version: "0"
   when: openresty_version_output.rc != 0
 
+- name: Ensure OpenResty security_headers.conf exists
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/roles/proxy/files/security_headers.conf"
+    dest: /usr/local/openresty/nginx/conf/security_headers.conf
+    owner: root
+    group: root
+    mode: "0640"
+
 - name: Assert two instances using the same fqdn have unique Instance Names
   ansible.builtin.assert:
     that:
@@ -64,7 +72,7 @@
     paths: /usr/local/openresty/nginx/conf/conf.d/
     patterns: '*'
     file_type: file
-    excludes: "{{ groups['instances'] | map('extract', hostvars, 'fqdn') | map('default', 'default', true) | map('regex_replace', '^\\s+|\\s+$', '') | unique | map('regex_replace', '^$', 'default') | map('regex_replace', '(.+)', '\\1.conf') | list }}"
+    excludes: "{{ (groups['instances'] | map('extract', hostvars, 'fqdn') | map('default', 'default', true) | map('regex_replace', '^\\s+|\\s+$', '') | unique | map('regex_replace', '^$', 'default') | map('regex_replace', '(.+)', '\\1.conf') | list) + ['clamav_upstream.conf'] }}"
   register: found_files
 
 - name: Clean /usr/local/openresty/nginx/conf/conf.d/ directory
@@ -72,6 +80,27 @@
     path: "{{ item }}"
     state: absent
   loop: "{{ found_files['files'] | map(attribute='path') }}"
+
+- name: ClamAV | Deploy OpenResty gateway upstream
+  ansible.builtin.template:
+    src: clamav/nginx_upstream.j2
+    dest: /usr/local/openresty/nginx/conf/conf.d/clamav_upstream.conf
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Reload Openresty
+  when:
+    - clamav_enabled | default(false) | bool
+    - groups['clamav_servers'] | default([]) | length > 0
+
+- name: ClamAV | Remove OpenResty gateway upstream
+  ansible.builtin.file:
+    path: /usr/local/openresty/nginx/conf/conf.d/clamav_upstream.conf
+    state: absent
+  notify: Reload Openresty
+  when: >
+    not (clamav_enabled | default(false) | bool)
+    or (groups['clamav_servers'] | default([]) | length == 0)
 
 - name: Copy static OpenResty config for valid FQDNs
   ansible.builtin.copy:

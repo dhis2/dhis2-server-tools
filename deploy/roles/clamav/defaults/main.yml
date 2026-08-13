@@ -1,0 +1,21 @@
+---
+clamav_enabled: false
+clamav_fail_open: false
+clamav_scan_app_zips: true
+clamav_scan_ui_assets: true
+clamav_gateway_port: 8081
+clamav_private_mirror: ""
+
+clamav_lxd_memory: 4GiB
+clamav_min_host_mem_available_kb: 4194304
+clamav_gateway_user: clamav-gateway
+clamav_spool_dir: /var/spool/clamav-gateway
+clamav_socket: /var/run/clamav/clamd.ctl
+clamav_db_dir: /var/lib/clamav
+clamav_max_body_bytes: 104857600
+clamav_stream_max_length: 100M
+clamav_max_file_size: 100M
+clamav_max_scan_size: 150M
+clamav_max_scan_time: 120000
+clamav_max_files: 10000
+clamav_max_recursion: 16

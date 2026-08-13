@@ -1,0 +1,27 @@
+---
+- name: Reload clamd AppArmor
+  ansible.builtin.command: apparmor_parser -r /etc/apparmor.d/usr.sbin.clamd
+  changed_when: true
+  when:
+    - clamav_apparmor_profile is defined
+    - clamav_apparmor_profile.stat.exists
+
+- name: Restart clamav-daemon
+  ansible.builtin.systemd:
+    name: clamav-daemon
+    state: restarted
+    enabled: true
+    daemon_reload: true
+
+- name: Restart clamav-freshclam
+  ansible.builtin.systemd:
+    name: clamav-freshclam
+    state: restarted
+    enabled: true
+
+- name: Restart clamav-gateway
+  ansible.builtin.systemd:
+    name: clamav-gateway
+    state: restarted
+    enabled: true
+    daemon_reload: true

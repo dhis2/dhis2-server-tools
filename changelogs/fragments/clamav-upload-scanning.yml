@@ -1,0 +1,7 @@
+---
+minor_changes:
+  - |
+    Add opt-in ClamAV upload scanning
+    (``clamav_enabled``, ``[clamav_servers]``).
+    The reverse proxy sends DHIS2 file-create URLs to a scan-and-forward
+    gateway co-located with clamd. Default deploys are unchanged.

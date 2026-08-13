@@ -34,6 +34,11 @@ backup  ansible_host=172.19.2.100
 # integration server/container
 [integration]
 
+# Optional upload scanner. Enabling needs ~4 GiB extra RAM and clamav_enabled=true.
+# Do not use wireguard_ip=10.0.0.6 — that is the default sysadmin peer.
+[clamav_servers]
+# clamav  ansible_host=172.19.2.40  wireguard_ip=10.0.0.8
+
 # variables applying to all hosts, 
 [all:vars]
 # if you do not set fqdn, you dhis2 will be set up with selfsigned certificate
@@ -62,6 +67,13 @@ app_monitoring=glowroot
 wireguard_enabled=false
 # wireguard_data_plane=false
 
+# Upload scanning (needs a [clamav_servers] host and ~4 GiB extra RAM; see docs/clamav.md)
+# clamav_enabled=false
+# clamav_fail_open=false
+# clamav_scan_app_zips=true
+# clamav_scan_ui_assets=true
+# clamav_gateway_port=8081
+# clamav_private_mirror=
 
 # lxd
 lxd_network=172.19.2.1/24 

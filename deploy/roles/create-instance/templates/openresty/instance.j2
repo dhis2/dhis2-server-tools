@@ -1,3 +1,6 @@
+{% set clamav_proxy_params = '/usr/local/openresty/nginx/conf/proxy_params' %}
+{% set clamav_security_headers = '/usr/local/openresty/nginx/conf/security_headers.conf' %}
+{% include 'clamav/nginx_locations.j2' %}
 {% if  hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string == "ROOT"  %}
 location / {
    proxy_pass  http://{{ item | replace('-', '_') }}_tomcat;

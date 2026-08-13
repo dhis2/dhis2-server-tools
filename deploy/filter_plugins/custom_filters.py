@@ -132,6 +132,14 @@ def tomcat_version(distribution_version):
         return 9
 
 
+def hostport(addr, port):
+    """Format addr:port, wrapping IPv6 literals in brackets."""
+    a = str(addr or "")
+    if ":" in a and not a.startswith("["):
+        return f"[{a}]:{port}"
+    return f"{a}:{port}"
+
+
 def external_hosts(hosts, hostvars, lxd_network):
     """Return hosts whose ansible_host is not in lxd_network."""
     network = IPNetwork(lxd_network)
@@ -154,4 +162,5 @@ class FilterModule(object):
                 'tomcat_version': tomcat_version,
                 'normalize_dhis2_version': normalize_dhis2_version,
                 'all_have_fqdn': all_have_fqdn,
+                'hostport': hostport,
                 }
