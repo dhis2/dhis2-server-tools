@@ -1,0 +1,36 @@
+{{ ansible_managed | comment }}
+[Unit]
+Description=DHIS2 ClamAV upload scan gateway
+Wants=network-online.target clamav-daemon.service
+After=network-online.target clamav-daemon.service
+
+[Service]
+User={{ clamav_gateway_user }}
+Group=clamav
+Type=simple
+EnvironmentFile=/etc/default/clamav-gateway
+ExecStart=/usr/bin/python3 /usr/local/lib/clamav-gateway.py
+Restart=on-failure
+RestartSec=5
+MemoryMax=1G
+TasksMax=32
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadWritePaths={{ clamav_spool_dir }}
+ReadOnlyPaths={{ clamav_db_dir }}
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,4 @@
+{{ ansible_managed | comment }}
+# clamd SCAN of the gateway spool (unix-socket SCAN, not INSTREAM)
+{{ clamav_spool_dir }}/ r,
+{{ clamav_spool_dir }}/** r,

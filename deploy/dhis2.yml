@@ -24,6 +24,9 @@
       tags: [proxy-install]
     - role: monitoring
       tags: monitoring
+    - role: clamav
+      tags: [clamav]
+      when: clamav_enabled | default(false) | bool
     - role: create-instance
       tags: [create-instance]
       when: instance_state is not defined or instance_state != 'deleted'

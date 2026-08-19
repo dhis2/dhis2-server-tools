@@ -1,0 +1,17 @@
+{{ ansible_managed | comment }}
+CLAMAV_LISTEN_HOST=0.0.0.0
+CLAMAV_LISTEN_PORT={{ clamav_gateway_port }}
+CLAMAV_SOCKET={{ clamav_socket }}
+CLAMAV_SPOOL_DIR={{ clamav_spool_dir }}
+CLAMAV_FAIL_OPEN={{ clamav_fail_open | bool | lower }}
+{% set ns = namespace(upstreams=[]) %}
+{% for inst in groups['instances'] | default([]) %}
+{% set ns.upstreams = ns.upstreams + [
+  (hostvars[inst]['service_ip'] | default(hostvars[inst]['ansible_host']))
+  | hostport(tomcat_port | default('8080'))
+] %}
+{% endfor %}
+
+CLAMAV_UPSTREAMS={{ ns.upstreams | join(',') }}
+CLAMAV_MAX_BODY={{ clamav_max_body_bytes }}
+CLAMAV_DB_DIR={{ clamav_db_dir }}

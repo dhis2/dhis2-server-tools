@@ -1,0 +1,25 @@
+{{ ansible_managed | comment }}
+LocalSocket {{ clamav_socket }}
+FixStaleSocket true
+LocalSocketGroup clamav
+LocalSocketMode 660
+User clamav
+DatabaseDirectory {{ clamav_db_dir }}
+TemporaryDirectory /tmp
+PidFile /run/clamav/clamd.pid
+LogFile /var/log/clamav/clamav.log
+LogTime true
+LogRotate true
+Foreground false
+ScanMail false
+ScanArchive true
+AlertEncrypted false
+OfficialDatabaseOnly yes
+ConcurrentDatabaseReload no
+StreamMaxLength {{ clamav_stream_max_length }}
+MaxFileSize {{ clamav_max_file_size }}
+MaxScanSize {{ clamav_max_scan_size }}
+MaxScanTime {{ clamav_max_scan_time }}
+MaxFiles {{ clamav_max_files }}
+MaxRecursion {{ clamav_max_recursion }}
+MaxDirectoryRecursion {{ clamav_max_recursion }}

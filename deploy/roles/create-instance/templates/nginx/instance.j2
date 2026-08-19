@@ -1,5 +1,8 @@
 {% set _glowroot_enabled = app_monitoring is defined and app_monitoring | trim == 'glowroot' %}
 {% set _glowroot_locked = wireguard_monitoring_locked | default(false) | bool %}
+{% set clamav_proxy_params = '/etc/nginx/proxy_params' %}
+{% set clamav_security_headers = '/etc/nginx/security_headers.conf' %}
+{% include 'clamav/nginx_locations.j2' %}
 {% if  hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string == "ROOT"  %}
 location / {
    proxy_pass  http://{{ item | replace('-', '_') }}_tomcat;

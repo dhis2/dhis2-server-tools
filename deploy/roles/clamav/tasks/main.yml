@@ -1,0 +1,19 @@
+---
+- name: ClamAV | Pre-flight RAM and group checks
+  ansible.builtin.include_tasks:
+    file: preflight.yml
+    apply:
+      tags: [always]
+  tags: [always]
+  when: clamav_enabled | default(false) | bool
+  run_once: true
+
+- name: ClamAV | Include connection-specific tasks
+  ansible.builtin.include_tasks:
+    file: "{{ ansible_connection }}.yml"
+    apply:
+      tags: [clamav, clamav-install, install]
+  tags: [clamav, clamav-install, install]
+  when:
+    - clamav_enabled | default(false) | bool
+    - inventory_hostname in groups['clamav_servers'] | default([])

@@ -1,0 +1,37 @@
+{% set _clamav_on = (clamav_enabled | default(false) | bool)
+     and (groups['clamav_servers'] | default([]) | length > 0) %}
+{% if _clamav_on %}
+{% set _base = '' if (hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string == 'ROOT')
+     else '/' ~ (hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string) %}
+{% set _gw = (hostvars[groups['clamav_servers'][0]]['service_ip']
+     | default(hostvars[groups['clamav_servers'][0]]['ansible_host']))
+     | hostport(clamav_gateway_port | default(8081)) %}
+{% set _inst = (hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']))
+     | hostport(tomcat_port | default('8080')) %}
+{% set ns = namespace(patterns=[
+  _base ~ '/api(?:/[0-9]+)?/fileResources/?',
+  _base ~ '/api(?:/[0-9]+)?/dataValues/file/?',
+  _base ~ '/api(?:/[0-9]+)?/messageConversations/attachments/?',
+]) %}
+{% if clamav_scan_app_zips | default(true) | bool %}
+{% set ns.patterns = ns.patterns + [_base ~ '/api(?:/[0-9]+)?/apps/?'] %}
+{% endif %}
+{% if clamav_scan_ui_assets | default(true) | bool %}
+{% set ns.patterns = ns.patterns + [
+  _base ~ '/api(?:/[0-9]+)?/files/(script|style)/?',
+  _base ~ '/api(?:/[0-9]+)?/staticContent/logo_[^/]+',
+] %}
+{% endif %}
+ProxyPassInterpolateEnv On
+{% for pattern in ns.patterns %}
+<LocationMatch "^(?<full>{{ pattern }})$">
+    Require all granted
+    ProxyPreserveHost On
+    ProxyPassMatch "http://{{ _gw }}${MATCH_FULL}" interpolate
+    ProxyPassReverse "http://{{ _gw }}/"
+    RequestHeader set X-DHIS2-Upstream "http://{{ _inst }}"
+    RequestHeader set X-Forwarded-Port "{{ https_port | default('443') }}"
+    RequestHeader set X-Forwarded-Proto "https"
+</LocationMatch>
+{% endfor %}
+{% endif %}

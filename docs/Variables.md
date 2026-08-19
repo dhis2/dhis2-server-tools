@@ -199,6 +199,19 @@ munin_users:
     password: user2_passsword
 ```
 
+### ClamAV upload scanning
+
+Opt-in. Off by default. See [ClamAV upload scanning](clamav.md).
+
+| Variable | Default | Comments |
+|:---------|:--------|:---------|
+| `clamav_enabled` | `false` | Master gate. Needs a `[clamav_servers]` host and about 4 GiB extra RAM. |
+| `clamav_fail_open` | `false` | Break-glass: allow uploads if clamd is down. |
+| `clamav_scan_app_zips` | `true` | Intercept `POST /api/apps`. |
+| `clamav_scan_ui_assets` | `true` | Intercept custom JS/CSS and logo uploads. |
+| `clamav_gateway_port` | `8081` | Gateway listen port on the LXD bridge (or clamav VM). |
+| `clamav_private_mirror` | unset | Air-gapped freshclam mirror. Empty uses `database.clamav.net`. |
+
 ### backup related Variables
 These variables pertain to the PostgreSQL database host and contain sensitive
 information. It is advisable to secure them using ansible-vault encryption. You

@@ -1,0 +1,28 @@
+---
+- name: ClamAV | Gather host facts
+  ansible.builtin.setup:
+    gather_subset:
+      - network
+      - "!min"
+
+- name: ClamAV | Install acl
+  ansible.builtin.apt:
+    name: acl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: ClamAV | Allow SSH on the scanner VM
+  community.general.ufw:
+    rule: limit
+    port: "{{ ansible_port | default('22') }}"
+    src: 0.0.0.0/0
+    proto: tcp
+    comment: Allow ssh access to the scanner
+
+- name: ClamAV | Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"
+
+- name: ClamAV | Install and configure scanner
+  ansible.builtin.include_tasks: install.yml

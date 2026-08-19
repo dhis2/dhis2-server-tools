@@ -129,3 +129,16 @@
   when: >
     app_monitoring is defined and
     app_monitoring == "glowroot"
+
+- name: Open port 8080 (tomcat) access from the upload scanner
+  community.general.ufw:
+    rule: allow
+    port: "{{ tomcat_port | default('8080') }}"
+    src: "{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}"
+    proto: tcp
+    state: enabled
+    comment: tomcat access from the upload scanner
+  loop: "{{ groups['clamav_servers'] | default([]) }}"
+  when:
+    - clamav_enabled | default(false) | bool
+    - groups['clamav_servers'] | default([]) | length > 0

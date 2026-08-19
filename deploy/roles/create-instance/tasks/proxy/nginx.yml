@@ -16,6 +16,14 @@
     nginx_version: "0"
   when: nginx_version_output.rc != 0
 
+- name: Ensure nginx security_headers.conf exists
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/roles/proxy/files/security_headers.conf"
+    dest: /etc/nginx/security_headers.conf
+    owner: root
+    group: root
+    mode: "0640"
+
 # consider creating custom filter for this task.
 # Rigt now, it does not work when fqdn is not defined
 - name: Assert two instances using the same fqdn have unique Instance Names
@@ -65,7 +73,7 @@
     paths: /etc/nginx/conf.d/
     patterns: '*'
     file_type: file
-    excludes: "{{ groups['instances'] | map('extract', hostvars, 'fqdn') | map('default', 'default', true) | map('regex_replace', '^\\s+|\\s+$', '') | unique | map('regex_replace', '^$', 'default') | map('regex_replace', '(.+)', '\\1.conf') | list }}"
+    excludes: "{{ (groups['instances'] | map('extract', hostvars, 'fqdn') | map('default', 'default', true) | map('regex_replace', '^\\s+|\\s+$', '') | unique | map('regex_replace', '^$', 'default') | map('regex_replace', '(.+)', '\\1.conf') | list) + ['clamav_upstream.conf'] }}"
   register: found_files
 
 - name: Clean /etc/nginx/conf.d/ directory
@@ -73,6 +81,27 @@
     path: "{{ item }}"
     state: absent
   loop: "{{ found_files['files'] | map(attribute='path') }}"
+
+- name: ClamAV | Deploy nginx gateway upstream
+  ansible.builtin.template:
+    src: clamav/nginx_upstream.j2
+    dest: /etc/nginx/conf.d/clamav_upstream.conf
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Reload Nginx
+  when:
+    - clamav_enabled | default(false) | bool
+    - groups['clamav_servers'] | default([]) | length > 0
+
+- name: ClamAV | Remove nginx gateway upstream
+  ansible.builtin.file:
+    path: /etc/nginx/conf.d/clamav_upstream.conf
+    state: absent
+  notify: Reload Nginx
+  when: >
+    not (clamav_enabled | default(false) | bool)
+    or (groups['clamav_servers'] | default([]) | length == 0)
 
 - name: Copy static Nginx config for valid FQDNs
   ansible.builtin.copy:

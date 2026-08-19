@@ -1,0 +1,51 @@
+---
+- name: ClamAV | Assert [clamav_servers] has a host
+  ansible.builtin.assert:
+    that:
+      - groups['clamav_servers'] | default([]) | length > 0
+    fail_msg: >-
+      clamav_enabled is true but [clamav_servers] is empty.
+      Add a clamav host to inventory, or set clamav_enabled=false.
+    quiet: true
+  tags: [always]
+
+- name: ClamAV | Resolve whether the scanner is an LXD container
+  ansible.builtin.set_fact:
+    clamav_mem_is_lxd: >-
+      {{ (hostvars[groups['clamav_servers'][0]]['ansible_connection']
+          | default(ansible_connection)) == 'lxd' }}
+  tags: [always]
+
+- name: ClamAV | Read MemAvailable on the LXD hypervisor
+  ansible.builtin.command: awk '/^MemAvailable:/ {print $2}' /proc/meminfo
+  register: clamav_mem_available_kb
+  changed_when: false
+  delegate_to: localhost
+  vars:
+    ansible_connection: local
+  become: true
+  when: clamav_mem_is_lxd | bool
+  tags: [always]
+
+- name: ClamAV | Read MemAvailable on the scanner VM
+  ansible.builtin.command: awk '/^MemAvailable:/ {print $2}' /proc/meminfo
+  register: clamav_mem_available_kb
+  changed_when: false
+  delegate_to: "{{ groups['clamav_servers'][0] }}"
+  become: true
+  when: not (clamav_mem_is_lxd | bool)
+  tags: [always]
+
+- name: ClamAV | Assert host has at least 4 GiB MemAvailable
+  ansible.builtin.assert:
+    that:
+      - (clamav_mem_available_kb.stdout | trim | int) >= (clamav_min_host_mem_available_kb | int)
+    fail_msg: >-
+      clamav_enabled requires at least 4 GiB MemAvailable on
+      {{ 'the LXD hypervisor' if (clamav_mem_is_lxd | bool) else groups['clamav_servers'][0] }}
+      before the scanner is created
+      (LXD hypervisor, or the clamav VM in SSH mode).
+      This host has {{ ((clamav_mem_available_kb.stdout | trim | int) / 1024) | round(0, 'floor') | int }} MiB
+      available. Add RAM, then re-run, or set clamav_enabled=false.
+    quiet: true
+  tags: [always]

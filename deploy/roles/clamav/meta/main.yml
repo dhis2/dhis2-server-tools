@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: clamav
+  author: dhis2
+  description: Opt-in ClamAV upload scanner and scan-and-forward gateway
+  license: BSD-2-Clause
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+  galaxy_tags: [dhis2, clamav, antivirus]
+dependencies: []

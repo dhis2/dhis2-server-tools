@@ -1,0 +1,10 @@
+{{ ansible_managed | comment }}
+{% set _clamav_on = (clamav_enabled | default(false) | bool)
+     and (groups['clamav_servers'] | default([]) | length > 0) %}
+{% if _clamav_on %}
+upstream clamav_gateway {
+    server {{ hostvars[groups['clamav_servers'][0]]['service_ip']
+       | default(hostvars[groups['clamav_servers'][0]]['ansible_host'])
+       | hostport(clamav_gateway_port | default(8081)) }};
+}
+{% endif %}
