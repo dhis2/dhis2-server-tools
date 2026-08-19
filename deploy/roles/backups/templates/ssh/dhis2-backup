@@ -10,6 +10,13 @@
 # load variables from a file, 
 source /usr/local/etc/dhis/dhis2-env
 
+umask 027
+
+restrict_backup_dir() {
+  [ -d "$BACKUP_DIR" ] || return 0
+  chmod -R u=rwX,g=rX,o= "$BACKUP_DIR"
+}
+
 function perform_backups()
 {
   SUFFIX=$1
@@ -29,6 +36,8 @@ function perform_backups()
         echo "`date` Cannot create backup directory in $FINAL_AUDIT_DIR. Go and fix it!"
         exit 1;
   fi;
+
+  restrict_backup_dir
 
   #  sudo su -c "pg_dump -O -Fp $DBNAME -T aggregated_* -T analytics_* -T completeness_*  | gzip > ./$DB_NAME.sql.gz" postgres
   for DBNAME in $PLAIN_BACKUPS 
