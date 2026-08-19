@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.1](https://github.com/dhis2/dhis2-server-tools/compare/v1.8.0...v1.8.1) (2026-08-19)
+
+
+### 🐛 Bug Fixes
+
+* **backups:** stop world-readable pg dumps ([5d26068](https://github.com/dhis2/dhis2-server-tools/commit/5d2606830237823ed65e4e5867a7bad9fd6a8a07))
+* **backups:** stop world-readable pg dumps ([61df4c9](https://github.com/dhis2/dhis2-server-tools/commit/61df4c9fbb72a39e632e6c798a15d2bd60af7835))
+
 ## [1.8.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.7.0...v1.8.0) (2026-07-16)
 
 
