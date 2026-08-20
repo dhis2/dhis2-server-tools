@@ -1,4 +1,6 @@
+import ipaddress
 import re
+from urllib.parse import urlparse
 from netaddr import IPAddress, IPNetwork
 from ansible.module_utils.compat.version import LooseVersion
 from ansible.module_utils.common.text.converters import to_text
@@ -145,6 +147,131 @@ def external_hosts(hosts, hostvars, lxd_network):
     return result
 
 
+_LOOPBACK_NAMES = frozenset({
+    'localhost',
+    'ip6-localhost',
+    'ip6-loopback',
+    'localhost.localdomain',
+})
+
+
+def _clean_conf_value(value, name):
+    text = '' if value is None else str(value)
+    if any(ord(c) < 32 or ord(c) == 127 for c in text):
+        raise AnsibleFilterError(
+            f"{name} must not contain control characters"
+        )
+    if any(c.isspace() for c in text.strip()):
+        raise AnsibleFilterError(
+            f"{name} must not contain whitespace"
+        )
+    return text.strip()
+
+
+def _host_ip(name):
+    try:
+        return ipaddress.ip_address(name)
+    except ValueError:
+        parts = name.split('.')
+        if not (2 <= len(parts) <= 3 and all(p.isdigit() for p in parts)):
+            return None
+        padded = parts[:-1] + ['0'] * (4 - len(parts)) + parts[-1:]
+        try:
+            return ipaddress.IPv4Address('.'.join(padded))
+        except ValueError:
+            return None
+
+
+def _is_blocked_host(host):
+    if not host:
+        return True
+    name = host.strip('[]').lower()
+    if name in _LOOPBACK_NAMES:
+        return True
+    ip = _host_ip(name)
+    return ip is not None and (ip.is_loopback or ip.is_unspecified)
+
+
+def _canonical_https_url(url, source):
+    try:
+        parsed = urlparse(url)
+        port = parsed.port
+    except ValueError as exc:
+        raise AnsibleFilterError(
+            f"{source} is not a valid https URL"
+        ) from exc
+    if parsed.scheme != 'https':
+        raise AnsibleFilterError(
+            f"{source} must be an https URL"
+        )
+    if parsed.username is not None or parsed.password is not None:
+        raise AnsibleFilterError(
+            f"{source} must not contain userinfo"
+        )
+    if parsed.query or parsed.fragment:
+        raise AnsibleFilterError(
+            f"{source} must not contain a query string or fragment"
+        )
+    host = parsed.hostname
+    if host is None or _is_blocked_host(host):
+        raise AnsibleFilterError(
+            f"{source} hostname must be reachable by end users, not localhost"
+        )
+    path = parsed.path.rstrip('/')
+    if '//' in path or any(seg in ('.', '..') for seg in path.split('/')):
+        raise AnsibleFilterError(
+            f"{source} path is not a valid DHIS2 context path"
+        )
+    if ':' in host:
+        try:
+            ipaddress.IPv6Address(host)
+        except ValueError as exc:
+            raise AnsibleFilterError(
+                f"{source} hostname is not a valid IPv6 address"
+            ) from exc
+        netloc = f'[{host}]'
+    else:
+        netloc = host
+    if port is not None and port != 443:
+        netloc = f'{netloc}:{port}'
+    return f'https://{netloc}{path}'
+
+
+def dhis2_server_base_url(override, fqdn='', context='', https_port=443):
+    """Public URL for dhis.conf server.base.url, or '' when it must be omitted."""
+    override = _clean_conf_value(override, 'server_base_url')
+    if override:
+        return _canonical_https_url(override.rstrip('/'), 'server_base_url')
+
+    fqdn = _clean_conf_value(fqdn, 'fqdn')
+    if not fqdn:
+        return ''
+    if '/' in fqdn or '@' in fqdn or '://' in fqdn or ':' in fqdn:
+        raise AnsibleFilterError('fqdn must be a hostname, not a URL')
+
+    try:
+        port = int(https_port)
+    except (TypeError, ValueError) as exc:
+        raise AnsibleFilterError(
+            f"https_port must be an integer, got {https_port!r}"
+        ) from exc
+    if port < 1 or port > 65535:
+        raise AnsibleFilterError(f"https_port must be 1-65535, got {port}")
+
+    raw_context = 'ROOT' if context in (None, '') else context
+    context_s = _clean_conf_value(to_fixed_string(raw_context), 'dhis2_base_path')
+    if context_s != 'ROOT' and (
+            context_s.startswith('/') or '/' in context_s
+            or context_s in ('.', '..')):
+        raise AnsibleFilterError(
+            'dhis2_base_path must be a single path segment or ROOT'
+        )
+
+    netloc = fqdn if port == 443 else f'{fqdn}:{port}'
+    path = '' if context_s == 'ROOT' else f'/{context_s}'
+    return _canonical_https_url(f'https://{netloc}{path}', 'fqdn')
+
+
 class FilterModule(object):
     def filters(self):
         return {'get_dhis2_instance_specs': get_dhis2_instance_specs,
@@ -154,4 +281,5 @@ class FilterModule(object):
                 'tomcat_version': tomcat_version,
                 'normalize_dhis2_version': normalize_dhis2_version,
                 'all_have_fqdn': all_have_fqdn,
+                'dhis2_server_base_url': dhis2_server_base_url,
                 }
