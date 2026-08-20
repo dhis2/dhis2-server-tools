@@ -1,0 +1,5 @@
+---
+minor_changes:
+  - >-
+    create-instance - set server.base.url and server.https in dhis.conf from
+    inventory FQDN, instance path, and optional server_base_url.

@@ -45,7 +45,14 @@ db.pool.type = hikari
 # SQL view protected tables, can be 'on', 'off'
 # system.sql_view_table_protection = on
 
-# server.base.url = https://play.dhis2.org/dev
+{% set _server_base_url = server_base_url | default('') | dhis2_server_base_url(
+     fqdn | default(''),
+     dhis2_base_path | default(inventory_hostname, true),
+     https_port | default(443)) %}
+{% if _server_base_url | length > 0 %}
+server.base.url = {{ _server_base_url }}
+server.https = on
+{% endif %}
 
 # ----------------------------------------------------------------------
 # Encryption

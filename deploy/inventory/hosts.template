@@ -37,7 +37,11 @@ backup  ansible_host=172.19.2.100
 # variables applying to all hosts, 
 [all:vars]
 # if you do not set fqdn, you dhis2 will be set up with selfsigned certificate
+# and server.base.url is left unset in dhis.conf
 fqdn=
+# Override the public URL written to dhis.conf (https, no trailing slash).
+# Default is https://<fqdn>[/<instance-or-dhis2_base_path>]; include :port when https_port is not 443.
+# server_base_url=https://cdn.example.org/dhis
 # required for LetsEncrypt certificate notification. 
 email=
 
