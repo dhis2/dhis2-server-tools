@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.8.1...v1.9.0) (2026-08-20)
+
+
+### 🎉 New Features
+
+* set server.base.url from inventory FQDN ([cabbe7a](https://github.com/dhis2/dhis2-server-tools/commit/cabbe7ae07bbb0856a03d72f3b7dee21ccba6246))
+* set server.base.url from inventory FQDN ([ee3d4cd](https://github.com/dhis2/dhis2-server-tools/commit/ee3d4cd5f357e4df65e860c82a5b8dc2a25f5e13))
+
 ## [1.8.1](https://github.com/dhis2/dhis2-server-tools/compare/v1.8.0...v1.8.1) (2026-08-19)
 
 
