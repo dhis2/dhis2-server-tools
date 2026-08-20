@@ -192,6 +192,18 @@ def _is_blocked_host(host):
     return ip is not None and (ip.is_loopback or ip.is_unspecified)
 
 
+def _https_netloc(host, source):
+    if ':' not in host:
+        return host
+    try:
+        ipaddress.IPv6Address(host)
+    except ValueError as exc:
+        raise AnsibleFilterError(
+            f"{source} hostname is not a valid IPv6 address"
+        ) from exc
+    return f'[{host}]'
+
+
 def _canonical_https_url(url, source):
     try:
         parsed = urlparse(url)
@@ -222,16 +234,7 @@ def _canonical_https_url(url, source):
         raise AnsibleFilterError(
             f"{source} path is not a valid DHIS2 context path"
         )
-    if ':' in host:
-        try:
-            ipaddress.IPv6Address(host)
-        except ValueError as exc:
-            raise AnsibleFilterError(
-                f"{source} hostname is not a valid IPv6 address"
-            ) from exc
-        netloc = f'[{host}]'
-    else:
-        netloc = host
+    netloc = _https_netloc(host, source)
     if port is not None and port != 443:
         netloc = f'{netloc}:{port}'
     return f'https://{netloc}{path}'
