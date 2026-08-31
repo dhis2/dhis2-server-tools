@@ -26,7 +26,8 @@
       # on inventory group membership.
       when: >-
         groups['instances']
-        | map('extract', hostvars, 'apache_doris_db')
+        | map('extract', hostvars)
+        | map(attribute='apache_doris_db', default=false)
         | select('string') | list | length > 0
     - role: proxy
       tags: [proxy-install]
