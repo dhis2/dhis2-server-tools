@@ -8,7 +8,7 @@
 # visited. Resolved here, before routing, since both connection paths need them.
 - name: Determine which hosts are configured as a Doris backend
   ansible.builtin.set_fact:
-    doris_instance_map: "{{ groups['instances'] | map('extract', hostvars, 'apache_doris_db') | select('string') | list }}"
+    doris_instance_map: "{{ groups['instances'] | map('extract', hostvars) | map(attribute='apache_doris_db', default=false) | select('string') | list }}"
 
 - name: Determine whether this host is the configured Doris host
   ansible.builtin.set_fact:
