@@ -250,9 +250,16 @@
   failed_when: false
   when: is_doris_host
 
-- name: Extra buffer for Doris BE to fully initialize
-  ansible.builtin.pause:
-    seconds: 10
+- name: Wait for Doris BE to report alive to FE
+  community.mysql.mysql_query:
+    login_user: root
+    login_host: 127.0.0.1
+    login_port: 9030
+    query: "SHOW BACKENDS;"
+  register: doris_backend_status
+  until: doris_backend_status.query_result[0] | selectattr('Alive', 'equalto', 'true') | list | length > 0
+  retries: 30
+  delay: 5
   when: is_doris_host
 
 - name: Ensure analytics database exists
