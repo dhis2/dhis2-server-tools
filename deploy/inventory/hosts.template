@@ -9,14 +9,32 @@ proxy  ansible_host=172.19.2.2  wireguard_ip=10.0.0.2
 # database hosts
 # To use SSH for a specific host instead of lxd, add ansible_connection=ssh ansible_user=<user>
 # EXAMPLE: postgres  ansible_host=192.168.1.50  ansible_connection=ssh  ansible_user=ubuntu
+# Memory tuning (all optional, unset = no limit / PostgreSQL's own defaults):
+#   lxd_memory_limit=8GB           - LXD container hard memory cap
+#   pg_shared_buffers=2GB          - ~25% of the container's memory
+#   pg_work_mem=16MB               - multiplied by pg_max_connections to size worst-case usage
+#   pg_maintenance_work_mem=1GB    - used during VACUUM/index builds/analytics table generation
+#   pg_effective_cache_size=5GB    - query planner hint, ~60-75% of the container's memory
+#   pg_max_connections=100         - lower than the 200 default on memory-constrained hosts
 [databases]
 postgres  ansible_host=172.19.2.20  wireguard_ip=10.0.0.3
 
 # dhis2 hosts
-# EXAMPLE:  dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.42  fqdn=dhis.example.org  dhis2_auto_upgrade=true  proxy_rewrite=True
-# NOTE:  dhis2_auto_upgrade=true automates upgrading to the versision set in  dhis2_version=2.42 
+# EXAMPLE:  dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.42  fqdn=dhis.example.org  dhis2_auto_upgrade=true  proxy_rewrite=True  apache_doris_db=doris
+# NOTE:  dhis2_auto_upgrade=true automates upgrading to the versision set in  dhis2_version=2.42
+# Memory tuning (all optional, unset = no limit / JVM's own 25%-of-visible-memory default):
+#   lxd_memory_limit=8GB   - LXD container hard memory cap
+#   heap_memory_size=5G    - Tomcat/DHIS2 JVM -Xmx/-Xms (also accepts e.g. 5120m)
 [instances]
 dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.42 proxy_rewrite=True  wireguard_ip=10.0.0.4
+
+
+# Apache Doris analytics database (optional, experimental)
+# NOTE: Doris is NOT provisioned by dhis2.yml. After adding a host here and
+# setting apache_doris_db=<this group's hostname> on the relevant [instances]
+# host above, run: ansible-playbook playbooks/apache-doris-setup.yml
+# EXAMPLE: doris  ansible_host=172.19.2.43  lxd_memory_limit=44GB  doris_fe_heap_size=8192m  doris_be_mem_limit=32G
+[apache_doris]
 
 
 # monitoring hosts
