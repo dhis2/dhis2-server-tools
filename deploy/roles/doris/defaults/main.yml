@@ -3,4 +3,23 @@ doris_version: "3.0.5"
 doris_user: "doris"
 doris_home: "/usr/local/doris"
 java_home: "/usr/lib/jvm/java-17-openjdk-amd64"
-doris_download_url: "https://apache-doris-releases.oss-accelerate.aliyuncs.com/apache-doris-{{ doris_version }}-bin-x64.tar.gz"
+
+# Doris's stock x64 build requires AVX2. On a CPU without it (QEMU's default
+# qemu64 model, pre-Haswell hardware) BE dies with SIGILL the instant it
+# starts, while FE - being Java - starts fine, so the symptom is a registered
+# backend stuck at "not alive". Apache ships a noavx2 build for those hosts;
+# pick it from the target's CPU flags, gathered in install.yml.
+doris_build_variant: "{{ '' if 'avx2' in (ansible_flags | default([])) else '-noavx2' }}"
+doris_tarball: "apache-doris-{{ doris_version }}-bin-x64{{ doris_build_variant }}.tar.gz"
+doris_download_url: "https://apache-doris-releases.oss-accelerate.aliyuncs.com/{{ doris_tarball }}"
+
+# Doris ships fe.conf with -Xms8192m -Xmx8192m and be.conf with mem_limit=80%.
+# Those assume FE and BE on separate, large nodes. -Xms commits the whole heap
+# at startup, so on a host smaller than ~10GB the FE JVM aborts immediately and
+# systemd crash-loops it; 80% for BE leaves nothing for a co-located FE. Size
+# both from the target's real RAM instead, gathered in install.yml. FE is
+# capped at Doris's stock 8192m; BE is a straight percentage (no cap), since
+# its stock is proportional too. doris_fe_heap_size / doris_be_mem_limit (set
+# in inventory) still win when defined - these are only the fallback.
+doris_fe_heap_mb: "{{ [[ansible_memtotal_mb | int * 25 // 100, 8192] | min, 512] | max }}"
+doris_be_mem_limit_mb: "{{ [ansible_memtotal_mb | int * 35 // 100, 512] | max }}"

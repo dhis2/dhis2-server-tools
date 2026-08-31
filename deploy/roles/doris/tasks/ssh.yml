@@ -1,0 +1,47 @@
+---
+# ssh-only concerns, mirroring roles/postgres/tasks/ssh.yml: get facts, install
+# acl (become_user: doris later needs setfacl - the lxd connection plugin
+# connects as root, where chown suffices, so acl is only needed here), and
+# open ssh before any rule that might enable ufw. Swap is disabled on this
+# host directly - unlike the LXD case, there is no separate "host" to delegate
+# to, the ssh target IS the host running Doris.
+- name: Get host facts
+  ansible.builtin.setup:
+    gather_subset:
+      - hardware
+      - "!min"
+  when: is_doris_host
+
+- name: Installing acl package
+  ansible.builtin.apt:
+    name: acl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: is_doris_host
+
+- name: Allow ssh on port 22
+  community.general.ufw:
+    rule: limit
+    port: "{{ ansible_port | default('22') }}"
+    src: "0.0.0.0/0"
+    proto: tcp
+    comment: Allow ssh access to the Doris host
+  when: is_doris_host
+
+- name: Disable swap temporarily
+  ansible.builtin.command: swapoff -a
+  when:
+    - is_doris_host
+    - ansible_swaptotal_mb | default(0) | int > 0
+  changed_when: true
+
+- name: Disable swap permanently in fstab
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*swap.*)$'
+    replace: '# \1'
+  when: is_doris_host
+
+- name: Provision Apache Doris
+  ansible.builtin.include_tasks: install.yml

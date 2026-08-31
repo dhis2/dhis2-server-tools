@@ -22,7 +22,12 @@
       tags: [postgresql-install]
     - role: doris
       tags: [doris-install]
-      when: groups['apache_doris'] | length > 0
+      # Mirrors doris_instance_map in roles/doris/tasks/main.yml - not gated
+      # on inventory group membership.
+      when: >-
+        groups['instances']
+        | map('extract', hostvars, 'apache_doris_db')
+        | select('string') | list | length > 0
     - role: proxy
       tags: [proxy-install]
     - role: monitoring

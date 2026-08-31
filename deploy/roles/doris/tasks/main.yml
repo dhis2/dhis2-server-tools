@@ -1,20 +1,44 @@
 ---
 # The doris role runs across every host in the "DHIS2 setup" play (instances,
-# database, proxy, monitoring), not just the apache_doris host: the
-# individual tasks in lxd.yml filter themselves to the right host via
-# hostvars lookups, the same way postgres/proxy connectivity tasks do
-# elsewhere in this repo. Only LXD-managed Doris hosts are supported today,
-# so fail fast and clearly if a configured Doris host is set to use ssh.
-- name: Fail if a configured Doris host uses ssh (not yet supported)
-  ansible.builtin.fail:
-    msg: >-
-      Doris host '{{ item }}' has ansible_connection=ssh set. The doris role
-      only supports LXD-managed Doris hosts today. Remove
-      ansible_connection=ssh from this host in inventory/hosts, or remove it
-      from the [apache_doris] group.
-  loop: "{{ groups['apache_doris'] }}"
-  when: hostvars[item]['ansible_connection'] | default('lxd') == 'ssh'
+# database, proxy, monitoring), not just the apache_doris host: tasks in
+# ssh.yml/lxd.yml/install.yml filter themselves to the right host via these two
+# facts. is_doris_host is true only on the single host configured as some
+# instance's apache_doris_db; doris_instance_map lists every apache_doris_db
+# value in use, for tasks that must run once regardless of which host is being
+# visited. Resolved here, before routing, since both connection paths need them.
+- name: Determine which hosts are configured as a Doris backend
+  ansible.builtin.set_fact:
+    doris_instance_map: "{{ groups['instances'] | map('extract', hostvars, 'apache_doris_db') | select('string') | list }}"
+
+- name: Determine whether this host is the configured Doris host
+  ansible.builtin.set_fact:
+    is_doris_host: "{{ inventory_hostname in doris_instance_map }}"
+
+# The mysql_query/mysql_db tasks in install.yml talk to Doris over the MySQL wire
+# protocol on port 9030, so community.mysql must be on the controller. The full
+# "ansible" package bundles it; bare ansible-core does not, and deploy.sh only
+# installs community.general unconditionally (this collection is only needed
+# when Doris is actually configured). Check here so a missing collection fails
+# immediately with a fix, rather than "couldn't resolve module/action" partway
+# through provisioning.
+- name: Preflight | Look for the community.mysql collection
+  ansible.builtin.command: ansible-galaxy collection list community.mysql
+  register: doris_mysql_collection
+  changed_when: false
+  failed_when: false
+  delegate_to: 127.0.0.1
   run_once: true
 
-- name: Provision and configure Apache Doris (LXD)
-  ansible.builtin.include_tasks: lxd.yml
+- name: Preflight | Fail when community.mysql is not installed
+  ansible.builtin.fail:
+    msg: >-
+      The doris role needs the community.mysql collection on the Ansible
+      controller (it configures Doris over the MySQL protocol on port 9030),
+      but it is not installed. Install it with:
+      ansible-galaxy collection install community.mysql
+  delegate_to: 127.0.0.1
+  run_once: true
+  when: "'community.mysql' not in doris_mysql_collection.stdout"
+
+- name: Provision and configure Apache Doris ({{ ansible_connection }})
+  ansible.builtin.include_tasks: "{{ ansible_connection }}.yml"

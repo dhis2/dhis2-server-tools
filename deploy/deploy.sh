@@ -80,8 +80,12 @@ if ! command -v ansible &> /dev/null; then
     ansible-galaxy collection install community.general
 fi
 
-# Ensure required collections are installed/upgraded
-ansible-galaxy collection install community.general community.mysql --upgrade
+# Ensure required collections are installed/upgraded. community.mysql is
+# needed only when Doris is being provisioned - the doris role's own
+# preflight check (roles/doris/tasks/main.yml) fails fast with install
+# instructions in that case, instead of installing it unconditionally here
+# on every deploy regardless of whether Doris is even configured.
+ansible-galaxy collection install community.general --upgrade
 
 # Check if any host explicitly uses ssh connection (per-host or per-group override)
 # Hosts may use lxd (default) or ssh individually — Ansible handles per-host connection natively.
