@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.10.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.9.1...v1.10.0) (2026-08-31)
+
+
+### 🎉 New Features
+
+* **doris:** add SSH-host support to the doris role ([3f859c2](https://github.com/dhis2/dhis2-server-tools/commit/3f859c222354efdf014e63df8d65e6f7699339f6))
+* **doris:** SSH-host support, BE-alive-race fix, deploy.sh cleanup ([327e88c](https://github.com/dhis2/dhis2-server-tools/commit/327e88cc42e04950df0d17fbd5578b4c1e865c02))
+* integrate Apache Doris provisioning into dhis2.yml ([9ef38dc](https://github.com/dhis2/dhis2-server-tools/commit/9ef38dca8f60267f6042a2c055625eca30452c3d))
+
+
+### 🐛 Bug Fixes
+
+* **deploy.sh:** stop unconditionally installing community.mysql ([20cfbcb](https://github.com/dhis2/dhis2-server-tools/commit/20cfbcbecc74508861daebd8eeb04e9d8f5ec7a4))
+* **doris:** stop crashing fresh installs that don't use Doris ([ab4b857](https://github.com/dhis2/dhis2-server-tools/commit/ab4b8574aa6b6b75347ec616ffc8ea02703843b4))
+* **doris:** stop crashing fresh installs that don't use Doris ([09ba2ae](https://github.com/dhis2/dhis2-server-tools/commit/09ba2ae9787a0580557022b9bd3e590edd4254f0))
+* **doris:** wait for BE to report alive instead of a fixed 10s pause ([0c6c704](https://github.com/dhis2/dhis2-server-tools/commit/0c6c704ed496803dfcd6f4bc8c0fd5a4c2f26b63))
+
 ## [1.9.1](https://github.com/dhis2/dhis2-server-tools/compare/v1.9.0...v1.9.1) (2026-08-31)
 
 
