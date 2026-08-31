@@ -83,6 +83,19 @@
     mode: "0750"
   when: inventory_hostname in groups['backup_servers']
 
+- name: Ensure /var/pgbackups is not world-readable
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  loop:
+    - /var/pgbackups
+    - /var/pgbackups/db-backup
+    - /var/pgbackups/audit-backup
+  when: inventory_hostname in groups['backup_servers']
+
 - name: Create dhis2-env from template
   ansible.builtin.template:
     src: dhis2-env-new.j2
@@ -188,7 +201,7 @@
     backup_server_ips: >-
       {{
         groups['backup_servers']
-        | map('extract', hostvars, 'ansible_host')
+        | map('extract', hostvars, 'service_ip')
         | select('defined')
         | list
       }}

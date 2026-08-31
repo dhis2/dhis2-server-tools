@@ -6,11 +6,15 @@
   roles:
     - role: pre-install
 
+- name: WireGuard VPN bring-up (early — SSH data plane)
+  ansible.builtin.import_playbook: playbooks/wireguard.yml
+  when: wireguard_data_plane | default(false) | bool
+
 - name: DHIS2 setup
   gather_facts: false
   force_handlers: true
   become: true
-  hosts: all:!127.0.0.1
+  hosts: all:!127.0.0.1:!{{ wireguard_hub_inventory_hostname | default('wireguard') }}
   vars_files:
     - vars/vars.yml
   roles:
@@ -43,6 +47,13 @@
   become: true
   roles:
     - role: backups
+
+- name: WireGuard VPN bring-up
+  ansible.builtin.import_playbook: playbooks/wireguard.yml
+  when: not (wireguard_data_plane | default(false) | bool)
+
+- name: WireGuard VPN service lockdown
+  ansible.builtin.import_playbook: playbooks/wireguard-lockdown.yml
 
 - import_playbook: playbooks/delete-dhis2-instance.yml
   tags: [never, delete-instance]

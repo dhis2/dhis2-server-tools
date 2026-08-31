@@ -14,6 +14,18 @@
     group: root
     mode: "0750"
 
+- name: Ensure /var/pgbackups is not world-readable
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  loop:
+    - /var/pgbackups
+    - /var/pgbackups/db-backup
+    - /var/pgbackups/audit-backup
+
 # s3_cluster ids
 - name: Configuring s3
   ansible.builtin.include_tasks: s3cfg.yml

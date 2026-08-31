@@ -57,7 +57,7 @@ allow {{ allowed_ip }}
 # cidr_allow 192.0.2.0/24
 # cidr_deny  192.0.2.42/32
 {% for host in groups['monitoring'] %}
-cidr_allow {{ hostvars[host]['ansible_host'] }}/32
+cidr_allow {{ hostvars[host]['service_ip'] | default(hostvars[host]['ansible_host']) }}/32
 {% endfor %}
 
 # Which address to bind to;
@@ -65,7 +65,7 @@ cidr_allow {{ hostvars[host]['ansible_host'] }}/32
 {% if inventory_hostname == '127.0.0.1' %}
 host {{ lxd_network.split('/')[0] }}
 {% else %}
-host {{ ansible_host }}
+host {{ service_ip | default(ansible_host) }}
 {% endif %}
 
 # And which port

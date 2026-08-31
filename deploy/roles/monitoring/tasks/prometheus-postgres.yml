@@ -43,7 +43,7 @@
   community.general.ufw:
     rule: allow
     port: "{{ postgresql_exporter_listening_port | default('9187') }}"
-    src: "{{ hostvars[item]['ansible_host'] }}"
+    src: "{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}"
     proto: tcp
     comment: "Allow access from prometheus server"
     state: enabled

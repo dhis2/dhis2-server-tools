@@ -1,0 +1,36 @@
+---
+- name: WireGuard | Validate configuration
+  ansible.builtin.include_tasks: validate.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_stage == 'host_portforward'
+  tags:
+    - always
+
+- name: WireGuard | Provision hub LXD container (LXD only)
+  ansible.builtin.include_tasks: lxd_container.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_stage == 'host_portforward'
+    - ansible_connection | default('lxd') == 'lxd'
+
+- name: WireGuard | LXD host port-forward (LXD only)
+  ansible.builtin.include_tasks: host_portforward.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_stage == 'host_portforward'
+    - ansible_connection | default('lxd') == 'lxd'
+
+- name: WireGuard | Hub container setup
+  ansible.builtin.include_tasks: hub.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_stage == 'hub'
+
+- name: WireGuard | Peer setup
+  ansible.builtin.include_tasks: peer.yml
+  when:
+    - wireguard_enabled | bool
+    - wireguard_stage == 'peer'
+    - hostvars[inventory_hostname].wireguard_ip is defined
+    - hostvars[inventory_hostname].wireguard_ip | length > 0

@@ -174,6 +174,21 @@
         - hostvars[item]['apache_doris_db'] is defined
         - inventory_hostname == hostvars[item]['apache_doris_db']
 
+    # lower_case_table_names is immutable once the FE metadata is bootstrapped,
+    # so it MUST be written to fe.conf before the FE is started for the first
+    # time. DHIS2 requires it set to 1 (case-insensitive, names stored lowercase).
+    - name: Set lower_case_table_names in fe.conf (before first FE start)
+      ansible.builtin.lineinfile:
+        path: "{{ doris_home }}/fe/conf/fe.conf"
+        mode: '0600'
+        regexp: '^\s*lower_case_table_names\s*='
+        line: 'lower_case_table_names = 1'
+        create: true
+      loop: "{{ groups['instances'] }}"
+      when:
+        - hostvars[item]['apache_doris_db'] is defined
+        - inventory_hostname == hostvars[item]['apache_doris_db']
+
     - name: Set FE JVM max heap size (Xmx) in fe.conf
       ansible.builtin.replace:
         path: "{{ doris_home }}/fe/conf/fe.conf"
@@ -425,13 +440,13 @@
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
+        owner: doris
+        group: doris
         mode: '0755'
       loop:
         - /usr/local/doris/fe/jdbc_drivers
         - /usr/local/doris/be/jdbc_drivers
-      when:
-        - hostvars[item]['apache_doris_db'] is defined
-        - inventory_hostname == hostvars[item]['apache_doris_db']
+      when: inventory_hostname == "doris"
 
     - name: Download PostgreSQL JDBC driver
       ansible.builtin.get_url:
@@ -440,9 +455,7 @@
         group: doris
         dest: /tmp/postgresql-42.7.8.jar
         mode: '0644'
-      when:
-        - hostvars[item]['apache_doris_db'] is defined
-        - inventory_hostname == hostvars[item]['apache_doris_db']
+      when: inventory_hostname == "doris"
 
     - name: Copy JDBC driver to FE and BE
       ansible.builtin.copy:
@@ -455,14 +468,12 @@
       loop:
         - /usr/local/doris/fe/jdbc_drivers/
         - /usr/local/doris/be/jdbc_drivers
-      when:
-        - hostvars[item]['apache_doris_db'] is defined
-        - inventory_hostname == hostvars[item]['apache_doris_db']
+      when: inventory_hostname == "doris"
 
     - name: Debug
       loop: "{{ groups['instances'] }}"
       ansible.builtin.debug:
-        msg: "{{ hostvars[hostvars[item]['apache_doris_db']]['ansible_host'] }}"
+        msg: "{{ hostvars[hostvars[item]['apache_doris_db']]['service_ip'] | default(hostvars[hostvars[item]['apache_doris_db']]['ansible_host']) }}"
       when:
         - hostvars[item]['apache_doris_db'] is defined
         - hostvars[hostvars[item]['apache_doris_db']] is defined
@@ -477,7 +488,7 @@
             # Analytics database management system
             analytics.database = doris
             analytics.connection.driver_class = com.mysql.cj.jdbc.Driver
-            analytics.connection.url = jdbc:mysql://{{ hostvars[(hostvars[item]['apache_doris_db'])]['ansible_host'] }}:9030/analytics
+            analytics.connection.url = jdbc:mysql://{{ hostvars[(hostvars[item]['apache_doris_db'])]['service_ip'] | default(hostvars[(hostvars[item]['apache_doris_db'])]['ansible_host']) }}:9030/analytics
             analytics.connection.username = {{ hostvars[item]['apache_doris_db_user'] | default('doris_user') }}
             analytics.connection.password = {{ hostvars[item]['apache_doris_db_password'] | default(lookup('password', '/opt/ansible/secrets/apache_doris_db_password')) }}
       loop: "{{ groups['instances'] }}"
@@ -521,9 +532,9 @@
         index_var: idx
       ansible.builtin.lineinfile:
         path: /etc/postgresql/{{ postgresql_version_info.results[idx].version.major }}/main/pg_hba.conf
-        regexp: "^(host|hostssl)\\s+{{ item }}\\s+{{ hostvars[item]['apache_doris_db'] }}\\s+{{ hostvars[ hostvars[item]['apache_doris_db'] ]['ansible_host'] }}(/32)?\\s+.*$"
+        regexp: "^(host|hostssl)\\s+{{ item }}\\s+{{ hostvars[item]['apache_doris_db'] }}\\s+{{ hostvars[ hostvars[item]['apache_doris_db'] ]['service_ip'] | default(hostvars[ hostvars[item]['apache_doris_db'] ]['ansible_host']) }}(/32)?\\s+.*$"
         insertafter: EOF
-        line: hostssl     {{ item }}    {{ item }}  {{  hostvars[hostvars[item]['apache_doris_db']]['ansible_host'] }}/32  scram-sha-256
+        line: hostssl     {{ item }}    {{ item }}  {{  hostvars[hostvars[item]['apache_doris_db']]['service_ip'] | default(hostvars[hostvars[item]['apache_doris_db']]['ansible_host']) }}/32  scram-sha-256
       when: 
         - hostvars[item]['apache_doris_db'] is defined
         - hostvars[hostvars[item]['apache_doris_db']] is defined
@@ -535,9 +546,9 @@
       community.general.ufw:
         rule: allow
         port: "{{ postgresql_port | default('5432') }}"
-        src: "{{ hostvars[hostvars[item]['apache_doris_db']]['ansible_host'] }}"
+        src: "{{ hostvars[hostvars[item]['apache_doris_db']]['service_ip'] | default(hostvars[hostvars[item]['apache_doris_db']]['ansible_host']) }}"
         proto: tcp
-        comment: "Allow access from {{  hostvars[hostvars[item]['apache_doris_db']]['ansible_host'] }} instance "
+        comment: "Allow access from {{  hostvars[hostvars[item]['apache_doris_db']]['service_ip'] | default(hostvars[hostvars[item]['apache_doris_db']]['ansible_host']) }} instance "
         state: enabled
       loop: "{{ groups['instances'] }}"
       when:

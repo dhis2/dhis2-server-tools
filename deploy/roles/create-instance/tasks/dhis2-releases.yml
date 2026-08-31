@@ -1,24 +1,20 @@
 ---
 - name: Download dhis2 releases.json file
-  vars:
-    ansible_connection: local
+  delegate_to: localhost
+  run_once: true
   become: false
   ansible.builtin.get_url:
     url: "https://releases.dhis2.org/v1/versions/stable.json"
-    dest: vars/releases.json
+    dest: "{{ role_path }}/vars/releases.json"
     force: true
     mode: "0666"  # the file is public, no need to restrict permissions
   changed_when: false
 
 - name: Load releases.json file
-  vars:
-    ansible_connection: local
   ansible.builtin.include_vars:
-    file: releases.json
+    file: "{{ role_path }}/vars/releases.json"
     name: dhis2_releases
 
 - name: Set dhis2_releses versions
-  vars:
-    ansible_connection: local
   ansible.builtin.set_fact:
     dhis2_releases_list: "{{ dhis2_releases['versions'] }}"

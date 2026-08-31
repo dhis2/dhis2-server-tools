@@ -3,7 +3,7 @@
  
 # proxy
 [web]
-proxy  ansible_host=172.19.2.2
+proxy  ansible_host=172.19.2.2  wireguard_ip=10.0.0.2
 
 
 # database hosts
@@ -17,7 +17,7 @@ proxy  ansible_host=172.19.2.2
 #   pg_effective_cache_size=5GB    - query planner hint, ~60-75% of the container's memory
 #   pg_max_connections=100         - lower than the 200 default on memory-constrained hosts
 [databases]
-postgres  ansible_host=172.19.2.20
+postgres  ansible_host=172.19.2.20  wireguard_ip=10.0.0.3
 
 # dhis2 hosts
 # EXAMPLE:  dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.42  fqdn=dhis.example.org  dhis2_auto_upgrade=true  proxy_rewrite=True  apache_doris_db=doris
@@ -26,7 +26,7 @@ postgres  ansible_host=172.19.2.20
 #   lxd_memory_limit=8GB   - LXD container hard memory cap
 #   heap_memory_size=5G    - Tomcat/DHIS2 JVM -Xmx/-Xms (also accepts e.g. 5120m)
 [instances]
-dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.42 proxy_rewrite=True
+dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.42 proxy_rewrite=True  wireguard_ip=10.0.0.4
 
 
 # Apache Doris analytics database (optional, experimental)
@@ -39,7 +39,12 @@ dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.42 proxy
 
 # monitoring hosts
 [monitoring]
-monitor   ansible_host=172.19.2.30 
+monitor   ansible_host=172.19.2.30  wireguard_ip=10.0.0.5
+
+# WireGuard hub container. wireguard_ip must match wireguard_server_ip.
+# Group is wireguard_hub (not wireguard) to avoid Ansible's "host and group share name" warning.
+[wireguard_hub]
+wireguard  ansible_host=172.19.2.200  wireguard_ip=10.0.0.1
 
 [backup_servers]
 backup  ansible_host=172.19.2.100
@@ -50,7 +55,11 @@ backup  ansible_host=172.19.2.100
 # variables applying to all hosts, 
 [all:vars]
 # if you do not set fqdn, you dhis2 will be set up with selfsigned certificate
+# and server.base.url is left unset in dhis.conf
 fqdn=
+# Override the public URL written to dhis.conf (https, no trailing slash).
+# Default is https://<fqdn>[/<instance-or-dhis2_base_path>]; include :port when https_port is not 443.
+# server_base_url=https://cdn.example.org/dhis
 # required for LetsEncrypt certificate notification. 
 email=
 
@@ -70,6 +79,10 @@ postgresql_version=16
 # monitoring
 server_monitoring=munin
 app_monitoring=glowroot
+
+# WireGuard VPN: restricts Grafana, Prometheus, Munin, Glowroot and PostgreSQL to VPN-only access.
+wireguard_enabled=false
+# wireguard_data_plane=false
 
 
 # lxd

@@ -6,7 +6,10 @@
     - inventory_hostname in groups['monitoring']
 
 - name: Include server tasks for {{ server_monitoring | trim }}
-  ansible.builtin.include_tasks: "{{ server_monitoring | trim }}-server.yml"
+  ansible.builtin.include_tasks: "{{ monitoring_stack | trim }}-server.yml"
+  loop: "{{ (server_monitoring | trim).split('/') }}"
+  loop_control:
+    loop_var: monitoring_stack
   tags: [create-instance]
   when:
     - server_monitoring is defined

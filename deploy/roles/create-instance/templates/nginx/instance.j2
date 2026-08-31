@@ -1,3 +1,5 @@
+{% set _glowroot_enabled = app_monitoring is defined and app_monitoring | trim == 'glowroot' %}
+{% set _glowroot_locked = wireguard_monitoring_locked | default(false) | bool %}
 {% if  hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string == "ROOT"  %}
 location / {
    proxy_pass  http://{{ item | replace('-', '_') }}_tomcat;
@@ -9,10 +11,10 @@ location / {
    proxy_hide_header Server;
    include /etc/nginx/security_headers.conf;
    }
-{% if app_monitoring is defined and app_monitoring | trim == 'glowroot' %}
+{% if _glowroot_enabled and not _glowroot_locked %}
 {# glowroot location block configs #} 
 location /glowroot/ {
-   proxy_pass http://{{ hostvars[item]['ansible_host']+':4000' }}/glowroot/;
+   proxy_pass http://{{ (hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']))+':4000' }}/glowroot/;
    include /etc/nginx/proxy_params;
    proxy_redirect off;
    proxy_set_header X-Forwarded-Port {{ https_port | default('443') }};
@@ -34,10 +36,10 @@ location /{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string
    proxy_hide_header Server;
    include /etc/nginx/security_headers.conf;
    }   
-{% if app_monitoring is defined and app_monitoring | trim == 'glowroot' %}
+{% if _glowroot_enabled and not _glowroot_locked %}
 {# glowroot location block configs #} 
 location /{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}-glowroot {
-   proxy_pass http://{{ hostvars[item]['ansible_host']+':4000' }}/{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}-glowroot;
+   proxy_pass http://{{ (hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']))+':4000' }}/{{ hostvars[item]['dhis2_base_path'] | default(item) | to_fixed_string }}-glowroot;
    include /etc/nginx/proxy_params;
    proxy_redirect off;
    proxy_set_header X-Forwarded-Port {{ https_port | default('443') }};

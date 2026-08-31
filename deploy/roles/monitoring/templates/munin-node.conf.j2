@@ -62,7 +62,7 @@ cidr_allow {{ allowed_cidr }}
 cidr_deny {{ denied_cidr }}
 {% endfor %}
 {% for host in groups['monitoring'] %}
-    cidr_allow {{ hostvars[host]['ansible_host'] }}/32
+    cidr_allow {{ hostvars[host]['service_ip'] | default(hostvars[host]['ansible_host']) }}/32
 {% endfor %}
 
 # Which address to bind to;

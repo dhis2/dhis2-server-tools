@@ -55,10 +55,13 @@
     - '/etc/apache2/upstream'
     - '/etc/apache2/static/'
 
+# apache site.j2 uses IncludeOptional for the monitoring config, so when locked
+# we simply skip creating it (lockdown_proxy.yml removes it on apache) - the
+# missing file is fine and a re-run stays idempotent.
 - name: Location configs {{ server_monitoring }}
   ansible.builtin.template:
-    src: apache2/{{ server_monitoring }}.j2
-    dest: /etc/apache2/upstream/{{ server_monitoring }}.conf
+    src: apache2/{{ monitoring_upstream_name }}.j2
+    dest: /etc/apache2/upstream/{{ monitoring_upstream_name }}.conf
     owner: root
     group: root
     mode: "0640"
@@ -66,4 +69,6 @@
   loop_control:
     label: "{{ item.name }}"
   notify: Reload Apache2
-  when: server_monitoring is defined
+  when:
+    - server_monitoring is defined
+    - not (wireguard_monitoring_locked | default(false) | bool)

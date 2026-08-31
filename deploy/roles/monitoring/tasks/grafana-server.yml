@@ -50,16 +50,21 @@
     - prometheus
     - grafana-server
 
+# When monitoring is locked to the VPN (wireguard_monitoring_locked), the
+# proxy->Grafana rule is intentionally NOT created here: the lockdown phase opens
+# Grafana to the wireguard subnet instead. Rendering the locked end-state
+# directly keeps a re-run idempotent (no ping-pong with lockdown_monitor.yml).
 - name: Allow https access from proxy
   community.general.ufw:
     rule: allow
     port: "{{ prometheus_http_port | default('3000') }}"
-    src: "{{ hostvars[item]['ansible_host'] }}"
+    src: "{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}"
     proto: tcp
     comment: "Allow access from {{ item }} instance "
     state: enabled
   loop: "{{ groups['web'] }}"
- 
+  when: not (wireguard_monitoring_locked | default(false) | bool)
+
 - name: Ensure domain is properly configured
   community.general.ini_file:
     path: /etc/grafana/grafana.ini
@@ -68,31 +73,34 @@
     value: "{{ fqdn }}"
     mode: "0640"
   notify: Restart Grafana
-  when: fqdn is defined 
+  when: fqdn is defined
   # loop: "{{ groups['instances'] }}"
   # when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
 
+# Sub-path serving is only used when Grafana is reached THROUGH the proxy. When
+# locked to the VPN, Grafana is reached directly, so root_url drops the /grafana
+# sub-path and serve_from_sub_path is false - the same values lockdown_monitor.yml
+# enforces, so the two phases no longer fight (idempotent re-run).
 - name: Ensure root_url is set correctly in grafana.ini
   community.general.ini_file:
     path: /etc/grafana/grafana.ini
     section: server
     option: root_url
-    value: '%(protocol)s://%(domain)s:%(http_port)s/grafana'
+    value: >-
+      {{ '%(protocol)s://%(domain)s:%(http_port)s/'
+         if (wireguard_monitoring_locked | default(false) | bool)
+         else '%(protocol)s://%(domain)s:%(http_port)s/grafana' }}
     mode: "0640"
   notify: Restart Grafana
-  # loop: "{{ groups['instances'] }}"
-  # when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
 
 - name: Ensure path is properly set
   community.general.ini_file:
     path: /etc/grafana/grafana.ini
     section: server
     option: serve_from_sub_path
-    value: 'true'
+    value: "{{ 'false' if (wireguard_monitoring_locked | default(false) | bool) else 'true' }}"
     mode: "0640"
   notify: Restart Grafana
-  # loop: "{{ groups['instances'] }}"
-  # when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
 
 - name: Prometheous scraping configs
   ansible.builtin.blockinfile:

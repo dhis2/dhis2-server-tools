@@ -39,7 +39,7 @@
     modification_time: preserve
     access_time: preserve
 
-- name: Copy dhis2.conf to the instances
+- name: Instance | Template dhis.conf
   ansible.builtin.template:
     src: dhis.conf.j2
     dest: /opt/dhis2/dhis.conf
@@ -47,7 +47,6 @@
     owner: root
     group: tomcat
   when: db_password is defined
-  ignore_errors: true  # ignore errors so it works even wen db_password is not defined
   notify: Restart Tomcat
 
 - name: Copy server.xml to the instances
@@ -111,7 +110,7 @@
   community.general.ufw:
     rule: allow
     port: "{{ tomcat_port | default('8080') }}"
-    src: "{{ hostvars[item]['ansible_host'] }}"
+    src: "{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}"
     proto: tcp
     state: enabled
     comment: tomcat access from the proxy
@@ -121,7 +120,7 @@
   community.general.ufw:
     rule: allow
     port: "{{ glow_root_port | default('4000') }}"
-    src: "{{ hostvars[item]['ansible_host'] }}"
+    src: "{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}"
     proto: tcp
     comment: Glowroot monitor access from proxy
     state: enabled

@@ -16,9 +16,17 @@ set -euo pipefail
 # load environment variables
 source /usr/local/etc/dhis/dhis2-env-new
 
+umask ${UMASK:-027}
+
+restrict_backup_dir() {
+  [ -d "$BACKUP_DIR" ] || return 0
+  chmod -R u=rwX,g=rX,o= "$BACKUP_DIR"
+}
+
 # Setup logging
 LOG_DIR=${LOG_DIR:-/var/log/pg_backup}
 mkdir -p "$LOG_DIR"
+chmod 0750 "$LOG_DIR"
 LOG_FILE="$LOG_DIR/pg_backup_$(date +%Y%m%d).log"
 
 # --------- helpers ----------
@@ -42,9 +50,6 @@ export PGSERVICEFILE=${PGSERVICEFILE:-/usr/local/etc/dhis/pg_service.conf}
 # Where to find your .pgpass file (passwords for pg_service.conf entries)
 # Defaults to ~/.pgpass which is the PostgreSQL standard location
 export PGPASSFILE=${PGPASSFILE:-~/.pgpass}
-
-# Basic safety & umask (directories 750, files 640)
-umask ${UMASK:-027}
 
 # create a temp dir for in_progress files (will be cleaned on exit)
 TMPDIR=$(mktemp -d /tmp/pgmulti_backup.XXXXXX)
@@ -77,6 +82,7 @@ if [ -z "${BACKUP_DIR:-}" ]; then
   fail "BACKUP_DIR is not set in your dhis2-env"
 fi
 mkdir -p "$BACKUP_DIR"
+restrict_backup_dir
 
 # Convenience defaults (if not set in env)
 SERVICES=${SERVICES:-""}   # e.g. "prod dev"
