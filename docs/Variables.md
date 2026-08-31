@@ -80,7 +80,15 @@ dhis2_version: 2.39
   </tr>
   <tr>
     <td style="vertical-align: top; text-align: left;"> <code>fqdn</code></td>
-    <td> This is the domain used to access dhis2 application <br>Strictly required for Letsencrypt to work </td>
+    <td> This is the domain used to access dhis2 application <br>Strictly required for Letsencrypt to work. When set, Ansible writes <code>server.base.url</code> and <code>server.https = on</code> into <code>dhis.conf</code>.</td>
+  </tr>
+  <tr>
+    <td style="vertical-align: top; text-align: left;"> <code>server_base_url</code></td>
+    <td> Optional override for <code>server.base.url</code> in <code>dhis.conf</code> (CDN or a public hostname that is not inventory <code>fqdn</code>). Must be an absolute <code>https://</code> URL with no trailing slash. If unset, the value is <code>https://&lt;fqdn&gt;[/&lt;dhis2_base_path or instance name&gt;]</code>, with <code>https_port</code> appended when it is not 443. The key is omitted when <code>fqdn</code> is empty.</td>
+  </tr>
+  <tr>
+    <td style="vertical-align: top; text-align: left;"> <code>dhis2_base_path</code></td>
+    <td> Public path of the instance. Defaults to the inventory hostname. Use <code>ROOT</code> to serve at <code>/</code> (no extra path, no trailing slash on <code>server.base.url</code>).</td>
   </tr>
   <tr>
     <td style="vertical-align: top; text-align: left;"><code>create_db</code></td>

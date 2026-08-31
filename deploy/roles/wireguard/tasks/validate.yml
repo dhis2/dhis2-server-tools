@@ -1,0 +1,257 @@
+---
+- name: WireGuard | Assert each peer has required fields
+  ansible.builtin.assert:
+    that:
+      - item.name is defined and item.name | length > 0
+      - item.allowed_ips is defined and item.allowed_ips | length > 0
+      - item.public_key is defined or (wireguard_auto_generate_keys | bool)
+    fail_msg: >-
+      wireguard_peers[{{ idx }}] is missing required fields.
+      With auto-generate: name and allowed_ips required.
+      Without auto-generate: name, public_key, and allowed_ips required.
+    quiet: true
+  loop: "{{ wireguard_peers }}"
+  loop_control:
+    index_var: idx
+    label: "{{ item.name | default('UNNAMED-peer-' + idx | string) }}"
+
+- name: WireGuard | Assert peer names are filesystem-safe
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-zA-Z0-9._-]+$')
+    fail_msg: >-
+      wireguard_peers[{{ idx }}].name = '{{ item.name }}' contains
+      invalid characters. Allowed: letters, digits, dot, underscore,
+      hyphen. Required to prevent path traversal in client key/config
+      file paths.
+    quiet: true
+  loop: "{{ wireguard_peers }}"
+  loop_control:
+    index_var: idx
+    label: "{{ item.name | default('UNNAMED-peer-' + idx | string) }}"
+
+- name: WireGuard | Assert no duplicate peer names
+  ansible.builtin.assert:
+    that:
+      - wireguard_peers | map(attribute='name') | list | unique | length
+          == wireguard_peers | length
+    fail_msg: >-
+      Duplicate name detected in wireguard_peers. Names are used as
+      file paths for keys and configs - duplicates cause silent
+      overwrite. Values: {{ wireguard_peers | map(attribute='name') | list }}
+    quiet: true
+  when: wireguard_peers | length > 1
+
+- name: WireGuard | Assert no duplicate allowed_ips across peers
+  ansible.builtin.assert:
+    that:
+      - wireguard_peers | map(attribute='allowed_ips') | list | unique | length == wireguard_peers | length
+    fail_msg: >-
+      Duplicate allowed_ips detected in wireguard_peers.
+      Each peer must have a unique allowed_ips value to avoid silent routing conflicts.
+      Values: {{ wireguard_peers | map(attribute='allowed_ips') | list }}
+    quiet: true
+  when: wireguard_peers | length > 1
+
+# A pg_access entry sources its database/user EITHER from `instance` (the
+# DHIS2 instance whose container name equals its db name and role - preferred,
+# avoids hardcoding) OR from explicit `database`/`user` fields (for wildcards
+# like { database: all, user: all }). An explicit field overrides the derived
+# value when both are present.
+- name: WireGuard | Assert pg_access entries reference an instance or set database/user
+  ansible.builtin.assert:
+    that:
+      - (item.1.instance is defined) or (item.1.database is defined and item.1.user is defined)
+    fail_msg: >-
+      wireguard_peers[{{ item.0.name }}].pg_access entry must set either
+      'instance' (a host in [instances]) or both 'database' and 'user'.
+    quiet: true
+  loop: "{{ wireguard_peers | subelements('pg_access', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.0.name }}"
+
+- name: WireGuard | Assert pg_access instance references exist in [instances]
+  ansible.builtin.assert:
+    that:
+      - item.1.instance in groups.get('instances', [])
+    fail_msg: >-
+      wireguard_peers[{{ item.0.name }}].pg_access references
+      instance='{{ item.1.instance }}' which is not a host in the [instances]
+      inventory group. Available: {{ groups.get('instances', []) }}.
+    quiet: true
+  loop: "{{ wireguard_peers | subelements('pg_access', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.0.name }} -> {{ item.1.instance | default('(explicit)') }}"
+  when: item.1.instance is defined
+
+- name: WireGuard | Assert pg_access database/user names are PostgreSQL-safe identifiers
+  ansible.builtin.assert:
+    that:
+      - (item.1.database | default(item.1.instance)) is match('^[a-zA-Z0-9_]+$')
+      - (item.1.user | default(item.1.instance)) is match('^[a-zA-Z0-9_]+$')
+    fail_msg: >-
+      wireguard_peers[{{ item.0.name }}].pg_access entry resolves to
+      database='{{ item.1.database | default(item.1.instance) }}'
+      user='{{ item.1.user | default(item.1.instance) }}' which contains
+      invalid characters. Allowed: letters, digits, underscore. Required
+      because these values are interpolated into pg_hba.conf rule regex
+      matching - metacharacters would corrupt idempotency.
+    quiet: true
+  loop: "{{ wireguard_peers | subelements('pg_access', skip_missing=True) }}"
+  loop_control:
+    label: >-
+      {{ item.0.name }} ->
+      {{ item.1.database | default(item.1.instance) }}/{{ item.1.user | default(item.1.instance) }}
+
+- name: WireGuard | Assert peer_ip (or first allowed_ips CIDR) is /32 for peers with pg_access
+  ansible.builtin.assert:
+    that:
+      - >-
+        ((item.peer_ip | default(item.allowed_ips.split(',')[0] | trim))
+          | regex_search('/32$')) is not none
+    fail_msg: >-
+      wireguard_peers[{{ item.name }}] uses pg_access but its peer_ip
+      (or first allowed_ips CIDR) does not end in /32. Per-peer pg_hba/UFW
+      rules treat the CIDR as a single host - non-/32 entries would silently
+      open access wider than intended. Set peer_ip explicitly or ensure the
+      first allowed_ips CIDR is /32.
+      Got: peer_ip={{ item.peer_ip | default('(unset)') }}
+      allowed_ips={{ item.allowed_ips }}
+    quiet: true
+  loop: "{{ wireguard_peers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.pg_access is defined and item.pg_access | length > 0
+
+- name: WireGuard | Assert hub container is in inventory
+  ansible.builtin.assert:
+    that:
+      - wireguard_hub_inventory_hostname in groups['all']
+    fail_msg: >-
+      wireguard_hub_inventory_hostname='{{ wireguard_hub_inventory_hostname }}'
+      is not in inventory. Add a [wireguard] group with the hub host
+      (e.g. 'wireguard ansible_host=172.19.2.200 wireguard_ip=10.0.0.1').
+    quiet: true
+  run_once: true
+
+- name: WireGuard | Assert public endpoint is set for SSH/distributed mode
+  ansible.builtin.assert:
+    that:
+      - wireguard_endpoint_public is defined
+      - wireguard_endpoint_public | length > 0
+    fail_msg: >-
+      wireguard_endpoint_public must be set to the hub's reachable
+      IP/hostname when deploying over SSH (ansible_connection=ssh). It is
+      advertised to every peer (both app hosts and home/admin peers) as their
+      Endpoint = line. Set it in the inventory [wireguard] host or [all:vars].
+    quiet: true
+  when: (wireguard_deploy_mode | default('lxd')) != 'lxd'
+  run_once: true
+
+- name: WireGuard | Assert data-plane prerequisites when wireguard_data_plane is enabled
+  ansible.builtin.assert:
+    that:
+      - (wireguard_deploy_mode | default('lxd')) == 'ssh'
+      - wireguard_enabled | default(false) | bool
+      - wireguard_endpoint_public is defined
+      - wireguard_endpoint_public | length > 0
+    fail_msg: >-
+      wireguard_data_plane=true requires ansible_connection=ssh (got deploy
+      mode '{{ wireguard_deploy_mode | default('lxd') }}'),
+      wireguard_enabled=true, and a non-empty wireguard_endpoint_public.
+      The data plane moves all
+      inter-service traffic onto wg0, which is only valid for a distributed SSH
+      mesh with a reachable hub. Fix the inventory or leave wireguard_data_plane
+      false (service_ip then equals ansible_host).
+    quiet: true
+  when: wireguard_data_plane | default(false) | bool
+  run_once: true
+
+- name: WireGuard | Assert service_ip equals ansible_host when data plane is disabled
+  ansible.builtin.assert:
+    that:
+      - (hostvars[item].service_ip | default(hostvars[item].ansible_host))
+          == hostvars[item].ansible_host
+    fail_msg: >-
+      Host '{{ item }}' has service_ip='{{ hostvars[item].service_ip
+      | default('(unset)') }}' which differs from
+      ansible_host='{{ hostvars[item].ansible_host }}' while
+      wireguard_data_plane is false. With the data plane disabled service_ip
+      must resolve to ansible_host. Do not override service_ip directly; enable
+      wireguard_data_plane instead.
+    quiet: true
+  loop: "{{ groups['all'] | difference(['127.0.0.1']) | sort }}"
+  loop_control:
+    label: "{{ item }}"
+  when: not (wireguard_data_plane | default(false) | bool)
+  run_once: true
+
+- name: WireGuard | Assert backup servers have wireguard_ip when data plane is enabled
+  ansible.builtin.assert:
+    that:
+      - hostvars[item].wireguard_ip is defined
+      - hostvars[item].wireguard_ip | length > 0
+    fail_msg: >-
+      Host '{{ item }}' is in [backup_servers] but has no wireguard_ip while
+      wireguard_data_plane is true. With the data plane active PostgreSQL
+      listens only on localhost + its wireguard_ip, so a backup host that is
+      not a WireGuard peer cannot reach the database. Add
+      'wireguard_ip=<10.0.0.x>' to the backup host, or disable
+      wireguard_data_plane.
+    quiet: true
+  loop: "{{ groups.get('backup_servers', []) | sort }}"
+  loop_control:
+    label: "{{ item }}"
+  when: wireguard_data_plane | default(false) | bool
+  run_once: true
+
+- name: WireGuard | Assert every app host (web/databases/instances/monitoring) has wireguard_ip
+  ansible.builtin.assert:
+    that:
+      - hostvars[item].wireguard_ip is defined
+      - hostvars[item].wireguard_ip | length > 0
+    fail_msg: >-
+      Host '{{ item }}' is in an app group (web/databases/instances/monitoring)
+      but has no wireguard_ip set. Add 'wireguard_ip=<10.0.0.x>' to the
+      inventory entry, or set wireguard_enabled=false to skip WireGuard.
+    quiet: true
+  loop: >-
+    {{ (groups.get('web', []) + groups.get('databases', [])
+        + groups.get('instances', []) + groups.get('monitoring', []))
+       | unique | list }}
+  loop_control:
+    label: "{{ item }}"
+  run_once: true
+
+- name: WireGuard | Build canonical peer IP list for uniqueness check
+  ansible.builtin.set_fact:
+    _wireguard_human_peer_ips: >-
+      {{ wireguard_peers
+         | map(attribute='allowed_ips')
+         | map('regex_replace', '^\\s*([^,\\s]+).*$', '\\1')
+         | map('regex_replace', '/[0-9]+$', '')
+         | list }}
+  run_once: true
+
+- name: WireGuard | Collect all wireguard IPs (containers + human peers) for uniqueness check
+  ansible.builtin.set_fact:
+    _wireguard_all_ips: >-
+      {{ (groups['all']
+          | difference(['127.0.0.1'])
+          | map('extract', hostvars, 'wireguard_ip')
+          | select('defined')
+          | list)
+         + _wireguard_human_peer_ips }}
+  run_once: true
+
+- name: WireGuard | Assert no duplicate wireguard IPs across containers and human peers
+  ansible.builtin.assert:
+    that:
+      - _wireguard_all_ips | unique | length == _wireguard_all_ips | length
+    fail_msg: >-
+      Duplicate WireGuard IP detected across inventory wireguard_ip and
+      wireguard_peers.allowed_ips. Each address in {{ wireguard_network }}
+      must be assigned exactly once.
+      Values: {{ _wireguard_all_ips }}
+    quiet: true
+  run_once: true

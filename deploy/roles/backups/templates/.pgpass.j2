@@ -2,5 +2,5 @@
 # Customize via Ansible inventory only
 # Format: hostname:port:database:username:password
 {% for host in groups['databases'] %}
-{{ hostvars[host].ansible_host }}:5432:*:{{ hostvars[host].backup_user | default(backup_user) }}:{{ hostvars[host].backup_user_password }}
+{{ hostvars[host].service_ip | default(hostvars[host].ansible_host) }}:5432:*:{{ hostvars[host].backup_user | default(backup_user) }}:{{ hostvars[host].backup_user_password }}
 {% endfor %}

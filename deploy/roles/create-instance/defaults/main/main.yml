@@ -13,6 +13,10 @@ database_host: postgres
 # default dhis2_version
 dhis2_version: 2.42
 
+# Public URL written to dhis.conf as server.base.url. Leave empty to derive
+# https://<fqdn>[/<instance>] when fqdn is set. HTTPS only, no trailing slash.
+# server_base_url: https://cdn.example.org/dhis
+
 # required postgresql extensions
 postgresql_version: 16
 

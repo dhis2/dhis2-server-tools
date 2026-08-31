@@ -1,0 +1,75 @@
+---
+- name: Find monitoring nginx upstream configs
+  ansible.builtin.find:
+    paths: /etc/nginx/conf.d/upstream
+    patterns:
+      - 'munin*.conf'
+      - 'grafana*.conf'
+  register: wireguard_nginx_monitoring_configs
+  when: proxy | default('nginx') == 'nginx'
+
+- name: Empty monitoring configs on nginx proxy (keep files so include directives still resolve)
+  ansible.builtin.copy:
+    content: "# Monitoring disabled by WireGuard lockdown\n"
+    dest: '{{ item.path }}'
+    owner: root
+    group: root
+    mode: '0640'
+  loop: '{{ wireguard_nginx_monitoring_configs.files | default([]) }}'
+  loop_control:
+    label: '{{ item.path | basename }}'
+  notify: Reload Nginx
+  when:
+    - proxy | default('nginx') == 'nginx'
+    - wireguard_nginx_monitoring_configs.files | default([]) | length > 0
+
+- name: Re-render nginx instance configs without Glowroot proxy blocks
+  ansible.builtin.template:
+    src: '{{ role_path }}/../create-instance/templates/nginx/instance.j2'
+    dest: '/etc/nginx/conf.d/upstream/{{ item | to_fixed_string }}.conf'
+    owner: root
+    group: root
+    mode: '0640'
+  loop: '{{ groups["instances"] }}'
+  vars:
+    wireguard_monitoring_locked: true
+  notify: Reload Nginx
+  when:
+    - proxy | default('nginx') == 'nginx'
+    - hostvars[item]['instance_state'] is undefined
+
+- name: Find monitoring apache2 site configs
+  ansible.builtin.find:
+    paths: /etc/apache2/sites-enabled
+    patterns:
+      - 'munin*.conf'
+      - 'grafana*.conf'
+  register: wireguard_apache_monitoring_configs
+  when: proxy | default('nginx') == 'apache2'
+
+- name: Remove monitoring configs from apache2 proxy
+  ansible.builtin.file:
+    path: '{{ item.path }}'
+    state: absent
+  loop: '{{ wireguard_apache_monitoring_configs.files | default([]) }}'
+  loop_control:
+    label: '{{ item.path | basename }}'
+  notify: Reload Apache2
+  when:
+    - proxy | default('nginx') == 'apache2'
+    - wireguard_apache_monitoring_configs.files | default([]) | length > 0
+
+- name: Re-render apache2 instance configs without Glowroot proxy blocks
+  ansible.builtin.template:
+    src: '{{ role_path }}/../create-instance/templates/apache2/instance.j2'
+    dest: '/etc/apache2/upstream/{{ item | to_fixed_string }}.conf'
+    owner: root
+    group: root
+    mode: '0640'
+  loop: '{{ groups["instances"] }}'
+  vars:
+    wireguard_monitoring_locked: true
+  notify: Reload Apache2
+  when:
+    - proxy | default('nginx') == 'apache2'
+    - hostvars[item]['instance_state'] is undefined

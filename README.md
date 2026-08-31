@@ -101,7 +101,7 @@ ansible_connection=lxd
   sudo ./deploy.sh
   ```
 - After the script finishes running (without errors), access your DHIS2, Glowroot and Munin monitoring instances:
-  > **Note:** `<hostname>` = your `fqdn` if defined, otherwise your server's IP address.
+  > **Note:** `<hostname>` = your `fqdn` if defined, otherwise your server's IP address. When `fqdn` is set, that public URL is written to `/opt/dhis2/dhis.conf` as `server.base.url` (override with `server_base_url` if users reach a different name).
   ```
   https://<hostname>/dhis
   https://<hostname>/dhis-glowroot
@@ -242,7 +242,7 @@ NOTE:
 - If you don't specify an SSH username, it will automatically use currently logged in username.
 
 - After the playbook finishes running (without errors), access your DHIS2, Glowroot and Munin monitoring instances:
-  > **Note:** `<hostname>` = your `fqdn` if defined, otherwise your server's IP address.
+  > **Note:** `<hostname>` = your `fqdn` if defined, otherwise your server's IP address. When `fqdn` is set, that public URL is written to `/opt/dhis2/dhis.conf` as `server.base.url` (override with `server_base_url` if users reach a different name).
   ```
   https://<hostname>/dhis
   https://<hostname>/dhis-glowroot
@@ -305,7 +305,7 @@ NOTE:
 ## Conclusion
 At this point you should have DHIS2 up and running.
 
-> **Note:** `<hostname>` = your `fqdn` if defined, otherwise your server's IP address.
+> **Note:** `<hostname>` = your `fqdn` if defined, otherwise your server's IP address. When `fqdn` is set, that public URL is written to `/opt/dhis2/dhis.conf` as `server.base.url`.
 
 - **DHIS2** — `https://<hostname>/dhis`
 - **Glowroot** — `https://<hostname>/dhis-glowroot` ([glowroot.org](https://glowroot.org/) for application performance monitoring)
