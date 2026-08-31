@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.1](https://github.com/dhis2/dhis2-server-tools/compare/v1.9.0...v1.9.1) (2026-08-31)
+
+
+### 🐛 Bug Fixes
+
+* correct undefined 'item' in Doris JDBC driver tasks ([e70b302](https://github.com/dhis2/dhis2-server-tools/commit/e70b302836a282915da2577f72c5f14a35cbd47f))
+
 ## [1.9.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.8.1...v1.9.0) (2026-08-20)
 
 
