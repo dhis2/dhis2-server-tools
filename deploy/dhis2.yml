@@ -20,6 +20,9 @@
   roles:
     - role: postgres
       tags: [postgresql-install]
+    - role: doris
+      tags: [doris-install]
+      when: groups['apache_doris'] | length > 0
     - role: proxy
       tags: [proxy-install]
     - role: monitoring

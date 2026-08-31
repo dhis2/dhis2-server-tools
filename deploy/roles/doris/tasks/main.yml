@@ -1,0 +1,20 @@
+---
+# The doris role runs across every host in the "DHIS2 setup" play (instances,
+# database, proxy, monitoring), not just the apache_doris host: the
+# individual tasks in lxd.yml filter themselves to the right host via
+# hostvars lookups, the same way postgres/proxy connectivity tasks do
+# elsewhere in this repo. Only LXD-managed Doris hosts are supported today,
+# so fail fast and clearly if a configured Doris host is set to use ssh.
+- name: Fail if a configured Doris host uses ssh (not yet supported)
+  ansible.builtin.fail:
+    msg: >-
+      Doris host '{{ item }}' has ansible_connection=ssh set. The doris role
+      only supports LXD-managed Doris hosts today. Remove
+      ansible_connection=ssh from this host in inventory/hosts, or remove it
+      from the [apache_doris] group.
+  loop: "{{ groups['apache_doris'] }}"
+  when: hostvars[item]['ansible_connection'] | default('lxd') == 'ssh'
+  run_once: true
+
+- name: Provision and configure Apache Doris (LXD)
+  ansible.builtin.include_tasks: lxd.yml

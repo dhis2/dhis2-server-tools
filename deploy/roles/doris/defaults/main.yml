@@ -1,0 +1,6 @@
+---
+doris_version: "3.0.5"
+doris_user: "doris"
+doris_home: "/usr/local/doris"
+java_home: "/usr/lib/jvm/java-17-openjdk-amd64"
+doris_download_url: "https://apache-doris-releases.oss-accelerate.aliyuncs.com/apache-doris-{{ doris_version }}-bin-x64.tar.gz"

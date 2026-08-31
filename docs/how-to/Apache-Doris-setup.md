@@ -1,5 +1,11 @@
 # Doris Setup Guide
 
+> **Note:** As of the `doris` Ansible role, this manual walkthrough is no
+> longer the primary path — `deploy/dhis2.yml` provisions Doris
+> automatically when you configure an `[apache_doris]` host (see
+> `docs/apache-doris-playbook.md`). This document is kept as a reference for
+> understanding or reproducing the steps by hand.
+
 ## Prerequisites
 
 - Ubuntu 24.04 Server

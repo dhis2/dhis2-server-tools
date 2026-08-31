@@ -30,9 +30,9 @@ dhis  ansible_host=172.19.2.11  database_host=postgres  dhis2_version=2.42 proxy
 
 
 # Apache Doris analytics database (optional, experimental)
-# NOTE: Doris is NOT provisioned by dhis2.yml. After adding a host here and
-# setting apache_doris_db=<this group's hostname> on the relevant [instances]
-# host above, run: ansible-playbook playbooks/apache-doris-setup.yml
+# Provisioned automatically by dhis2.yml when this group has a host. To opt
+# in: add a host below, then set apache_doris_db=<this group's hostname> on
+# the relevant [instances] host above. LXD-managed hosts only for now.
 # EXAMPLE: doris  ansible_host=172.19.2.43  lxd_memory_limit=44GB  doris_fe_heap_size=8192m  doris_be_mem_limit=32G
 [apache_doris]
 
