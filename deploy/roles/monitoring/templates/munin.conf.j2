@@ -83,8 +83,14 @@ includedir {{ munin_includedir }}
 {% if munin_alerts %}
 {% for contact in munin_alerts %}
 contacts {{ contact.name }}
-contact.{{ contact.name }}.command mail -s "{{ contact.subject }}" {{ contact.email }}
-contact.{{ contact.name }}.always_send {{ contact.level }}
+{% if contact.type | default('email') == 'email' %}
+contact.{{ contact.name }}.command mail -s "{{ contact.subject | default('Munin Alert') }}" {{ contact.email }}
+{% elif contact.type == 'telegram' %}
+contact.{{ contact.name }}.command curl -sf -X POST "https://api.telegram.org/bot{{ contact.bot_token }}/sendMessage" -d "chat_id={{ contact.chat_id }}" -d "parse_mode=HTML" -d "text=<b>Munin Alert</b>%0A<b>Host:</b> ${var:host}%0A<b>Graph:</b> ${var:graph_title}%0A<b>Status:</b> ${var:worst}%0A<b>Category:</b> ${var:graph_category}"
+{% elif contact.type == 'slack' %}
+contact.{{ contact.name }}.command curl -sf -X POST "{{ contact.webhook_url }}" -H "Content-Type: application/json" -d '{"text":"*Munin Alert*\n*Host:* ${var:host}\n*Graph:* ${var:graph_title}\n*Status:* ${var:worst}\n*Category:* ${var:graph_category}"}'
+{% endif %}
+contact.{{ contact.name }}.always_send {{ contact.level | default('warning critical') }}
 {% endfor %}
 {% endif %}
 

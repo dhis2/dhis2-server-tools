@@ -1,0 +1,44 @@
+---
+- name: Alerting | Create Grafana alerting provisioning directory
+  ansible.builtin.file:
+    path: /etc/grafana/provisioning/alerting
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: '0755'
+
+- name: Alerting | Create Grafana datasources provisioning directory
+  ansible.builtin.file:
+    path: /etc/grafana/provisioning/datasources
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: '0755'
+
+- name: Alerting | Provision Prometheus datasource with fixed UID
+  ansible.builtin.template:
+    src: grafana-datasource-provisioning.yml.j2
+    dest: /etc/grafana/provisioning/datasources/prometheus.yml
+    owner: grafana
+    group: grafana
+    mode: '0640'
+  notify: Restart Grafana
+
+- name: Alerting | Provision Alertmanager datasource for silences UI
+  ansible.builtin.template:
+    src: grafana-alertmanager-datasource.yml.j2
+    dest: /etc/grafana/provisioning/datasources/alertmanager.yml
+    owner: grafana
+    group: grafana
+    mode: '0640'
+  no_log: true
+  notify: Restart Grafana
+
+- name: Alerting | Enable Grafana unified alerting
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: unified_alerting
+    option: enabled
+    value: 'true'
+    mode: '0640'
+  notify: Restart Grafana

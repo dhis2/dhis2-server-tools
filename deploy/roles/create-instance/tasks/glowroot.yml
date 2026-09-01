@@ -7,8 +7,7 @@
 
 - name: Set glowroot latest version
   ansible.builtin.set_fact:
-    glowroot_latest_version: "{{ (glowroot_release_info.stdout | from_json).tag_name }}"
-
+    glowroot_latest_version: '{{ (glowroot_release_info.stdout | from_json).tag_name }}'
 
 - name: Check if glowroot directory exists
   ansible.builtin.stat:
@@ -28,7 +27,7 @@
 
 - name: Set glowroot needs update fact
   ansible.builtin.set_fact:
-    glowroot_needs_update: "{{ not glowroot_dir.stat.exists or (glowroot_version_file.stat.exists and (glowroot_installed_version.content | b64decode | trim) != glowroot_latest_version) }}"
+    glowroot_needs_update: '{{ not glowroot_dir.stat.exists or (glowroot_version_file.stat.exists and (glowroot_installed_version.content | b64decode | trim) != glowroot_latest_version) }}'
 
 - name: Download glowroot zip
   ansible.builtin.command:
@@ -50,7 +49,7 @@
     owner: root
     group: tomcat
     remote_src: true
-    mode: "0770"
+    mode: '0770'
     exclude:
       - glowroot/lib/glowroot-central-collector-https-osx.jar
       - glowroot/lib/glowroot-central-collector-https-windows.jar
@@ -58,9 +57,9 @@
 
 - name: Save installed glowroot version
   ansible.builtin.copy:
-    content: "{{ glowroot_latest_version }}"
+    content: '{{ glowroot_latest_version }}'
     dest: /opt/glowroot/.version
-    mode: "0644"
+    mode: '0644'
   when: glowroot_needs_update
 
 - name: Clean up glowroot zip
@@ -71,24 +70,24 @@
 
 - name: Find jar files in /opt/glowroot directory
   ansible.builtin.find:
-    path: "/opt/glowroot/"
+    path: '/opt/glowroot/'
     recurse: true
     depth: 2
     patterns:
-      - "*.jar"  # search all files ending with .jar
+      - '*.jar' # search all files ending with .jar
     excludes:
       - plugin-pointcuts.jar
   register: glowroot_jar_files
 
 - name: Change ownership and permissions of found jar files in /opt/glowroot/lib
   ansible.builtin.file:
-    path: "{{ item.path }}"
+    path: '{{ item.path }}'
     owner: root
     group: tomcat
     mode: '0640'
-  loop: "{{ glowroot_jar_files.files }}"
+  loop: '{{ glowroot_jar_files.files }}'
   loop_control:
-    label: "{{ item.path }}"
+    label: '{{ item.path }}'
 
 - name: Check if /opt/glowroot/admin.json file exists
   ansible.builtin.stat:
@@ -101,7 +100,8 @@
     dest: /opt/glowroot/admin.json
     owner: root
     group: tomcat
-    mode: "0660"
+    mode: '0660'
+  no_log: true
   when: not glowroot_admin_file_status.stat.exists
   notify: Restart Tomcat
 

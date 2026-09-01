@@ -1,0 +1,17 @@
+---
+# Optional non-secret overrides for the monitoring / alerting hub host.
+# Copy to vars.yml only if you need to change defaults:
+#   mkdir -p inventory/host_vars/monitor
+#   cp inventory/host_vars/monitor/vars.yml.template inventory/host_vars/monitor/vars.yml
+#
+# Channel tokens and passwords go in /opt/ansible/secrets/ on the controller
+# (see docs/alerting.md). Do not put tokens here or in [all:vars].
+
+# alerting_enabled: true
+# alerting_default_contact_point: telegram
+# alerting_slack_channel: "#dhis2-alerts"
+# alerting_email_addresses:
+#   - ops@example.org
+# alerting_smtp_smarthost: "smtp.example.org:587"
+# alerting_smtp_from: "alerts@example.org"
+# alert_cpu_threshold: 85

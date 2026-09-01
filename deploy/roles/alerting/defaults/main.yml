@@ -1,0 +1,51 @@
+---
+alerting_enabled: false
+alerting_default_contact_point: telegram # telegram | slack | email
+
+alerting_secrets_dir: /opt/ansible/secrets
+
+alerting_hub_host: "{{ groups['monitoring'][0] }}"
+alerting_hub_ip: "{{ hostvars[alerting_hub_host]['ansible_host'] }}"
+alerting_hub_port: 9093
+alerting_hub_bind_ip: '127.0.0.1'
+alerting_hub_glowroot_forwarder_port: 9099
+alerting_hub_glowroot_forwarder_bind_ip: '0.0.0.0'
+
+alerting_alertmanager_version: '0.33.1'
+alerting_alertmanager_checksums:
+  amd64: 93d802cba6a8d27239d747ce117df7648d326ab67394e32247540b030e9842ba
+  arm64: 50b32a346c3c29da411643dfa84990440e8fd03800380d7e664f22a863b7a0cf
+
+alerting_web_basic_auth_enabled: true
+alerting_web_basic_auth_user: alertmanager
+# Password + bcrypt hash auto-created under alerting_secrets_dir
+
+# Channel credentials: prefer files in alerting_secrets_dir (see docs/alerting.md)
+# Optional inventory overrides:
+# alerting_telegram_bot_token: ""
+# alerting_telegram_chat_id: ""
+# alerting_slack_webhook_url: ""
+# alerting_slack_channel: "#dhis2-alerts"
+# alerting_email_addresses: []
+# alerting_smtp_smarthost: ""
+# alerting_smtp_from: ""
+# alerting_smtp_auth_username: ""
+# alerting_smtp_auth_password: ""
+# alerting_smtp_require_tls: true
+
+alerting_glowroot_force_config: false
+alerting_glowroot_webhook_id: dhis2-hub
+
+# Threshold names kept for inventory compatibility with docs/alerting.md
+alert_cpu_threshold: 85 # noqa: var-naming[no-role-prefix]
+alert_memory_threshold: 90 # noqa: var-naming[no-role-prefix]
+alert_disk_warning_pct: 15 # noqa: var-naming[no-role-prefix]
+alert_disk_critical_pct: 5 # noqa: var-naming[no-role-prefix]
+alert_pg_connection_pct: 80 # noqa: var-naming[no-role-prefix]
+
+glowroot_alert_p95_threshold_ms: 10000 # noqa: var-naming[no-role-prefix]
+glowroot_alert_p95_time_period_seconds: 600 # noqa: var-naming[no-role-prefix]
+glowroot_alert_error_rate_threshold: 10.0 # noqa: var-naming[no-role-prefix]
+glowroot_alert_error_rate_time_period_seconds: 300 # noqa: var-naming[no-role-prefix]
+glowroot_alert_heartbeat_seconds: 300 # noqa: var-naming[no-role-prefix]
+glowroot_alert_min_transaction_count: 10 # noqa: var-naming[no-role-prefix]
