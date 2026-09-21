@@ -13,7 +13,7 @@ license: BSD-2-Clause
 compatibility: Requires Ansible >=2.15 inventory layout under deploy/inventory/. LXD architecture assumes a non-overlapping lxd_network; SSH architecture needs controller SSH to every host.
 metadata:
   project: dhis2-server-tools
-  version: "1.0"
+  version: '1.0'
 ---
 
 # DHIS2 inventory configuration
@@ -37,7 +37,7 @@ Configure `deploy/inventory/hosts` and `deploy/inventory/{host_vars,group_vars}`
 2. Pick the architecture (below) and set `ansible_connection` in `[all:vars]`.
 3. Set the basics in `[all:vars]`: `fqdn` (empty → self-signed TLS), `email` (needed for Let's Encrypt), `timezone`.
 4. Define hosts per group. Read [references/variables.md](references/variables.md) before setting anything beyond the basics (TLS, proxy choice, monitoring, LXD image settings, WireGuard toggles, or non-default instance vars).
-5. Validate: `./.agents/skills/dhis2-inventory/scripts/validate-inventory.sh` — checks mode 600, required `[instances]` fields, duplicate `ansible_host` across all groups, LXD IPs inside `lxd_network`, and password-shaped values. It does not validate variable *names* or reachability; still dry-run with `--check --diff` before applying.
+5. Validate: the agent runs `./.agents/skills/dhis2-inventory/scripts/validate-inventory.sh` from the repo root (the script then finds `hosts` from its own path). Checks mode 600, required `[instances]` fields, duplicate `ansible_host` across all groups, LXD IPs inside `lxd_network`, and password-shaped values. It does not validate variable _names_ or reachability; still dry-run with `--check --diff` before applying.
 
 ## Architecture selection
 
@@ -49,15 +49,15 @@ Configure `deploy/inventory/hosts` and `deploy/inventory/{host_vars,group_vars}`
 
 ## Host groups
 
-| Group | Runs | Notes |
-| --- | --- | --- |
-| `[web]` | nginx / apache2 / openresty reverse proxy | One host, e.g. `proxy ansible_host=172.19.2.2` |
-| `[databases]` | PostgreSQL | Default name `postgres`; instances point at it via `database_host` |
-| `[instances]` | DHIS2 Tomcat instances | One line per DHIS2 instance; hostname = container name = default URL path |
-| `[monitoring]` | Munin, Grafana, or Prometheus | Controlled by `server_monitoring` — see the caveat in [references/variables.md](references/variables.md) before using anything other than `munin` on LXD |
-| `[wireguard_hub]` | WireGuard hub | Only used when `wireguard_enabled=true` |
-| `[backup_servers]` | Optional dedicated backup host | |
-| `[integration]` | Optional integration JAR services | |
+| Group              | Runs                                      | Notes                                                                                                                                                    |
+| ------------------ | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `[web]`            | nginx / apache2 / openresty reverse proxy | One host, e.g. `proxy ansible_host=172.19.2.2`                                                                                                           |
+| `[databases]`      | PostgreSQL                                | Default name `postgres`; instances point at it via `database_host`                                                                                       |
+| `[instances]`      | DHIS2 Tomcat instances                    | One line per DHIS2 instance; hostname = container name = default URL path                                                                                |
+| `[monitoring]`     | Munin, Grafana, or Prometheus             | Controlled by `server_monitoring` — see the caveat in [references/variables.md](references/variables.md) before using anything other than `munin` on LXD |
+| `[wireguard_hub]`  | WireGuard hub                             | Only used when `wireguard_enabled=true`                                                                                                                  |
+| `[backup_servers]` | Optional dedicated backup host            |                                                                                                                                                          |
+| `[integration]`    | Optional integration JAR services         |                                                                                                                                                          |
 
 The bare `127.0.0.1` line at the top is required — do not remove it.
 

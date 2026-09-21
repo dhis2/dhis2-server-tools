@@ -13,7 +13,7 @@ license: BSD-2-Clause
 compatibility: Requires Ansible >=2.15, Ubuntu 22.04/24.04 database hosts. LXD path uses lxc exec from the hypervisor; SSH path runs on the database host.
 metadata:
   project: dhis2-server-tools
-  version: "1.0"
+  version: '1.0'
 ---
 
 # DHIS2 PostgreSQL configuration and tuning
@@ -59,13 +59,13 @@ For conf regeneration only (no apt/repo/role setup): `--tags postgresql-conf`.
 
 Set in `inventory/host_vars/<database_host>` (copy `host_vars/postgres.template`). Guidance from `docs/Optimizing-PostgreSQL.md`; "RAM" means RAM allocated to PostgreSQL, not total server RAM.
 
-| Variable | Rule of thumb |
-| --- | --- |
-| `pg_max_connections` | Each DHIS2 instance needs up to 80 connections by default (less if `pool` is set in `dhis.conf`). 200–400 typical |
-| `pg_shared_buffers` | 0.25 × RAM |
-| `pg_work_mem` | (0.25 × RAM) / max_connections |
-| `pg_maintenance_work_mem` | As much as affordable — speeds up index builds during analytics generation |
-| `pg_effective_cache_size` | ~80% of (RAM − maintenance_work_mem − max_connections × work_mem) |
+| Variable                  | Rule of thumb                                                                                                     |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `pg_max_connections`      | Each DHIS2 instance needs up to 80 connections by default (less if `pool` is set in `dhis.conf`). 200–400 typical |
+| `pg_shared_buffers`       | 0.25 × RAM                                                                                                        |
+| `pg_work_mem`             | (0.25 × RAM) / max_connections                                                                                    |
+| `pg_maintenance_work_mem` | As much as affordable — speeds up index builds during analytics generation                                        |
+| `pg_effective_cache_size` | ~80% of (RAM − maintenance_work_mem − max_connections × work_mem)                                                 |
 
 Sizing RAM itself: a server with 32GB running one production and one test instance can reasonably dedicate 16GB to PostgreSQL. On LXD, also cap the container so the host stays healthy:
 
@@ -87,10 +87,10 @@ ansible-playbook dhis2.yml --tags postgresql-conf
 # Fallback if the conf tag is unavailable: --tags postgresql-install
 ```
 
-The template task notifies a PostgreSQL restart. Confirm the values landed (hard rule 3):
+The template task notifies a PostgreSQL restart. Confirm the values landed (hard rule 3). The agent runs this from the repository root:
 
 ```bash
-# From repo root on the LXD hypervisor (or omit --lxd on the DB host):
+# LXD hypervisor. On the database host (SSH), drop --lxd.
 ./.agents/skills/dhis2-postgres/scripts/pg-show.sh --lxd
 ```
 

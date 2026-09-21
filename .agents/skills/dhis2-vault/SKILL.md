@@ -12,7 +12,7 @@ license: BSD-2-Clause
 compatibility: Requires ansible-vault (Ansible >=2.15). Operates on deploy/inventory/ host_vars and group_vars.
 metadata:
   project: dhis2-server-tools
-  version: "1.0"
+  version: '1.0'
 ---
 
 # DHIS2 vault and secrets
@@ -22,7 +22,7 @@ Handle secrets in dhis2-server-tools without leaking them.
 ## Non-negotiable rules
 
 1. **Never output decrypted vault contents** into chat, logs, commits, or files outside the vault. To inspect, tell the operator to run `ansible-vault view <file>` in their terminal.
-2. **Never commit plaintext secrets.** Before any commit touching `deploy/inventory/`, run `./.agents/skills/dhis2-vault/scripts/check-plaintext-secrets.sh`: files named `vault.yml` must start with `$ANSIBLE_VAULT;`, and no password-looking values may sit in `hosts` or plaintext `vars.yml`.
+2. **Never commit plaintext secrets.** Before any commit touching `deploy/inventory/`, the agent runs `./.agents/skills/dhis2-vault/scripts/check-plaintext-secrets.sh` from the repo root (the script then finds inventory from its own path): files named `vault.yml` must start with `$ANSIBLE_VAULT;`, and no password-looking values may sit in `hosts` or plaintext `vars.yml`.
 3. **Every Ansible task that handles a password, token, or key needs `no_log: true`.**
 4. Vault passwords go via `--vault-id <label>@prompt` or `--vault-password-file <path>` — never as inline command text.
 
