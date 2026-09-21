@@ -12,8 +12,7 @@
     headers:
       Content-Type: application/json
 
-
-- name: Grafans postgresql dashboards
+- name: Monitoring | Import Grafana dashboards
   ansible.builtin.uri:
     url: "http://127.0.0.1:3000{{ '' if (wireguard_monitoring_locked | default(false) | bool) else '/grafana' }}/api/dashboards/db"
     url_username: "{{ grafana_username | default('admin') }}"
@@ -28,4 +27,9 @@
   loop:
     - postgres.json
     - linux-node.json
-    # - dhis2-dashboard.json
+    - dhis2-api-endpoint-performance.json
+  loop_control:
+    label: "{{ item }}"
+  tags:
+    - monitoring
+    - monitoring-configure
