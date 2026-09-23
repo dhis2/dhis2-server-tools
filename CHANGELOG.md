@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.11.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.10.0...v1.11.0) (2026-09-23)
+
+
+### 🎉 New Features
+
+* **monitoring:** add DHIS2 API Endpoint Performance dashboard to Grafana ([ed7440f](https://github.com/dhis2/dhis2-server-tools/commit/ed7440ff4d2743331f0efc34e425ac2cb6abd8bd))
+* **monitoring:** add DHIS2 API Endpoint Performance dashboard to Grafana ([0397930](https://github.com/dhis2/dhis2-server-tools/commit/03979307e3fddf7d010424800edb9dd57cd3dd85))
+
 ## [1.10.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.9.1...v1.10.0) (2026-08-31)
 
 
