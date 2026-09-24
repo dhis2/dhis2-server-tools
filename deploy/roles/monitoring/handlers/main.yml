@@ -33,6 +33,11 @@
   ansible.builtin.systemd:
     daemon_reload: true
 
+- name: Restart Loki
+  ansible.builtin.systemd:
+    name: loki
+    state: restarted
+
 - name: Reload Prometheus
   ansible.builtin.systemd:
     name: prometheus

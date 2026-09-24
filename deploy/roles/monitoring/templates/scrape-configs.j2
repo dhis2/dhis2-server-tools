@@ -14,6 +14,12 @@
       - targets:
         - {{ hostvars[dhis2_host]['service_ip'] | default(hostvars[dhis2_host]['ansible_host']) }}:8080
 {% endfor %}
+{% if loki_enabled | bool %}
+  - job_name: loki
+    static_configs:
+      - targets:
+          - 127.0.0.1:{{ loki_http_port }}
+{% endif %}
 {% if ansible_connection == "lxd" %}
   - job_name: LXD Host
     static_configs:

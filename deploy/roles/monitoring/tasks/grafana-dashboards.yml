@@ -2,8 +2,8 @@
 - name: Connect to grafana and add prometheus data source
   ansible.builtin.uri:
     url: "http://127.0.0.1:3000{{ '' if (wireguard_monitoring_locked | default(false) | bool) else '/grafana' }}/api/datasources"
-    url_username: admin
-    url_password: admin
+    url_username: "{{ grafana_username | default('admin') }}"
+    url_password: "{{ grafana_password | default('admin') }}"
     method: POST
     body: "{{ lookup('ansible.builtin.file', 'datasource.json') | from_json }}"
     force_basic_auth: true
@@ -11,6 +11,20 @@
     status_code: [200, 201, 409]
     headers:
       Content-Type: application/json
+
+- name: Connect to grafana and add loki data source
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:3000{{ '' if (wireguard_monitoring_locked | default(false) | bool) else '/grafana' }}/api/datasources"
+    url_username: "{{ grafana_username | default('admin') }}"
+    url_password: "{{ grafana_password | default('admin') }}"
+    method: POST
+    body: "{{ lookup('ansible.builtin.file', 'loki-datasource.json') | from_json }}"
+    force_basic_auth: true
+    body_format: json
+    status_code: [200, 201, 409]
+    headers:
+      Content-Type: application/json
+  when: loki_enabled | bool
 
 - name: Monitoring | Import Grafana dashboards
   ansible.builtin.uri:

@@ -207,6 +207,17 @@ munin_users:
     password: user2_passsword
 ```
 
+### Monitoring Variables { #dhis2_server_tools_monitoring_variables }
+
+| Variable | Comments |
+|:---------|:---------|
+| `server_monitoring` | Server monitoring stack, set in the inventory `[all:vars]`.<br>**Options**:<br>- munin<br>- zabbix<br>- grafana, prometheus or grafana/prometheus (all three install the same Grafana + Prometheus stack, plus Loki unless `loki_enabled` is false) |
+| `loki_enabled` | Install Loki log aggregation on the monitoring host with the Grafana/Prometheus stack and register it as a Grafana datasource. Default=`true` |
+| `loki_version` | apt version spec for the `loki` package from apt.grafana.com. The shipped config targets Loki 3.x. Default=`3.*` |
+| `loki_http_port` | Loki HTTP port. Opened in UFW to the `[web]` (proxy) hosts so log shippers can push. Default=`3100` |
+| `loki_retention_period` | How long Loki keeps logs before the compactor deletes them. Default=`720h` (30 days) |
+| `loki_ingestion_rate_mb` / `loki_ingestion_burst_size_mb` | Per-tenant ingestion rate limit and burst, in MB. Default=`8` / `16` |
+
 ### backup related Variables
 These variables pertain to the PostgreSQL database host and contain sensitive
 information. It is advisable to secure them using ansible-vault encryption. You

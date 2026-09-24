@@ -1,2 +1,15 @@
 ---
 ansible_connection: lxd
+
+# Loki log aggregation, installed alongside Grafana/Prometheus
+# (server_monitoring = grafana, prometheus or grafana/prometheus).
+loki_enabled: true
+# apt version spec for the loki package from apt.grafana.com. The config
+# template targets Loki 3.x, so stay on that major unless the template changes.
+loki_version: "3.*"
+loki_http_port: 3100
+loki_grpc_port: 9096
+loki_data_dir: /var/lib/loki
+loki_retention_period: 720h
+loki_ingestion_rate_mb: 8
+loki_ingestion_burst_size_mb: 16
