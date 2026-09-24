@@ -1,0 +1,55 @@
+---
+- name: Alerting | Assert at least one notification channel is configured
+  ansible.builtin.assert:
+    that:
+      - >-
+        (alerting_telegram_bot_token | default('') | length > 0
+         and alerting_telegram_chat_id | default('') | string | length > 0)
+        or (alerting_slack_webhook_url | default('') | length > 0)
+        or (alerting_email_addresses | default([]) | length > 0)
+    fail_msg: >-
+      alerting_enabled=true requires at least one channel.
+      Create files under {{ alerting_secrets_dir }}/ (preferred):
+        alerting_telegram_bot_token + alerting_telegram_chat_id
+        and/or alerting_slack_webhook_url
+      Or set alerting_email_addresses (plus SMTP vars) in inventory.
+      Do not put tokens in [all:vars].
+
+- name: Alerting | Assert exactly one monitoring host
+  ansible.builtin.assert:
+    that:
+      - groups['monitoring'] | default([]) | length == 1
+    fail_msg: >-
+      alerting_enabled=true requires exactly one [monitoring] host
+      (hub is co-located there).
+
+- name: Alerting | Assert web auth password when basic_auth enabled
+  ansible.builtin.assert:
+    that:
+      - alerting_web_basic_auth_password | default('') | length > 0
+    fail_msg: >-
+      Failed to load or generate
+      {{ alerting_secrets_dir }}/alerting_web_password.
+      Ensure the controller can write that directory.
+  when: alerting_web_basic_auth_enabled | default(true) | bool
+
+- name: Alerting | Assert Glowroot forwarder token when instances use Glowroot
+  ansible.builtin.assert:
+    that:
+      - alerting_glowroot_forwarder_token | default('') | length > 0
+    fail_msg: >-
+      Failed to load or generate
+      {{ alerting_secrets_dir }}/alerting_glowroot_forwarder_token.
+  when:
+    - groups['instances'] | default([]) | length > 0
+    - app_monitoring | default('') == 'glowroot'
+
+- name: Alerting | Warn Munin stack is Glowroot-hub only
+  ansible.builtin.debug:
+    msg: >-
+      alerting_enabled=true with server_monitoring=munin:
+      Alertmanager will handle Glowroot APM alerts only.
+      For CPU/memory/disk/PostgreSQL alerts via the hub, set
+      server_monitoring=grafana.
+      Munin is not bridged to Alertmanager.
+  when: server_monitoring | default('') == 'munin'

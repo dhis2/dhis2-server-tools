@@ -1,0 +1,46 @@
+---
+argument_specs:
+  main:
+    short_description: Co-located Alertmanager hub and Glowroot forwarder on monitoring
+    options:
+      alerting_enabled:
+        description: Opt-in gate for the alerting hub
+        type: bool
+        default: false
+      alerting_secrets_dir:
+        description: Controller directory for alerting secret files
+        type: str
+        default: /opt/ansible/secrets
+      alerting_default_contact_point:
+        description: Preferred notification channel when multiple are configured
+        type: str
+        default: telegram
+        choices: [telegram, slack, email]
+      alerting_hub_port:
+        description: Alertmanager listen port (loopback)
+        type: int
+        default: 9093
+      alerting_hub_bind_ip:
+        description: Alertmanager bind address
+        type: str
+        default: '127.0.0.1'
+      alerting_hub_glowroot_forwarder_port:
+        description: Glowroot webhook forwarder listen port
+        type: int
+        default: 9099
+      alerting_hub_glowroot_forwarder_bind_ip:
+        description: Glowroot webhook forwarder bind address
+        type: str
+        default: '0.0.0.0'
+      alerting_alertmanager_version:
+        description: Upstream Alertmanager release version
+        type: str
+        default: '0.33.1'
+      server_monitoring:
+        description: Monitoring stack; infra hub peers require grafana
+        type: str
+        required: false
+      app_monitoring:
+        description: Application monitoring; glowroot enables instance peer wiring
+        type: str
+        required: false

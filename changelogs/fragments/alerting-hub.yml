@@ -1,0 +1,13 @@
+---
+minor_changes:
+  - |
+    Add co-located Alertmanager alerting hub on ``[monitoring]`` (gated by
+    ``alerting_enabled``), with Prometheus rules, Grafana Alertmanager
+    datasource for silences, and a Glowroot webhook forwarder. Channel tokens
+    and generated hub secrets use ``/opt/ansible/secrets/`` on the controller
+    (same pattern as DB passwords); do not put tokens in ``[all:vars]``.
+removed_features:
+  - |
+    Remove unshipped per-instance Glowroot Telegram forwarder and Grafana
+    contact-point / notification-policy / alert-rule provisioning in favor of
+    the Alertmanager hub.

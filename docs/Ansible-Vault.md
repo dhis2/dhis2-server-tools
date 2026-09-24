@@ -1,5 +1,7 @@
 # Ansible Vault
+
 ## Introduction
+
 Ansible-vault offers a secure solution for encrypting sensitive data, such as
 usernames and passwords, used in your playbook. For example, when connecting to
 servers via SSH and requiring elevated rights for certain tasks, supplying the
@@ -11,18 +13,18 @@ Sensitive parameters like ssh and sudo passwords can be written into host
 files, i.e in `inventory/host_vars/` directory, albeit the files must be
 encrypted if you must conform to the best security standards. Nonetheless, its
 not always a requirement to encrypt host files, there is no need if they do not
-have any sensitive data. 
+have any sensitive data.
 
+## What needs ansible-vault encryption in our deployment ?.
 
-## What needs ansible-vault encryption in our deployment ?. 
 Quick answer, files containing sensitive data.
 More specifically
 
-* munin logins
-* database usernames and passwords
-* sudo passwords (`ansible_become_pass`) if your deployments happens on
+- munin logins
+- database usernames and passwords
+- sudo passwords (`ansible_become_pass`) if your deployments happens on
   different servers, implies ssh password as well, if you're not using key based
-  authentication.  
+  authentication.
 
 The variables in Ansible can be stored in various locations. One approach is to
 use host files in the `inventory/host_vars/` directory with the name
@@ -37,14 +39,15 @@ you can refer to the [Ansible Documentation on Variable precedence
 . This will provide you with a deeper understanding of how Ansible handles
 variables and where you should place them for optimal management.
 
-## How to encrypt files with ansible-vault 
-* **Option1**: Create encrypted files with ansible-vault command on the fly. 
+## How to encrypt files with ansible-vault
+
+- **Option1**: Create encrypted files with ansible-vault command on the fly.
   This is the recommended approach, that you create an encrypted vault already,
   rather than later.
   ```
   ansible-vault create inventory/host_vars/proxy
   ```
-* **Option2**: Encrypt already created files with ansible vault.
+- **Option2**: Encrypt already created files with ansible vault.
   This approach is only good if you have files already created and you just
   want to enforce encryption.
 
@@ -53,7 +56,7 @@ variables and where you should place them for optimal management.
   ```
 
 In both scenarios, you will be prompted twice for encryption password, be sure
-to save the password because you will later need it when accessing the vault.  To edit
+to save the password because you will later need it when accessing the vault. To edit
 the vault and add contents like variables, use
 
 ```
@@ -62,20 +65,22 @@ ansible-vault edit  inventory/host_vars/proxy
 
 This will open the file for editing, with your available text editor, in my
 experience `vim`. Put your variables like it's shown below
+
 ```
 munin_users:
   - name: admin
     password: <put_secure_password>
 
-# if you want munin access from non default base path  
+# if you want munin access from non default base path
 munin_base_path: <base_path_for_munin>
 # for privilege escalation if you are connecting via ssh with non root user and running tasks
 # requring sudo access
-ansible_become_pass: <strong_sudo_password> 
+ansible_become_pass: <strong_sudo_password>
 
 ```
 
 ## Accessing the vault from the playbook
+
 In Ansible, before executing any task, the playbook will load all variables,
 including those stored in the `inventory/host_vars/` directory. If you have
 encrypted files in this location, attempting to access them without decryption
@@ -88,13 +93,18 @@ ensures that your playbook can access the necessary encrypted variables during
 runtime.
 
 ```
-ansible-playbook <your_playbook.y[a]ml> --ask-vault-password 
+ansible-playbook <your_playbook.y[a]ml> --ask-vault-password
 ```
 
-# Conlusion
+# Conclusion
+
 Ansible Vault provides a secure solution for storing sensitive data in
 encrypted files and using them with Ansible. By leveraging Ansible Vault, we
 can safely store important information like ansible_become_pass, Munin
 usernames, passwords, and other confidential data. For further details and
 examples, you can refer to the official [Ansible Vault
 documentation.](https://docs.ansible.com/ansible/latest/cli/ansible-vault.html)
+
+Note: many deploy-time secrets (database passwords, alerting channel tokens) are
+stored as files under `/opt/ansible/secrets/` on the controller and do not
+require ansible-vault. See [Alerting](alerting.md).

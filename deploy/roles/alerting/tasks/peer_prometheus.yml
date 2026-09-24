@@ -1,0 +1,85 @@
+---
+- name: Alerting | Ensure Prometheus secrets directory exists
+  ansible.builtin.file:
+    path: /etc/prometheus/secrets
+    state: directory
+    owner: prometheus
+    group: prometheus
+    mode: '0700'
+
+- name: Alerting | Write Prometheus Alertmanager password file
+  ansible.builtin.copy:
+    content: '{{ alerting_web_basic_auth_password }}'
+    dest: /etc/prometheus/secrets/alertmanager_password
+    owner: prometheus
+    group: prometheus
+    mode: '0600'
+  no_log: true
+  when: alerting_web_basic_auth_enabled | default(true) | bool
+  notify: Reload Prometheus
+
+- name: Alerting | Ensure Prometheus rules directory exists
+  ansible.builtin.file:
+    path: /etc/prometheus/rules
+    state: directory
+    owner: prometheus
+    group: prometheus
+    mode: '0755'
+
+- name: Alerting | Deploy Prometheus alert rules
+  ansible.builtin.template:
+    src: prometheus-rules.yml.j2
+    dest: /etc/prometheus/rules/dhis2-alerts.yml
+    owner: prometheus
+    group: prometheus
+    mode: '0644'
+    validate: 'promtool check rules %s'
+  notify: Reload Prometheus
+
+- name: Alerting | Ensure rule_files directive exists
+  ansible.builtin.lineinfile:
+    path: /etc/prometheus/prometheus.yml
+    regexp: '^rule_files:'
+    line: 'rule_files:'
+    insertbefore: '^scrape_configs:'
+  notify: Reload Prometheus
+
+- name: Alerting | Wire rules directory into prometheus.yml
+  ansible.builtin.lineinfile:
+    path: /etc/prometheus/prometheus.yml
+    regexp: '^\s+- "/etc/prometheus/rules/\*\.yml"'
+    line: '  - "/etc/prometheus/rules/*.yml"'
+    insertafter: '^rule_files:'
+  notify: Reload Prometheus
+
+- name: Alerting | Check for managed alerting markers
+  ansible.builtin.command: grep -F 'ANSIBLE MANAGED ALERTING HUB' /etc/prometheus/prometheus.yml
+  register: alerting_prom_marker
+  changed_when: false
+  failed_when: false
+
+- name: Alerting | Remove unmanaged alerting blocks from prometheus.yml
+  ansible.builtin.replace:
+    path: /etc/prometheus/prometheus.yml
+    # MULTILINE only — do not use DOTALL. With (?s), `.*` can swallow
+    # scrape_configs and the rest of the file after the first alerting: block.
+    regexp: '(?m)^alerting:\n(?:[ \t]+.*\n)*'
+    replace: ''
+  when: alerting_prom_marker.rc != 0
+  notify: Reload Prometheus
+
+- name: Alerting | Ensure scrape_configs directive exists
+  ansible.builtin.lineinfile:
+    path: /etc/prometheus/prometheus.yml
+    regexp: '^scrape_configs:'
+    line: 'scrape_configs:'
+    create: false
+  notify: Reload Prometheus
+
+- name: Alerting | Deploy managed Prometheus alerting block
+  ansible.builtin.blockinfile:
+    path: /etc/prometheus/prometheus.yml
+    marker: '# {mark} ANSIBLE MANAGED ALERTING HUB'
+    insertbefore: '^scrape_configs:'
+    block: "{{ lookup('template', 'prometheus-alerting-block.yml.j2') }}"
+  notify: Reload Prometheus

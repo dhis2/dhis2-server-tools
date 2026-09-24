@@ -1,0 +1,31 @@
+---
+- name: Restart Alertmanager
+  ansible.builtin.systemd:
+    name: alertmanager
+    state: restarted
+    daemon_reload: true
+    enabled: true
+
+- name: Restart Glowroot Forwarder
+  ansible.builtin.systemd:
+    name: glowroot-forwarder
+    state: restarted
+    daemon_reload: true
+    enabled: true
+
+# Defined here so --tags alerting works when monitoring/create-instance are skipped
+- name: Reload Prometheus
+  ansible.builtin.systemd:
+    name: prometheus
+    state: reloaded
+
+- name: Restart Grafana
+  ansible.builtin.service:
+    name: grafana-server
+    state: restarted
+
+- name: Restart Tomcat
+  ansible.builtin.systemd:
+    name: "tomcat{{ tomcat_version | default('9') }}"
+    state: restarted
+    daemon_reload: true
