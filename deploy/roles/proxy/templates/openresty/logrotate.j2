@@ -1,0 +1,17 @@
+# {{ ansible_managed }}
+# The openresty package ships no logrotate rule (unlike nginx and apache2),
+# so without this perf.log and error.log grow without limit.
+# USR1 makes the master reopen its log files after rotation.
+/usr/local/openresty/nginx/logs/*.log {
+    su root root
+    daily
+    rotate {{ openresty_log_rotate_days | default(14) }}
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        [ -s /usr/local/openresty/nginx/logs/nginx.pid ] && kill -USR1 "$(cat /usr/local/openresty/nginx/logs/nginx.pid)" || true
+    endscript
+}

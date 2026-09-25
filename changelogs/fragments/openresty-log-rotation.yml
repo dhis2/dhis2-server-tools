@@ -1,0 +1,8 @@
+---
+minor_changes:
+  - >-
+    proxy - install /etc/logrotate.d/openresty when proxy=openresty. The
+    openresty package ships no logrotate rule (unlike nginx and apache2),
+    so /usr/local/openresty/nginx/logs/perf.log and error.log grew without
+    limit. Rotates daily, keeps openresty_log_rotate_days (default 14)
+    compressed files, and signals the master (USR1) to reopen its logs.

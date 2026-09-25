@@ -209,6 +209,7 @@ munin_users:
 | `SSL_TYPE`        | Choose whether to use `letsencrypt` or a `customssl` certificate.<br>**Options**:<br>- letsencrypt ← (default)<br>- customssl |
 | `munin_base_path` | Base path for accessing Munin, e.g., `https://domain.example.com/munin_base_path`. Defaults to `munin`. |
 | `munin_users`     | A list of users and passwords allowed to log into Munin. See example below. |
+| `openresty_log_rotate_days` | OpenResty only: number of daily rotations of `/usr/local/openresty/nginx/logs/*.log` kept by `/etc/logrotate.d/openresty` (compressed). The nginx and apache2 packages ship their own logrotate rules. Defaults to `14`. |
 
 **Example:**
 ```yaml
