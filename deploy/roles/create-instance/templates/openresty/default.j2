@@ -2,10 +2,11 @@
 # Any custom modifications made directly to this file will be overwritten
 # during future Ansible runs.
 
-# Please place any custom configurations in the following file
-# /usr/local/openresty/nginx/conf/custom/default.conf
-
-# configurations in /usr/local/openresty/nginx/conf/static/default.conf are included in this openresty configuration.
+# Put custom configuration in files that Ansible never overwrites:
+#   server{} level: /usr/local/openresty/nginx/conf/static/default.conf
+#     (included in the https server block below)
+#   http{} level:   /usr/local/openresty/nginx/conf/http.d/*.conf
+#     (log formats, maps, lua_shared_dict, limit_req_zone, proxy_cache_path, ...)
 
 # Tomcat upstreams with keepalive — for instances without an FQDN
 {% for instance in groups['instances']
@@ -35,7 +36,7 @@ server {
 server {
   listen {{ http_port | default('80') }}{{ ' proxy_protocol' if use_proxy_protocol | default(false) and ansible_connection == 'lxd' else '' }};
   server_name _;
-  return 302 https://$host:{{ https_port | default("$server_port") }}$request_uri;
+  return 301 https://$host{{ '' if (https_port | default(443) | int) == 443 else ':' ~ https_port }}$request_uri;
 }
 
 # https block
