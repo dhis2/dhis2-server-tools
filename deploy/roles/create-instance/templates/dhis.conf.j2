@@ -55,6 +55,21 @@ server.https = on
 {% endif %}
 
 # ----------------------------------------------------------------------
+# Logging
+# ----------------------------------------------------------------------
+
+# Max size of each size-rotated log file (dhis.log, dhis-analytics-table.log,
+# dhis-data-exchange.log, dhis-data-sync.log, dhis-metadata-sync.log).
+# DHIS2 default: 100MB. dhis-audit.log is not affected: it rotates daily.
+logging.file.max_size = {{ dhis2_log_max_size | default('100MB') }}
+
+# Max number of archives (<name>.log.1, .2, ...) kept per size-rotated log
+# before the oldest is deleted. DHIS2 default: 1. dhis-audit.log archives are
+# never pruned by DHIS2 (daily rollover, unlimited .gz archives); a cron job
+# deletes them after dhis2_audit_log_retention_days instead.
+logging.file.max_archives = {{ dhis2_log_max_archives | default('5') }}
+
+# ----------------------------------------------------------------------
 # Encryption
 # ----------------------------------------------------------------------
 
