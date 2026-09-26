@@ -51,6 +51,14 @@
     state: latest
     update_cache: true
 
+- name: Deploy logrotate rule for OpenResty logs
+  ansible.builtin.template:
+    src: openresty/logrotate.j2
+    dest: /etc/logrotate.d/openresty
+    owner: root
+    group: root
+    mode: "0644"
+
 - name: Creating OpenResty config directories
   ansible.builtin.file:
     path: "{{ item }}"

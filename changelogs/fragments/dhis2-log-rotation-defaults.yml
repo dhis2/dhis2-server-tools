@@ -1,0 +1,11 @@
+---
+minor_changes:
+  - >-
+    create-instance - set logging.file.max_size and logging.file.max_archives
+    in dhis.conf (defaults 100MB / 5 archives) so DHIS2's own log rotation
+    prunes old dhis.log/analytics-table/data-exchange/data-sync/metadata-sync
+    log archives instead of relying on DHIS2's own default of 1 archive. Does
+    not affect dhis-audit.log, which rotates on a separate daily cron policy
+    with unbounded, hardcoded retention - see dhis2-audit-log-retention.yml.
+    New vars dhis2_log_max_size and dhis2_log_max_archives override the
+    defaults.
