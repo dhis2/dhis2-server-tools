@@ -245,6 +245,11 @@
         url: "{{ doris_download_url }}"
         dest: "{{ doris_home }}/{{ doris_tarball }}"
         mode: '0644'
+        # The tarball is ~4GB; get_url's default timeout (10s) is a per-read
+        # stall timeout, not a total-transfer cap, but any brief network hiccup
+        # during a long transfer still aborts the download. Sized generously
+        # above the ~20min a ~3-4MB/s link needs for the full file.
+        timeout: 3600
       register: doris_tarball_download
       loop: "{{ groups['instances'] }}"
       when:
