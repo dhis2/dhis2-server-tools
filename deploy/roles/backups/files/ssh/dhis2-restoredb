@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #         ____  __  ______________
 #        / __ \/ / / /  _/ ___/__ \
 #       / / / / /_/ // / \__ \__/ /
@@ -7,11 +7,11 @@
 #
 #    DHIS2 restore database backup (for local PostgreSQL)
 
-set -e
+set -euo pipefail
 
 PROG=$(basename "$0")
-BACKUPFILE="$1"
-DB="$2"
+BACKUPFILE="${1:-}"
+DB="${2:-}"
 
 usage() {
   echo "Usage: $PROG <backup file (tar.gz)> <dbname>"
@@ -21,69 +21,81 @@ usage() {
   echo "  -h, --help        Display this help message"
   echo ""
   echo "Prerequisites:"
-  echo "  - **PostgreSQL must be installed and running** directly on this machine."
-  echo "  - The **'postgres' system user** must exist (usually created by PostgreSQL installation) and have permissions to manage databases via 'sudo -u postgres'."
-  echo "  - The **DHIS2 database user** (e.g., 'dhis2', which often matches 'dbname') must exist within PostgreSQL and have appropriate privileges."
-  echo "  - The 'psql', 'dropdb', and 'createdb' commands must be in your system's PATH."
+  echo "  - PostgreSQL must be installed and running directly on this machine."
+  echo "  - The 'postgres' system user must exist and have permissions to manage databases via 'sudo -u postgres'."
+  echo "  - The DHIS2 database role (e.g. 'dhis2', matching 'dbname') must already exist in PostgreSQL."
+  echo "  - Stop the DHIS2 instance (Tomcat) before restoring, so nothing holds open connections to the target database."
+  echo "  - The 'psql', 'dropdb', and 'createdb' commands must be on PATH."
 }
 
 # ---
-# Argument and Help Handling
+# Argument and help handling
 # ---
 
-# Check for help flag
-if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+if [ "$#" -eq 0 ] || [ "$BACKUPFILE" = "-h" ] || [ "$BACKUPFILE" = "--help" ]; then
   usage
   exit 0
 fi
 
-# Check for required arguments
 if [ -z "$BACKUPFILE" ] || [ -z "$DB" ]; then
-  echo "Error: Missing required arguments."
+  echo "Error: missing required arguments." >&2
   usage
   exit 1
 fi
 
-# Check if backup file exists
 if [ ! -f "$BACKUPFILE" ]; then
-  echo "Error: Backup file '$BACKUPFILE' not found."
-  usage
+  echo "Error: backup file '$BACKUPFILE' not found." >&2
+  exit 1
+fi
+
+if ! gzip -t "$BACKUPFILE" 2>/dev/null; then
+  echo "Error: '$BACKUPFILE' is not a valid gzip file (corrupt or truncated?)." >&2
   exit 1
 fi
 
 echo "---"
-echo "Attempting to restore database '$DB' from '$BACKUPFILE'..."
+echo "Restoring database '$DB' from '$BACKUPFILE'..."
 echo "---"
 
 # ---
-# Database Operations
+# Database operations
 # ---
 
-# Drop the existing database
-echo "Dropping existing database '$DB'..."
-# Run as 'postgres' user to ensure permissions
-sudo -u postgres dropdb "$DB" || { echo "Error: Failed to drop database '$DB'. It might not not exist, or you lack sufficient permissions. Continuing, assuming a fresh creation or existing DB is fine."; }
-echo "Database '$DB' drop attempt completed."
+# Only drop if it actually exists - a fresh restore target is not an error.
+# If it exists but can't be dropped (most likely: DHIS2/Tomcat still holding
+# open connections to it), that IS an error and must stop here, not be
+# silently swallowed into a createdb that will just fail for a confusing
+# reason.
+DB_EXISTS=$(sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname = '$DB'" postgres)
 
-# Create a new database with the specified owner
-echo "Creating new database '$DB' with owner '$DB'..."
-# -O $DB sets the owner of the new database
-sudo -u postgres createdb -O "$DB" "$DB" || { echo "Error: Failed to create database '$DB'. Ensure the user '$DB' exists in PostgreSQL and 'postgres' user has creation rights."; exit 1; }
-echo "Database '$DB' created successfully."
+if [ "$DB_EXISTS" = "1" ]; then
+  echo "Dropping existing database '$DB'..."
+  if ! sudo -u postgres dropdb "$DB"; then
+    echo "Error: failed to drop database '$DB'." >&2
+    echo "If it still has open connections, stop the DHIS2 instance (Tomcat) and try again." >&2
+    exit 1
+  fi
+else
+  echo "Database '$DB' does not exist yet - skipping drop."
+fi
 
-# Restore the database from the backup file
-echo "Restoring data from '$BACKUPFILE' into '$DB'..."
-# zcat decompresses the .tar.gz backup
-# grep -v 'ALTER .* OWNER' filters out ownership changes from the dump
-# psql imports the data into the specified database
-zcat "$BACKUPFILE" | grep -v 'ALTER .* OWNER' | sudo -u postgres psql "$DB" || { echo "Error: Database restore failed. Check the backup file and PostgreSQL logs."; exit 1; }
-echo "Data restored successfully."
+echo "Creating new database '$DB' owned by '$DB'..."
+if ! sudo -u postgres createdb -O "$DB" "$DB"; then
+  echo "Error: failed to create database '$DB'. Does role '$DB' exist in PostgreSQL?" >&2
+  exit 1
+fi
 
-# Reassign objects owned by 'root' (or other unintended users) to the correct DB owner
-echo "Reassigning objects owned by 'root' to database owner '$DB'..."
-# This command ensures all objects in the database are owned by the intended application user
-echo "REASSIGN OWNED BY root TO \"$DB\"" | sudo -u postgres psql "$DB" || { echo "Error: Failed to reassign ownership. This might indicate deeper permission issues."; exit 1; }
-echo "Ownership reassigned successfully."
+echo "Restoring data into '$DB'..."
+if ! zcat "$BACKUPFILE" | grep -v 'ALTER .* OWNER' | sudo -u postgres psql "$DB"; then
+  echo "Error: restore failed partway through. '$DB' may be left in a partial state." >&2
+  exit 1
+fi
+
+echo "Reassigning objects owned by 'root' to '$DB'..."
+if ! echo "REASSIGN OWNED BY root TO \"$DB\"" | sudo -u postgres psql "$DB"; then
+  echo "Error: failed to reassign ownership." >&2
+  exit 1
+fi
 
 echo "---"
 echo "Database restore for '$DB' completed successfully."
