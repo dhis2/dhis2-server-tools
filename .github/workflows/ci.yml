@@ -135,6 +135,14 @@ jobs:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
 
+      - name: Run Molecule tests (crowdsec)
+        run: |
+          mkdir -p test-results
+          molecule test -s crowdsec || touch test-results/test-failed-crowdsec
+        env:
+          PY_COLORS: '1'
+          ANSIBLE_FORCE_COLOR: '1'
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

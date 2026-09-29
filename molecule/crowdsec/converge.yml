@@ -1,0 +1,9 @@
+---
+- name: Converge
+  hosts: web
+  become: true
+  tasks:
+    - name: Converge | Deploy CrowdSec
+      ansible.builtin.include_role:
+        name: crowdsec
+        tasks_from: deploy.yml
