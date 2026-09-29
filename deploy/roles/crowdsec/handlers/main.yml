@@ -1,0 +1,15 @@
+---
+# Handlers run in the order listed: OpenResty reloads first, so access.log exists by the
+# time the engine restarts and opens it.
+# Only on OpenResty hosts: reloading a stopped unit starts it, which would clash with a
+# proxy that has replaced OpenResty.
+- name: Crowdsec | Reload OpenResty
+  ansible.builtin.service:
+    name: openresty
+    state: reloaded
+  when: proxy | default('') == 'openresty'
+
+- name: Restart crowdsec
+  ansible.builtin.systemd:
+    name: crowdsec
+    state: restarted

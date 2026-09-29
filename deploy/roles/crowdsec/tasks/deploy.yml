@@ -1,0 +1,53 @@
+---
+# import_tasks, not include_tasks: the sub-tags must reach the tasks inside so that
+# --tags crowdsec-install / crowdsec-configure / crowdsec-remove select them.
+- name: Crowdsec | Install and configure Security Engine
+  ansible.builtin.import_tasks: install-engine.yml
+  when: crowdsec_enabled | bool
+  tags: [crowdsec-install]
+
+# Before the bouncer: its APPSEC_URL should point at a listener that's already up.
+- name: Crowdsec | Configure AppSec (WAF)
+  ansible.builtin.import_tasks: appsec.yml
+  when: crowdsec_enabled | bool
+  tags: [crowdsec-configure]
+
+- name: Crowdsec | Manage the allowlist
+  ansible.builtin.import_tasks: allowlist.yml
+  when: crowdsec_enabled | bool
+  tags: [crowdsec-configure]
+
+- name: Crowdsec | Open or close the metrics port to the monitoring host
+  ansible.builtin.import_tasks: prometheus-metrics.yml
+  when: crowdsec_enabled | bool
+  tags: [crowdsec-configure]
+
+- name: Crowdsec | Configure OpenResty bouncer
+  ansible.builtin.import_tasks: configure-bouncer-openresty.yml
+  when:
+    - crowdsec_enabled | bool
+    - crowdsec_bouncer_enabled | bool
+  tags: [crowdsec-configure]
+
+# Switching off. crowdsec_bouncer_enabled=false removes the bouncer and keeps the engine.
+# crowdsec_enabled=false removes both, but only from a host this role set up.
+- name: Crowdsec | Check for a role-managed install
+  ansible.builtin.stat:
+    path: "{{ crowdsec_managed_marker }}"
+  register: crowdsec_managed
+  when: not (crowdsec_enabled | bool)
+  tags: [crowdsec-configure, crowdsec-remove]
+
+- name: Crowdsec | Remove OpenResty bouncer
+  ansible.builtin.import_tasks: remove-bouncer-openresty.yml
+  when: >-
+    (crowdsec_enabled | bool and not (crowdsec_bouncer_enabled | bool))
+    or (not (crowdsec_enabled | bool) and crowdsec_managed.stat.exists | default(false))
+  tags: [crowdsec-configure, crowdsec-remove]
+
+- name: Crowdsec | Remove Security Engine
+  ansible.builtin.import_tasks: remove-engine.yml
+  when:
+    - not (crowdsec_enabled | bool)
+    - crowdsec_managed.stat.exists | default(false)
+  tags: [crowdsec-remove]

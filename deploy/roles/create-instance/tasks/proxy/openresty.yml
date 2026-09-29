@@ -59,12 +59,16 @@
     - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
 
+# crowdsec_*.conf files belong to the crowdsec role: crowdsec_openresty.conf is owned by the
+# crowdsec-openresty-bouncer package (not a conffile, so apt never restores it) and
+# crowdsec_access_log.conf is templated by the role. Both load via the conf.d/*.conf
+# wildcard in nginx.conf.
 - name: Find files to delete in /usr/local/openresty/nginx/conf/conf.d/
   ansible.builtin.find:
     paths: /usr/local/openresty/nginx/conf/conf.d/
     patterns: '*'
     file_type: file
-    excludes: "{{ groups['instances'] | map('extract', hostvars, 'fqdn') | map('default', 'default', true) | map('regex_replace', '^\\s+|\\s+$', '') | unique | map('regex_replace', '^$', 'default') | map('regex_replace', '(.+)', '\\1.conf') | list }}"
+    excludes: "{{ (groups['instances'] | map('extract', hostvars, 'fqdn') | map('default', 'default', true) | map('regex_replace', '^\\s+|\\s+$', '') | unique | map('regex_replace', '^$', 'default') | map('regex_replace', '(.+)', '\\1.conf') | list) + ['crowdsec_*.conf'] }}"
   register: found_files
 
 - name: Clean /usr/local/openresty/nginx/conf/conf.d/ directory

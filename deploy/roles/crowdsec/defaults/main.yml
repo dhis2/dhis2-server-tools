@@ -1,0 +1,47 @@
+---
+crowdsec_enabled: false
+crowdsec_version: "latest"
+
+# LAPI: only the colocated bouncer on this same host ever queries it, so it binds to loopback.
+crowdsec_lapi_port: 8080
+
+# Prometheus metrics endpoint. cscli metrics reads it locally, so it stays on. The same
+# listener also serves Go's /debug/pprof/*, so it's bound to loopback unless a Prometheus
+# server on the [monitoring] host scrapes it; then it's bound to this host's service IP
+# and ufw only lets the monitoring host(s) in.
+crowdsec_metrics_enabled: true
+crowdsec_metrics_port: 6060
+crowdsec_metrics_expose: "{{ (server_monitoring | default('') | trim) in ['grafana', 'prometheus', 'grafana/prometheus'] and groups['monitoring'] | default([]) | length > 0 }}"
+
+# Community threat-intel sharing (CrowdSec Central API): sends attacker IPs and the
+# scenarios they triggered to CrowdSec, and pulls the community blocklist.
+crowdsec_online_api_enabled: true
+
+crowdsec_bouncer_enabled: true
+# stream polls the LAPI every 10 s and caches decisions, so bans hold while the engine
+# restarts. live checks the LAPI per request and lets everything through while it's down.
+crowdsec_bouncer_mode: "stream"               # stream or live
+# captcha (and all) need the captcha keys below. Without them the bouncer serves every
+# captcha decision as a ban. DHIS2 API and Android clients can't solve a captcha anyway.
+crowdsec_bouncer_bouncing_on_type: "ban"      # ban, captcha, or all
+crowdsec_bouncer_fallback_remediation: "ban"  # used for remediation types the bouncer doesn't understand
+crowdsec_bouncer_ret_code: ""                 # empty = bouncer's own default (403); set to override
+crowdsec_bouncer_captcha_provider: "recaptcha"  # recaptcha, hcaptcha, or turnstile
+crowdsec_bouncer_captcha_site_key: ""
+crowdsec_bouncer_captcha_secret_key: ""         # keep in vault.yml
+
+# AppSec (WAF): the bouncer forwards every request to CrowdSec's AppSec listener, which
+# blocks it in-band on a virtual-patching (known CVE) or generic rule match. Needs the bouncer.
+crowdsec_appsec_enabled: true
+crowdsec_appsec_port: 7422
+# passthrough lets requests through while AppSec is unreachable; deny blocks them.
+crowdsec_appsec_failure_action: "passthrough"
+# CrowdSec blocks any request body over its limit by default. DHIS2 takes bodies up to
+# 100M (data and metadata imports), so bodies over the limit are inspected up to the
+# limit and then let through.
+crowdsec_appsec_max_body_size: 10485760       # bytes
+crowdsec_appsec_body_size_exceeded_action: "partial"  # partial, allow, or drop
+
+# IPs/CIDRs CrowdSec never blocks: no WAF inspection, no local or community-blocklist
+# bans. Use it for trusted networks, e.g. a facility's shared carrier-NAT egress IP.
+crowdsec_allowlist: []

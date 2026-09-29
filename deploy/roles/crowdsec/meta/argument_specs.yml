@@ -1,0 +1,171 @@
+---
+argument_specs:
+  main:
+    short_description: "CrowdSec WAF: Security Engine, AppSec and bouncer, colocated with the [web] host's proxy"
+    description:
+      - Installs the CrowdSec Security Engine and the OpenResty bouncer on the same host
+        as the active reverse proxy — no dedicated container/inventory group. LXD-only;
+        ansible_connection=ssh is not supported.
+      - Two layers of protection. AppSec (the WAF) inspects each request in-band and
+        blocks known-CVE exploits (virtual patching) and a few generic attacks before they
+        reach DHIS2. Log-based scenarios ban IPs whose traffic in access.log matches an
+        attack pattern (scans, brute force, probing), and the Central API adds the
+        community blocklist.
+      - The bouncer requires proxy=openresty. The nginx.org package the proxy role installs
+        can't load the lua module crowdsec-nginx-bouncer depends on, and apache2 has no
+        bouncer support. With any other proxy, set crowdsec_bouncer_enabled=false to run the
+        Security Engine alone (detection only). AppSec needs the bouncer.
+      - Collections (crowdsecurity/nginx, crowdsecurity/linux, ...) are installed
+        automatically by the crowdsec package's own postinst (cscli setup unattended),
+        which auto-detects the running proxy. This requires the proxy role's
+        {{ proxy }}-install.yml to have already run on this host in the same play -
+        see the include_role ordering in roles/proxy/tasks/main.yml.
+      - Switching off. crowdsec_bouncer_enabled=false purges the bouncer and deletes its
+        LAPI registration. crowdsec_enabled=false also removes the engine package, its apt
+        repo and the metrics firewall rule, on hosts this role installed it on;
+        /etc/crowdsec and /var/lib/crowdsec are kept.
+    options:
+      crowdsec_enabled:
+        description: >-
+          Master switch. Setting it back to false on a host this role set up removes
+          CrowdSec from it.
+        type: bool
+        default: false
+      crowdsec_version:
+        description: >-
+          crowdsec package version to pin (e.g. "1.8.0"), or "latest" to always take the
+          newest package in the CrowdSec apt repo. A pinned version is installed (up or
+          down) and held with dpkg so `apt upgrade` leaves it alone. Only pins the crowdsec
+          engine package - bouncer packages are versioned independently upstream and are
+          always installed at "latest". Don't pin below 1.7.8: the AppSec body-size hooks
+          arrived in that release (with the 10 MiB limit they configure), and
+          crowdsec_allowlist relies on allowlists clearing matching bans (1.6.9).
+        type: str
+        default: "latest"
+      crowdsec_lapi_port:
+        description: >-
+          Port the local CrowdSec API (LAPI) listens on, on 127.0.0.1. The engine's agent
+          credentials and the bouncer's API_URL are kept pointing at it.
+        type: int
+        default: 8080
+      crowdsec_metrics_enabled:
+        description: >-
+          Enable the Prometheus metrics endpoint. `cscli metrics` reads it, so leave it on
+          unless you have a reason not to.
+        type: bool
+        default: true
+      crowdsec_metrics_port:
+        description: "Port the Prometheus metrics endpoint listens on"
+        type: int
+        default: 6060
+      crowdsec_metrics_expose:
+        description: >-
+          Bind the metrics endpoint to this host's service IP (service_ip, else
+          ansible_host) and let the [monitoring] host(s) in through ufw, for Prometheus to
+          scrape. When false it binds to 127.0.0.1 and the ufw rule is deleted. The same
+          listener serves Go's /debug/pprof/* profiling endpoints, which CrowdSec can't turn
+          off, so exposing it also exposes those to the monitoring host. Defaults to true
+          when server_monitoring uses Prometheus and a [monitoring] host exists.
+        type: bool
+      crowdsec_online_api_enabled:
+        description: >-
+          Opt into CrowdSec's Central API: share attack signals (attacker IPs and the
+          scenarios they triggered) with CrowdSec and pull the community blocklist. Setting it
+          to false on an installed host drops the Central API credentials; setting it back
+          registers a new machine.
+        type: bool
+        default: true
+      crowdsec_bouncer_enabled:
+        description: >-
+          Install and configure the remediation component (bouncer). Requires
+          proxy=openresty. Setting it to false on an installed host removes the bouncer.
+        type: bool
+        default: true
+      crowdsec_bouncer_mode:
+        description: >-
+          stream polls the LAPI on an interval (UPDATE_FREQUENCY, 10 s) and caches decisions,
+          so bans stay enforced while the engine restarts; new bans and unbans take up to one
+          interval to apply. live checks the LAPI per request and lets every request through
+          while the engine is down.
+        type: str
+        default: "stream"
+        choices: ["live", "stream"]
+      crowdsec_bouncer_bouncing_on_type:
+        description: >-
+          Which remediation types from the LAPI the bouncer enforces. captcha and all need
+          crowdsec_bouncer_captcha_site_key and crowdsec_bouncer_captcha_secret_key; with ban,
+          captcha decisions are ignored.
+        type: str
+        default: "ban"
+        choices: ["all", "ban", "captcha"]
+      crowdsec_bouncer_fallback_remediation:
+        description: >-
+          Remediation applied when the LAPI returns a type the bouncer doesn't recognize,
+          and when AppSec is unreachable with crowdsec_appsec_failure_action=deny. captcha
+          needs the captcha keys.
+        type: str
+        default: "ban"
+        choices: ["ban", "captcha"]
+      crowdsec_bouncer_ret_code:
+        description: >-
+          HTTP status code returned for banned requests. Empty keeps the bouncer's own
+          default (403). The bouncer accepts only the codes listed here; anything else
+          (429, for example) is replaced with 403 and logged to error.log.
+        type: str
+        default: ""
+        choices: ["", "200", "202", "204", "301", "302", "400", "401", "403", "404", "405", "406", "444", "500"]
+      crowdsec_bouncer_captcha_provider:
+        description: "Captcha service the bouncer's challenge page uses"
+        type: str
+        default: "recaptcha"
+        choices: ["recaptcha", "hcaptcha", "turnstile"]
+      crowdsec_bouncer_captcha_site_key:
+        description: "Site key from the captcha provider"
+        type: str
+        default: ""
+      crowdsec_bouncer_captcha_secret_key:
+        description: "Secret key from the captcha provider. Keep it in vault.yml."
+        type: str
+        default: ""
+        no_log: true
+      crowdsec_appsec_enabled:
+        description: >-
+          Run the AppSec component (WAF). The bouncer sends every request to it, and it
+          blocks in-band on a crowdsecurity/appsec-virtual-patching or
+          crowdsecurity/appsec-generic-rules match. Needs crowdsec_bouncer_enabled.
+        type: bool
+        default: true
+      crowdsec_appsec_port:
+        description: "Port the AppSec listener binds to, on 127.0.0.1"
+        type: int
+        default: 7422
+      crowdsec_appsec_failure_action:
+        description: >-
+          What the bouncer does when AppSec doesn't answer: passthrough lets the request
+          through, deny applies crowdsec_bouncer_fallback_remediation.
+        type: str
+        default: "passthrough"
+        choices: ["passthrough", "deny"]
+      crowdsec_appsec_max_body_size:
+        description: >-
+          Largest request body, in bytes, AppSec inspects in full. See
+          crowdsec_appsec_body_size_exceeded_action for larger ones.
+        type: int
+        default: 10485760
+      crowdsec_appsec_body_size_exceeded_action:
+        description: >-
+          What AppSec does with a body over crowdsec_appsec_max_body_size. partial inspects
+          the first crowdsec_appsec_max_body_size bytes and lets the rest through; allow
+          skips body inspection; drop blocks the request and raises an alert against the
+          sender's IP, which blocks DHIS2 imports larger than the limit.
+        type: str
+        default: "partial"
+        choices: ["partial", "allow", "drop"]
+      crowdsec_allowlist:
+        description: >-
+          IPs and CIDRs CrowdSec never acts on: no AppSec inspection, no local or
+          community-blocklist decisions. Adding an entry also lifts existing bans on it;
+          AppSec picks up changes within about a minute.
+        type: list
+        elements: str
+        default: []
