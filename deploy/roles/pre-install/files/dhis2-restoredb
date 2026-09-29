@@ -1,30 +1,132 @@
-#!/bin/sh
+#!/bin/bash
 #       ____  __  ______________
 #      / __ \/ / / /  _/ ___/__ \
 #     / / / / /_/ // / \__ \__/ /
 #    / /_/ / __  // / ___/ / __/
 #   /_____/_/ /_/___//____/____/
 #
-#   DHIS2 restore database backup
+#   DHIS2 restore database backup (via LXD container)
 
-set -e
+set -euo pipefail
 
-PROG=`basename $0`
-BACKUPFILE=$1
-DB=$2
+PROG=$(basename "$0")
+BACKUPFILE="${1:-}"
+DB="${2:-}"
 
 usage() {
   echo "Usage: $PROG <backup file (tar.gz)> <dbname>"
   echo "  backup file: database dump in tar gzip format"
   echo "  dbname: the name of the database to restore"
   echo "Options:"
-  echo "  -h, --help       Display this help message"
+  echo "  -h, --help        Display this help message"
+  echo ""
+  echo "Prerequisites:"
+  echo "  - Run this from the machine with 'lxc' access (the LXD host / Ansible controller)."
+  echo "  - A 'postgres' LXD container must be running."
+  echo "  - Stop the DHIS2 instance (Tomcat) before restoring, so nothing holds open connections."
 }
 
+# ---
+# Argument and help handling
+# ---
 
+if [ "$#" -eq 0 ] || [ "$BACKUPFILE" = "-h" ] || [ "$BACKUPFILE" = "--help" ]; then
+  usage
+  exit 0
+fi
 
-sudo lxc exec postgres dropdb $DB
-sudo lxc exec postgres -- createdb -O $DB $DB
-zcat $BACKUPFILE | grep -v 'ALTER .* OWNER' | sudo lxc exec postgres -- psql $DB
-echo "REASSIGN OWNED BY root TO $DB" | sudo lxc exec postgres -- psql $DB
+if [ -z "$BACKUPFILE" ] || [ -z "$DB" ]; then
+  echo "Error: missing required arguments." >&2
+  usage
+  exit 1
+fi
 
+if [ ! -f "$BACKUPFILE" ]; then
+  echo "Error: backup file '$BACKUPFILE' not found." >&2
+  exit 1
+fi
+
+if ! gzip -t "$BACKUPFILE" 2>/dev/null; then
+  echo "Error: '$BACKUPFILE' is not a valid gzip file (corrupt or truncated?)." >&2
+  exit 1
+fi
+
+echo "---"
+echo "Restoring database '$DB' from '$BACKUPFILE' (via LXD container 'postgres')..."
+echo "---"
+
+# ---
+# Stop the DHIS2 instance for the duration of the restore
+# ---
+
+# By this repo's convention, a database's name is always the same as its
+# owning instance's inventory_hostname, which is also that instance's LXD
+# container name (postgresql-db.yml creates the db as `name: "{{ item }}"`
+# looping over groups['instances']) - so $DB doubles as the container name
+# here. Guarded on the container actually existing, so restoring into a
+# database with no matching container (not a normal case here, but not
+# impossible) doesn't turn into a hard failure over container management.
+# Restarted via trap so it comes back up on any exit path - success, an
+# early "missing args" exit, or any of the error exits below - not just the
+# happy path.
+restart_dhis2_container() {
+  echo "---"
+  echo "Starting DHIS2 instance container '$DB'..."
+  sudo lxc start "$DB"
+}
+
+if sudo lxc info "$DB" &>/dev/null; then
+  if [ "$(sudo lxc list "$DB" --format csv -c s)" = "RUNNING" ]; then
+    echo "Stopping DHIS2 instance container '$DB' so nothing holds open connections..."
+    sudo lxc stop "$DB"
+    trap restart_dhis2_container EXIT
+  else
+    echo "DHIS2 instance container '$DB' is already stopped - leaving it as-is." >&2
+  fi
+else
+  echo "No LXD container named '$DB' found - skipping instance stop/start." >&2
+fi
+
+# ---
+# Database operations
+# ---
+
+# Only drop if it actually exists - a fresh restore target is not an error.
+# If it exists but can't be dropped (most likely: DHIS2/Tomcat still holding
+# open connections to it), that IS an error and must stop here, not be
+# silently swallowed into a createdb that will just fail for a confusing
+# reason.
+DB_EXISTS=$(sudo lxc exec postgres -- psql -tAc "SELECT 1 FROM pg_database WHERE datname = '$DB'" postgres)
+
+if [ "$DB_EXISTS" = "1" ]; then
+  echo "Dropping existing database '$DB'..."
+  if ! sudo lxc exec postgres -- dropdb "$DB"; then
+    echo "Error: failed to drop database '$DB'." >&2
+    echo "If it still has open connections, stop the DHIS2 instance (Tomcat) and try again." >&2
+    exit 1
+  fi
+else
+  echo "Database '$DB' does not exist yet - skipping drop."
+fi
+
+echo "Creating new database '$DB' owned by '$DB'..."
+if ! sudo lxc exec postgres -- createdb -O "$DB" "$DB"; then
+  echo "Error: failed to create database '$DB'. Does role '$DB' exist in PostgreSQL?" >&2
+  exit 1
+fi
+
+echo "Restoring data into '$DB'..."
+if ! zcat "$BACKUPFILE" | grep -v 'ALTER .* OWNER' | sudo lxc exec postgres -- psql "$DB"; then
+  echo "Error: restore failed partway through. '$DB' may be left in a partial state." >&2
+  exit 1
+fi
+
+echo "Reassigning objects owned by 'root' to '$DB'..."
+if ! echo "REASSIGN OWNED BY root TO \"$DB\"" | sudo lxc exec postgres -- psql "$DB"; then
+  echo "Error: failed to reassign ownership." >&2
+  exit 1
+fi
+
+echo "---"
+echo "Database restore for '$DB' completed successfully."
+echo "---"
