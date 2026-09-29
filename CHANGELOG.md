@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.12.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.11.0...v1.12.0) (2026-09-29)
+
+
+### 🎉 New Features
+
+* add Agent Skills for dhis2-server-tools workflows ([55fdd15](https://github.com/dhis2/dhis2-server-tools/commit/55fdd15eb69c2c7fc1594d5a7db22a6256ec7fe6))
+
+
+### 🐛 Bug Fixes
+
+* persist /opt/dhis2 and /opt/glowroot/data across OS-migration container rebuilds ([1b0d188](https://github.com/dhis2/dhis2-server-tools/commit/1b0d188a86800003863074ea4d82c16eb7d2f371))
+* persist /opt/dhis2 and /opt/glowroot/data across OS-migration container rebuilds ([2a13d61](https://github.com/dhis2/dhis2-server-tools/commit/2a13d61d55676d5804582f310d8aeb515051e392))
+
 ## [1.11.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.10.0...v1.11.0) (2026-09-23)
 
 
