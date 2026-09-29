@@ -1,0 +1,69 @@
+---
+- name: Crowdsec | Install OpenResty bouncer prerequisites
+  ansible.builtin.apt:
+    name:
+      - openresty-opm
+      - gettext-base
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# crowdsec-openresty-bouncer's postinst auto-registers a fresh API key with the local LAPI
+# (cscli bouncers add) and drops crowdsec_openresty.conf into conf.d/. The proxy role's
+# nginx.conf already includes conf.d/*.conf inside http {}, so no explicit include is
+# needed; adding one declares lua_package_path twice and fails `openresty -t`.
+- name: Crowdsec | Install OpenResty bouncer package
+  ansible.builtin.apt:
+    name: crowdsec-openresty-bouncer
+    state: latest
+  notify: Crowdsec | Reload OpenResty
+
+- name: Crowdsec | Read OpenResty bouncer config
+  ansible.builtin.slurp:
+    src: "{{ crowdsec_bouncer_conf }}"
+  register: crowdsec_openresty_bouncer_conf
+  no_log: true
+
+# A failed registration leaves the package's envsubst placeholder (API_KEY=${API_KEY}) in
+# place. OpenResty still starts, and every request is let through.
+- name: Crowdsec | Assert OpenResty bouncer auto-registered with a real API key
+  ansible.builtin.assert:
+    that:
+      - "(crowdsec_openresty_bouncer_conf.content | b64decode) is regex('^API_KEY=(?!\\$\\{|<)\\S+$', multiline=True)"
+    fail_msg: >-
+      crowdsec-openresty-bouncer failed to auto-register against the local LAPI
+      (cscli/crowdsec wasn't reachable during package install). Run
+      `cscli bouncers add crowdsec-openresty-bouncer` manually and set API_KEY in
+      {{ crowdsec_bouncer_conf }}, then re-run this role.
+
+# diff: false on the edits below - the file holds the bouncer's API key.
+- name: Crowdsec | Configure OpenResty bouncer LAPI URL, AppSec and remediation behavior
+  ansible.builtin.lineinfile:
+    path: "{{ crowdsec_bouncer_conf }}"
+    regexp: "^{{ item.key }}="
+    line: "{{ item.key }}={{ item.value }}"
+  diff: false
+  loop:
+    - { key: "API_URL", value: "{{ crowdsec_lapi_url }}" }
+    - { key: "MODE", value: "{{ crowdsec_bouncer_mode }}" }
+    - { key: "BOUNCING_ON_TYPE", value: "{{ crowdsec_bouncer_bouncing_on_type }}" }
+    - { key: "FALLBACK_REMEDIATION", value: "{{ crowdsec_bouncer_fallback_remediation }}" }
+    # Empty is the package's own default and means 403.
+    - { key: "RET_CODE", value: "{{ crowdsec_bouncer_ret_code }}" }
+    # Empty turns AppSec off in the bouncer.
+    - { key: "APPSEC_URL", value: "{{ crowdsec_appsec_url if crowdsec_appsec_active | bool else '' }}" }
+    - { key: "APPSEC_FAILURE_ACTION", value: "{{ crowdsec_appsec_failure_action }}" }
+    - { key: "CAPTCHA_PROVIDER", value: "{{ crowdsec_bouncer_captcha_provider }}" }
+    - { key: "SITE_KEY", value: "{{ crowdsec_bouncer_captcha_site_key }}" }
+  loop_control:
+    label: "{{ item.key }}"
+  notify: Crowdsec | Reload OpenResty
+
+- name: Crowdsec | Configure OpenResty bouncer captcha secret key
+  ansible.builtin.lineinfile:
+    path: "{{ crowdsec_bouncer_conf }}"
+    regexp: "^SECRET_KEY="
+    line: "SECRET_KEY={{ crowdsec_bouncer_captcha_secret_key }}"
+  diff: false
+  no_log: true
+  notify: Crowdsec | Reload OpenResty

@@ -1,4 +1,30 @@
 ---
+# Same checks as roles/crowdsec/tasks/main.yml, which only runs at the end of the proxy
+# role, after postgres and the proxy are already deployed. Failing here stops the run
+# before anything changes. The defaults mirror roles/crowdsec/defaults/main.yml.
+- name: Pre-flight | Assert CrowdSec settings on [web] hosts
+  ansible.builtin.assert:
+    that:
+      - hostvars[item]['ansible_connection'] | default('lxd') == 'lxd'
+      - >-
+        hostvars[item]['proxy'] | default('') == 'openresty'
+        or not (hostvars[item]['crowdsec_bouncer_enabled'] | default(true) | bool)
+      - >-
+        not (hostvars[item]['crowdsec_bouncer_enabled'] | default(true) | bool)
+        or (hostvars[item]['crowdsec_bouncer_bouncing_on_type'] | default('ban') == 'ban'
+            and hostvars[item]['crowdsec_bouncer_fallback_remediation'] | default('ban') == 'ban')
+        or (hostvars[item]['crowdsec_bouncer_captcha_site_key'] | default('') | length > 0
+            and hostvars[item]['crowdsec_bouncer_captcha_secret_key'] | default('') | length > 0)
+    fail_msg: >-
+      {{ item }}: crowdsec_enabled=true needs ansible_connection=lxd, and the bouncer needs
+      proxy=openresty (or set crowdsec_bouncer_enabled=false for detection only). Captcha
+      remediation needs crowdsec_bouncer_captcha_site_key and
+      crowdsec_bouncer_captcha_secret_key.
+    quiet: true
+  loop: "{{ groups['web'] | default([]) }}"
+  when: hostvars[item]['crowdsec_enabled'] | default(false) | bool
+  tags: [always]
+
 - name: Ensure secrets directory exists
   vars:
     ansible_connection: local

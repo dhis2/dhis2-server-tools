@@ -1,0 +1,26 @@
+---
+# Role-internal constants and derived values - not for override.
+crowdsec_lapi_url: "http://127.0.0.1:{{ crowdsec_lapi_port }}"
+crowdsec_appsec_url: "http://127.0.0.1:{{ crowdsec_appsec_port }}"
+crowdsec_appsec_active: "{{ crowdsec_appsec_enabled | bool and crowdsec_bouncer_enabled | bool }}"
+
+crowdsec_metrics_exposed: "{{ crowdsec_metrics_enabled | bool and crowdsec_metrics_expose | bool }}"
+crowdsec_metrics_listen_addr: "{{ (service_ip | default(ansible_host)) if crowdsec_metrics_exposed | bool else '127.0.0.1' }}"
+
+crowdsec_repo_url: "https://packagecloud.io/crowdsec/crowdsec/any"
+crowdsec_keyring: "/etc/apt/keyrings/crowdsec.asc"
+# Where the key used to be dearmored to with curl | gpg; see install-engine.yml.
+crowdsec_legacy_keyring: "/usr/share/keyrings/crowdsec-archive-keyring.gpg"
+
+crowdsec_openresty_conf_dir: "/usr/local/openresty/nginx/conf/conf.d"
+crowdsec_openresty_logs_dir: "/usr/local/openresty/nginx/logs"
+crowdsec_bouncer_conf: "/etc/crowdsec/bouncers/crowdsec-openresty-bouncer.conf"
+
+# Templated by this role only, so its presence marks a role-managed install that
+# crowdsec_enabled=false may remove.
+crowdsec_managed_marker: "/etc/crowdsec/config.yaml.local"
+
+crowdsec_allowlist_name: "dhis2"
+crowdsec_appsec_collections:
+  - crowdsecurity/appsec-virtual-patching
+  - crowdsecurity/appsec-generic-rules

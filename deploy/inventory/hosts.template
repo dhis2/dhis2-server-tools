@@ -116,6 +116,18 @@ proxy=nginx
 # Options: letsencrypt, customssl, selfsigned, default(letsencrypt if fqdn is defined else selfsigned )
 TLS_TYPE=letsencrypt
 
+# CrowdSec WAF - the bouncer requires proxy=openresty. Setting it back to false removes CrowdSec.
+crowdsec_enabled=false
+# Shares attacker IPs and the attacks they triggered with CrowdSec and pulls its community
+# blocklist. false = nothing leaves the server, and no community blocklist.
+# crowdsec_online_api_enabled=true
+# AppSec inspects every request in-band and blocks known-CVE exploits; needs the bouncer.
+# crowdsec_appsec_enabled=true
+# captcha remediation needs a site key and a secret key (put the secret in vault.yml).
+# crowdsec_bouncer_bouncing_on_type=ban
+# IPs/CIDRs never blocked, e.g. a facility's shared carrier-NAT egress IP. JSON list:
+# crowdsec_allowlist=["203.0.113.10", "198.51.100.0/24"]
+
 
 # instances group variables,
 [instances:vars]

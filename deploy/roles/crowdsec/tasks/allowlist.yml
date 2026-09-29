@@ -1,0 +1,52 @@
+---
+# A centralized allowlist, not an s02-enrich whitelist parser: the parser only drops
+# locally detected alerts, while an allowlist also keeps community-blocklist entries and
+# AppSec blocks off the listed IPs, and adding an entry deletes its existing bans. The
+# role owns this one allowlist entirely. AppSec re-reads allowlists about once a minute.
+- name: Crowdsec | Read the role's allowlist
+  ansible.builtin.command: "cscli allowlists inspect {{ crowdsec_allowlist_name }} -o json"
+  register: crowdsec_allowlist_current
+  changed_when: false
+  failed_when:
+    - crowdsec_allowlist_current.rc != 0
+    - "'not found' not in crowdsec_allowlist_current.stderr"
+
+# cscli stores each value exactly as given, so plain string comparison is enough.
+- name: Crowdsec | Compare the allowlist with crowdsec_allowlist
+  ansible.builtin.set_fact:
+    crowdsec_allowlist_missing: "{{ crowdsec_allowlist | map('string') | list | difference(crowdsec_allowlist_present) }}"
+    crowdsec_allowlist_extra: "{{ crowdsec_allowlist_present | difference(crowdsec_allowlist | map('string') | list) }}"
+  vars:
+    crowdsec_allowlist_present: >-
+      {{ ((crowdsec_allowlist_current.stdout | from_json)['items'] | default([], true) | map(attribute='value') | list)
+         if crowdsec_allowlist_current.rc == 0 else [] }}
+
+- name: Crowdsec | Create the allowlist
+  ansible.builtin.command: >-
+    cscli allowlists create {{ crowdsec_allowlist_name }}
+    -d "Trusted networks, managed by Ansible (crowdsec_allowlist)"
+  when:
+    - crowdsec_allowlist | length > 0
+    - crowdsec_allowlist_current.rc != 0
+  changed_when: true
+
+- name: Crowdsec | Add new allowlist entries
+  ansible.builtin.command:
+    argv: "{{ ['cscli', 'allowlists', 'add', crowdsec_allowlist_name] + crowdsec_allowlist_missing + ['-d', 'crowdsec_allowlist'] }}"
+  when: crowdsec_allowlist_missing | length > 0
+  changed_when: true
+
+- name: Crowdsec | Remove entries dropped from crowdsec_allowlist
+  ansible.builtin.command:
+    argv: "{{ ['cscli', 'allowlists', 'remove', crowdsec_allowlist_name] + crowdsec_allowlist_extra }}"
+  when:
+    - crowdsec_allowlist | length > 0
+    - crowdsec_allowlist_extra | length > 0
+  changed_when: true
+
+- name: Crowdsec | Delete the allowlist when crowdsec_allowlist is empty
+  ansible.builtin.command: "cscli allowlists delete {{ crowdsec_allowlist_name }}"
+  when:
+    - crowdsec_allowlist | length == 0
+    - crowdsec_allowlist_current.rc == 0
+  changed_when: true
