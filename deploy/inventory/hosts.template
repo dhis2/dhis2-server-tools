@@ -84,6 +84,10 @@ app_monitoring=glowroot
 wireguard_enabled=false
 # wireguard_data_plane=false
 
+# alerting (infra alerts need server_monitoring=grafana; see docs/alerting.md)
+# alerting_enabled=false
+# alerting_default_contact_point=telegram
+# Tokens: files under /opt/ansible/secrets/ (not [all:vars]) — see docs/alerting.md
 
 # lxd
 lxd_network=172.19.2.1/24 

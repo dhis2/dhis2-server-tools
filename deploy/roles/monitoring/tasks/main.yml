@@ -1,12 +1,12 @@
 ---
 - name: Include tasks for {{ ansible_connection }}
-  ansible.builtin.include_tasks: "{{ ansible_connection }}.yml"
+  ansible.builtin.include_tasks: '{{ ansible_connection }}.yml'
   when:
     - server_monitoring is defined
     - inventory_hostname in groups['monitoring']
 
 - name: Include server tasks for {{ server_monitoring | trim }}
-  ansible.builtin.include_tasks: "{{ monitoring_stack | trim }}-server.yml"
+  ansible.builtin.include_tasks: '{{ monitoring_stack | trim }}-server.yml'
   loop: "{{ (server_monitoring | trim).split('/') }}"
   loop_control:
     loop_var: monitoring_stack

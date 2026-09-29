@@ -1,0 +1,58 @@
+---
+- name: Alerting | Gather OS facts for Tomcat version detection
+  ansible.builtin.setup:
+    gather_subset:
+      - distribution
+      - '!all'
+      - '!min'
+  when: ansible_facts['distribution_version'] is not defined
+
+- name: Alerting | Resolve Tomcat service version
+  ansible.builtin.set_fact:
+    tomcat_version: "{{ ansible_facts['distribution_version'] | tomcat_version }}"
+  when: tomcat_version is not defined
+
+- name: Alerting | Resolve tomcat group id for Glowroot file ownership
+  ansible.builtin.command: getent group tomcat
+  register: alerting_tomcat_group
+  changed_when: false
+  failed_when: alerting_tomcat_group.rc != 0
+
+- name: Alerting | Install Glowroot hub patch helper
+  ansible.builtin.copy:
+    src: glowroot_hub_patch.py
+    dest: /usr/local/lib/dhis2-glowroot-hub-patch.py
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Alerting | Patch Glowroot admin.json and config.json for hub webhook
+  ansible.builtin.command:
+    argv: '{{ alerting_glowroot_patch_argv }}'
+  vars:
+    alerting_glowroot_webhook_url: >-
+      http://{{ hostvars[groups['monitoring'][0]]['ansible_host'] }}:{{ alerting_hub_glowroot_forwarder_port }}/?token={{ hostvars[groups['monitoring'][0]]['alerting_glowroot_forwarder_token'] }}
+    alerting_glowroot_patch_argv: >-
+      {{
+        [
+          '/usr/bin/python3',
+          '/usr/local/lib/dhis2-glowroot-hub-patch.py',
+          '--admin', '/opt/glowroot/admin.json',
+          '--config', '/opt/glowroot/config.json',
+          '--webhook-url', alerting_glowroot_webhook_url,
+          '--webhook-id', alerting_glowroot_webhook_id,
+          '--heap-memory-size', (heap_memory_size | default('4G') | string),
+          '--heartbeat-seconds', (glowroot_alert_heartbeat_seconds | string),
+          '--error-rate-threshold', (glowroot_alert_error_rate_threshold | string),
+          '--error-rate-period', (glowroot_alert_error_rate_time_period_seconds | string),
+          '--p95-threshold-ms', (glowroot_alert_p95_threshold_ms | string),
+          '--p95-period', (glowroot_alert_p95_time_period_seconds | string),
+          '--min-transaction-count', (glowroot_alert_min_transaction_count | string),
+          '--tomcat-gid', (alerting_tomcat_group.stdout.split(':')[2] | string),
+        ]
+        + (['--force'] if alerting_glowroot_force_config | bool else [])
+      }}
+  no_log: true
+  register: alerting_glowroot_hub_patch
+  changed_when: "'CHANGED' in (alerting_glowroot_hub_patch.stdout | default(''))"
+  notify: Restart Tomcat

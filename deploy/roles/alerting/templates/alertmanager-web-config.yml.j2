@@ -1,0 +1,3 @@
+{{ ansible_managed | comment }}
+basic_auth_users:
+  {{ alerting_web_basic_auth_user }}: {{ alerting_web_basic_auth_bcrypt_hash }}

@@ -1,0 +1,303 @@
+---
+- name: Alerting | Gather facts for architecture detection
+  ansible.builtin.setup:
+    gather_subset:
+      - architecture
+
+- name: Alerting | Resolve Alertmanager architecture
+  ansible.builtin.set_fact:
+    alerting_alertmanager_arch: >-
+      {{
+        'amd64' if ansible_architecture == 'x86_64'
+        else 'arm64' if ansible_architecture == 'aarch64'
+        else (guest_os_arch | default(''))
+          if (guest_os_arch | default('')) in ['amd64', 'arm64']
+        else 'unsupported'
+      }}
+
+- name: Alerting | Fail on unsupported Alertmanager architecture
+  ansible.builtin.fail:
+    msg: >-
+      Alertmanager upstream builds are not available for
+      ansible_architecture={{ ansible_architecture }}
+      (guest_os_arch={{ guest_os_arch | default('unset') }}).
+      Supported: x86_64/amd64, aarch64/arm64. armhf is not supported.
+  when: >-
+    alerting_alertmanager_arch == 'unsupported'
+    or (guest_os_arch | default('')) == 'armhf'
+
+- name: Alerting | Create alertmanager system group
+  ansible.builtin.group:
+    name: alertmanager
+    system: true
+
+- name: Alerting | Create alertmanager system user
+  ansible.builtin.user:
+    name: alertmanager
+    shell: /usr/sbin/nologin
+    home: /var/lib/alertmanager
+    create_home: false
+    system: true
+    group: alertmanager
+
+- name: Alerting | Create Alertmanager directories
+  ansible.builtin.file:
+    path: '{{ item.path }}'
+    state: directory
+    owner: '{{ item.owner }}'
+    group: '{{ item.group }}'
+    mode: '{{ item.mode }}'
+  loop:
+    - {
+        path: /etc/alertmanager,
+        owner: root,
+        group: alertmanager,
+        mode: '0755',
+      }
+    - {
+        path: /etc/alertmanager/secrets,
+        owner: alertmanager,
+        group: alertmanager,
+        mode: '0750',
+      }
+    - {
+        path: /var/lib/alertmanager,
+        owner: alertmanager,
+        group: alertmanager,
+        mode: '0755',
+      }
+    - { path: /opt/alertmanager, owner: root, group: root, mode: '0755' }
+
+- name: Alerting | Download Alertmanager {{ alerting_alertmanager_version }}
+  ansible.builtin.get_url:
+    url: >-
+      https://github.com/prometheus/alertmanager/releases/download/v{{ alerting_alertmanager_version }}/alertmanager-{{ alerting_alertmanager_version }}.linux-{{ alerting_alertmanager_arch }}.tar.gz
+    dest: /tmp/alertmanager-{{ alerting_alertmanager_version }}.linux-{{ alerting_alertmanager_arch }}.tar.gz
+    checksum: 'sha256:{{ alerting_alertmanager_checksums[alerting_alertmanager_arch] }}'
+    mode: '0644'
+
+- name: Alerting | Extract Alertmanager binaries
+  ansible.builtin.unarchive:
+    src: /tmp/alertmanager-{{ alerting_alertmanager_version }}.linux-{{ alerting_alertmanager_arch }}.tar.gz
+    dest: /opt/alertmanager
+    remote_src: true
+    creates: /opt/alertmanager/alertmanager-{{ alerting_alertmanager_version }}.linux-{{ alerting_alertmanager_arch }}/alertmanager
+    owner: root
+    group: root
+
+- name: Alerting | Install alertmanager and amtool binaries
+  ansible.builtin.copy:
+    src: '/opt/alertmanager/alertmanager-{{ alerting_alertmanager_version }}.linux-{{ alerting_alertmanager_arch }}/{{ item }}'
+    dest: '/usr/local/bin/{{ item }}'
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - alertmanager
+    - amtool
+  notify: Restart Alertmanager
+
+- name: Alerting | Write Telegram bot token secret
+  ansible.builtin.copy:
+    content: '{{ alerting_telegram_bot_token }}'
+    dest: /etc/alertmanager/secrets/telegram_bot_token
+    owner: alertmanager
+    group: alertmanager
+    mode: '0600'
+  no_log: true
+  when:
+    - alerting_telegram_bot_token | default('') | length > 0
+  notify: Restart Alertmanager
+
+- name: Alerting | Write Slack webhook secret
+  ansible.builtin.copy:
+    content: '{{ alerting_slack_webhook_url }}'
+    dest: /etc/alertmanager/secrets/slack_api_url
+    owner: alertmanager
+    group: alertmanager
+    mode: '0600'
+  no_log: true
+  when:
+    - alerting_slack_webhook_url | default('') | length > 0
+  notify: Restart Alertmanager
+
+- name: Alerting | Write SMTP password secret
+  ansible.builtin.copy:
+    content: '{{ alerting_smtp_auth_password }}'
+    dest: /etc/alertmanager/secrets/smtp_password
+    owner: alertmanager
+    group: alertmanager
+    mode: '0600'
+  no_log: true
+  when:
+    - alerting_smtp_auth_password | default('') | length > 0
+  notify: Restart Alertmanager
+
+- name: Alerting | Write Glowroot forwarder token secret
+  ansible.builtin.copy:
+    content: '{{ alerting_glowroot_forwarder_token }}'
+    dest: /etc/alertmanager/secrets/glowroot_forwarder_token
+    owner: alertmanager
+    group: alertmanager
+    mode: '0640'
+  no_log: true
+  when:
+    - alerting_glowroot_forwarder_token | default('') | length > 0
+  notify: Restart Glowroot Forwarder
+
+- name: Alerting | Write Alertmanager web basic-auth password for local peers
+  ansible.builtin.copy:
+    content: '{{ alerting_web_basic_auth_password }}'
+    dest: /etc/alertmanager/secrets/web_password
+    owner: alertmanager
+    group: alertmanager
+    mode: '0640'
+  no_log: true
+  when: alerting_web_basic_auth_enabled | default(true) | bool
+  notify:
+    - Restart Alertmanager
+    - Restart Glowroot Forwarder
+
+- name: Alerting | Check for persisted web-auth bcrypt hash
+  ansible.builtin.stat:
+    path: /etc/alertmanager/secrets/web_password.bcrypt
+  register: alerting_web_bcrypt_stat
+  when: alerting_web_basic_auth_enabled | default(true) | bool
+
+- name: Alerting | Generate bcrypt hash for Alertmanager web auth
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -c
+      - |
+        import crypt
+        import sys
+        print(crypt.crypt(sys.argv[1], crypt.METHOD_BLOWFISH))
+      - '{{ alerting_web_basic_auth_password }}'
+  register: alerting_web_bcrypt_generated
+  changed_when: false
+  no_log: true
+  when:
+    - alerting_web_basic_auth_enabled | default(true) | bool
+    - not (alerting_web_bcrypt_stat.stat.exists | default(false))
+
+- name: Alerting | Persist bcrypt hash for Alertmanager web auth
+  ansible.builtin.copy:
+    content: "{{ alerting_web_bcrypt_generated.stdout }}\n"
+    dest: /etc/alertmanager/secrets/web_password.bcrypt
+    owner: alertmanager
+    group: alertmanager
+    mode: '0600'
+  no_log: true
+  when:
+    - alerting_web_basic_auth_enabled | default(true) | bool
+    - not (alerting_web_bcrypt_stat.stat.exists | default(false))
+  notify: Restart Alertmanager
+
+- name: Alerting | Load Alertmanager web-auth bcrypt hash
+  ansible.builtin.slurp:
+    src: /etc/alertmanager/secrets/web_password.bcrypt
+  register: alerting_web_bcrypt_slurp
+  no_log: true
+  when: alerting_web_basic_auth_enabled | default(true) | bool
+
+- name: Alerting | Set Alertmanager web-auth bcrypt fact
+  ansible.builtin.set_fact:
+    alerting_web_basic_auth_bcrypt_hash: '{{ alerting_web_bcrypt_slurp.content | b64decode | trim }}'
+  no_log: true
+  when: alerting_web_basic_auth_enabled | default(true) | bool
+
+- name: Alerting | Deploy Alertmanager web config
+  ansible.builtin.template:
+    src: alertmanager-web-config.yml.j2
+    dest: /etc/alertmanager/web-config.yml
+    owner: root
+    group: alertmanager
+    mode: '0640'
+  no_log: true
+  when: alerting_web_basic_auth_enabled | default(true) | bool
+  notify: Restart Alertmanager
+
+- name: Alerting | Deploy Alertmanager configuration
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: /etc/alertmanager/alertmanager.yml
+    owner: root
+    group: alertmanager
+    mode: '0640'
+    validate: '/usr/local/bin/amtool check-config %s'
+  no_log: true
+  notify: Restart Alertmanager
+
+- name: Alerting | Deploy Alertmanager systemd unit
+  ansible.builtin.template:
+    src: alertmanager.service.j2
+    dest: /etc/systemd/system/alertmanager.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart Alertmanager
+
+- name: Alerting | Enable and start Alertmanager
+  ansible.builtin.systemd:
+    name: alertmanager
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: Alerting | Install Glowroot forwarder
+  when:
+    - alerting_glowroot_forwarder_token | default('') | length > 0
+  block:
+    - name: Alerting | Create glowroot-forwarder system group
+      ansible.builtin.group:
+        name: glowroot_forwarder
+        system: true
+
+    - name: Alerting | Create glowroot-forwarder system user
+      ansible.builtin.user:
+        name: glowroot_forwarder
+        shell: /usr/sbin/nologin
+        create_home: false
+        system: true
+        group: glowroot_forwarder
+        groups: [alertmanager]
+        append: true
+
+    - name: Alerting | Deploy Glowroot forwarder script
+      ansible.builtin.template:
+        src: glowroot-forwarder.py.j2
+        dest: /usr/local/bin/glowroot-forwarder.py
+        owner: root
+        group: glowroot_forwarder
+        mode: '0750'
+      no_log: true
+      notify: Restart Glowroot Forwarder
+
+    - name: Alerting | Deploy Glowroot forwarder systemd unit
+      ansible.builtin.template:
+        src: glowroot-forwarder.service.j2
+        dest: /etc/systemd/system/glowroot-forwarder.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Glowroot Forwarder
+
+    - name: Alerting | Enable and start Glowroot forwarder
+      ansible.builtin.systemd:
+        name: glowroot-forwarder
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: Alerting | Allow Glowroot forwarder from instances
+      community.general.ufw:
+        rule: allow
+        port: '{{ alerting_hub_glowroot_forwarder_port }}'
+        src: "{{ hostvars[item]['ansible_host'] }}"
+        proto: tcp
+        comment: 'Glowroot alerts from {{ item }}'
+        state: enabled
+      loop: "{{ groups['instances'] | default([]) }}"
+      when: groups['instances'] | default([]) | length > 0

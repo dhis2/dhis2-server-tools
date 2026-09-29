@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+# {{ ansible_managed }}
+"""Glowroot Slack-webhook to Alertmanager forwarder.
+
+Listens for Slack-formatted POSTs from Glowroot instances, checks ?token=,
+and posts Alertmanager /api/v2/alerts on loopback.
+"""
+
+from __future__ import annotations
+
+import base64
+import hmac
+import json
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+LISTEN_HOST = "{{ alerting_hub_glowroot_forwarder_bind_ip }}"
+LISTEN_PORT = {{ alerting_hub_glowroot_forwarder_port | int }}
+TOKEN_FILE = "/etc/alertmanager/secrets/glowroot_forwarder_token"
+AM_URL = "http://{{ alerting_hub_bind_ip }}:{{ alerting_hub_port }}/api/v2/alerts"
+AM_USER = "{{ alerting_web_basic_auth_user }}"
+AM_PASSWORD_FILE = "/etc/alertmanager/secrets/web_password"
+BASIC_AUTH_ENABLED = {{ alerting_web_basic_auth_enabled | default(true) | bool }}
+
+
+def read_secret(path: str) -> str:
+    with open(path, encoding="utf-8") as handle:
+        return handle.read().strip()
+
+
+EXPECTED_TOKEN = read_secret(TOKEN_FILE) if __name__ == "__main__" else ""
+
+
+def slack_to_am_alerts(payload: dict) -> list[dict]:
+    attachments = payload.get("attachments") or []
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    if not attachments:
+        text = payload.get("text", "Glowroot alert")
+        return [
+            {
+                "labels": {
+                    "alertname": "GlowrootAlert",
+                    "severity": "warning",
+                    "source": "glowroot",
+                },
+                "annotations": {
+                    "summary": text,
+                    "description": text,
+                },
+                "startsAt": now,
+            }
+        ]
+
+    alerts = []
+    for att in attachments:
+        color = att.get("color", "warning")
+        severity = "critical" if color == "danger" else "warning"
+        summary = att.get("pretext") or att.get("fallback") or "Glowroot alert"
+        description = att.get("text") or att.get("fallback") or summary
+        labels = {
+            "alertname": "GlowrootAlert",
+            "severity": severity,
+            "source": "glowroot",
+        }
+        # Best-effort instance label from pretext like "[dhis] ..."
+        if summary.startswith("[") and "]" in summary:
+            labels["instance"] = summary[1 : summary.index("]")]
+        alerts.append(
+            {
+                "labels": labels,
+                "annotations": {
+                    "summary": summary,
+                    "description": description,
+                },
+                "startsAt": now,
+            }
+        )
+    return alerts
+
+
+def post_to_alertmanager(alerts: list[dict]) -> int:
+    data = json.dumps(alerts).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if BASIC_AUTH_ENABLED:
+        password = read_secret(AM_PASSWORD_FILE)
+        token = base64.b64encode(f"{AM_USER}:{password}".encode("utf-8")).decode("ascii")
+        headers["Authorization"] = f"Basic {token}"
+    req = urllib.request.Request(AM_URL, data=data, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return resp.status
+    except urllib.error.HTTPError as exc:
+        print(f"Alertmanager HTTP error: {exc.code} {exc.reason}", file=sys.stderr)
+        return exc.code
+    except urllib.error.URLError as exc:
+        print(f"Alertmanager URL error: {exc}", file=sys.stderr)
+        return 0
+
+
+class Handler(BaseHTTPRequestHandler):
+    def do_POST(self):  # noqa: N802
+        parsed = urllib.parse.urlparse(self.path)
+        params = urllib.parse.parse_qs(parsed.query)
+        token = (params.get("token") or [""])[0]
+        expected = read_secret(TOKEN_FILE)
+        if not token or not hmac.compare_digest(token, expected):
+            self.send_response(401)
+            self.end_headers()
+            return
+
+        length = int(self.headers.get("Content-Length", 0))
+        raw = self.rfile.read(length)
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            self.send_response(400)
+            self.end_headers()
+            return
+
+        status = post_to_alertmanager(slack_to_am_alerts(payload))
+        code = 200 if status in (200, 202) else 502
+        self.send_response(code)
+        self.end_headers()
+
+    def log_message(self, fmt, *args):
+        return
+
+
+if __name__ == "__main__":
+    EXPECTED_TOKEN = read_secret(TOKEN_FILE)
+    server = ThreadingHTTPServer((LISTEN_HOST, LISTEN_PORT), Handler)
+    print(f"Listening on {LISTEN_HOST}:{LISTEN_PORT}")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        server.server_close()

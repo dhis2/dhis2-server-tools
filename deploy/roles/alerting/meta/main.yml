@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: alerting
+  author: dhis2
+  description: Co-located Alertmanager hub and Glowroot forwarder on monitoring
+  license: BSD-2-Clause
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+  galaxy_tags: [dhis2, alerting, alertmanager, prometheus]
+dependencies: []

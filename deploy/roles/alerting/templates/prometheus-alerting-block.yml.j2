@@ -1,0 +1,11 @@
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - '{{ alerting_hub_bind_ip }}:{{ alerting_hub_port }}'
+      api_version: v2
+{% if alerting_web_basic_auth_enabled | default(true) | bool %}
+      basic_auth:
+        username: '{{ alerting_web_basic_auth_user }}'
+        password_file: /etc/prometheus/secrets/alertmanager_password
+{% endif %}

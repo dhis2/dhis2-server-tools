@@ -25,6 +25,29 @@ munin_hosts:
     extra: [use_node_name yes]
 
 munin_alerts: []
+# Email:
+# munin_alerts:
+#   - name: admin
+#     type: email
+#     email: admin@example.com
+#     subject: "Munin Alert"
+#     level: "warning critical"
+#
+# Telegram:
+# munin_alerts:
+#   - name: telegram
+#     type: telegram
+#     bot_token: "your-bot-token-from-botfather"
+#     chat_id: "-1001234567890"
+#     level: "warning critical"
+#
+# Slack:
+# munin_alerts:
+#   - name: slack
+#     type: slack
+#     webhook_url: "https://hooks.slack.com/services/T.../B.../xxx"
+#     level: "warning critical"
+
 # munin node defaults
 munin_node_bind_host: "*"
 munin_node_bind_port: "4949"

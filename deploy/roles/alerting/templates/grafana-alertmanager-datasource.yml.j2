@@ -1,0 +1,17 @@
+{{ ansible_managed | comment }}
+apiVersion: 1
+datasources:
+  - name: Alertmanager
+    type: alertmanager
+    uid: dhis2-alertmanager
+    url: http://{{ alerting_hub_bind_ip }}:{{ alerting_hub_port }}
+    access: proxy
+    jsonData:
+      implementation: prometheus
+      handleGrafanaManagedAlerts: false
+{% if alerting_web_basic_auth_enabled | default(true) | bool %}
+    basicAuth: true
+    basicAuthUser: {{ alerting_web_basic_auth_user }}
+    secureJsonData:
+      basicAuthPassword: {{ alerting_web_basic_auth_password }}
+{% endif %}
