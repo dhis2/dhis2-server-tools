@@ -1,0 +1,107 @@
+---
+# Switching off: first the bouncer alone, then CrowdSec entirely.
+- name: Side effect | Switch the bouncer off
+  hosts: web
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Side effect | Deploy with crowdsec_bouncer_enabled=false
+      ansible.builtin.include_role:
+        name: crowdsec
+        tasks_from: deploy.yml
+      vars:
+        crowdsec_bouncer_enabled: false
+
+    - name: Side effect | Apply pending reloads
+      ansible.builtin.meta: flush_handlers
+
+    - name: Side effect | Read the bouncer package state
+      ansible.builtin.command: dpkg-query -W -f=${Status} crowdsec-openresty-bouncer
+      register: side_bouncer_pkg
+      changed_when: false
+      failed_when: false
+
+    - name: Side effect | List bouncer registrations
+      ansible.builtin.command: cscli bouncers list -o json
+      register: side_bouncers
+      changed_when: false
+
+    - name: Side effect | Check the bouncer's conf.d file
+      ansible.builtin.stat:
+        path: /usr/local/openresty/nginx/conf/conf.d/crowdsec_openresty.conf
+      register: side_bouncer_conf
+
+    - name: Side effect | The bouncer is purged and unregistered; the engine keeps running
+      ansible.builtin.assert:
+        that:
+          - side_bouncer_pkg.stdout is not search('installed|config-files')
+          - side_bouncers.stdout | from_json | default([], true) | length == 0
+          - not side_bouncer_conf.stat.exists
+
+    - name: Side effect | The engine is still running
+      ansible.builtin.command: systemctl is-active crowdsec openresty
+      changed_when: false
+
+    - name: Side effect | Nothing blocks without the bouncer
+      ansible.builtin.uri:
+        url: http://127.0.0.1/.env
+        status_code: 404
+
+- name: Side effect | Switch CrowdSec off
+  hosts: web
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Side effect | Deploy with crowdsec_enabled=false
+      ansible.builtin.include_role:
+        name: crowdsec
+        tasks_from: deploy.yml
+      vars:
+        crowdsec_enabled: false
+
+    - name: Side effect | Apply pending reloads
+      ansible.builtin.meta: flush_handlers
+
+    - name: Side effect | Read the engine package state
+      ansible.builtin.command: dpkg-query -W -f=${Status} crowdsec
+      register: side_engine_pkg
+      changed_when: false
+      failed_when: false
+
+    - name: Side effect | Check the files the role leaves behind or removes
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /etc/crowdsec/config.yaml.local
+        - /usr/local/openresty/nginx/conf/conf.d/crowdsec_access_log.conf
+        - /etc/apt/keyrings/crowdsec.asc
+        - /etc/apt/sources.list.d/crowdsec.list
+      register: side_files
+
+    - name: Side effect | Engine, marker, access log, key and repo are gone
+      ansible.builtin.assert:
+        that:
+          - side_engine_pkg.stdout is not search('ok installed')
+          - side_files.results | selectattr('stat.exists') | list | length == 0
+
+    - name: Side effect | OpenResty config is valid and still serving
+      ansible.builtin.command: openresty -t
+      changed_when: false
+
+    - name: Side effect | A normal request is served
+      ansible.builtin.uri:
+        url: http://127.0.0.1/
+        status_code: 200
+
+# Removal must be a no-op once done: the marker is gone, so the role does nothing.
+- name: Side effect | Rerun with CrowdSec off
+  hosts: web
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Side effect | Deploy with crowdsec_enabled=false again
+      ansible.builtin.include_role:
+        name: crowdsec
+        tasks_from: deploy.yml
+      vars:
+        crowdsec_enabled: false
