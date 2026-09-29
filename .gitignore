@@ -31,3 +31,6 @@ deploy/filter_plugins/__pycache__/
 *.pyc
 __pycache__/
 molecule/*/tests/__pycache__/
+
+# Local-only documentation (handoffs, research notes)
+documentation/
