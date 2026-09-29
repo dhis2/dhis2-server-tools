@@ -57,7 +57,7 @@
     dest: /etc/logrotate.d/openresty
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
 
 - name: Creating OpenResty config directories
   ansible.builtin.file:
