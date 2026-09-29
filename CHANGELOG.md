@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.13.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.12.0...v1.13.0) (2026-09-29)
+
+
+### 🎉 New Features
+
+* co-located Alertmanager alerting hub ([9e1b5b6](https://github.com/dhis2/dhis2-server-tools/commit/9e1b5b65640697c796d279755b35267456911ce5))
+
+
+### 🐛 Bug Fixes
+
+* dhis2-restoredb precheck target DB and idempotent container stop/start ([5c78c0b](https://github.com/dhis2/dhis2-server-tools/commit/5c78c0b754ac011d5aa6a23d806977f62e709b89))
+
 ## [1.12.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.11.0...v1.12.0) (2026-09-29)
 
 
