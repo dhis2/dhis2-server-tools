@@ -37,12 +37,16 @@
       "https://github.com/glowroot/glowroot/releases/download/{{ glowroot_latest_version }}/glowroot-{{ glowroot_latest_version | regex_replace('^v', '') }}-dist.zip"
   when: glowroot_needs_update
 
-- name: Remove old glowroot directory
-  ansible.builtin.file:
-    path: /opt/glowroot
-    state: absent
-  when: glowroot_needs_update
-
+# No longer deletes /opt/glowroot first - data/ is a separate mounted
+# volume nested under it (see migrate-dhis2-data.yml), and a recursive
+# delete here doesn't stop at mount boundaries, so it would wipe the
+# volume's actual contents, not just clean up old binaries. unarchive
+# overlays the new distribution's files without needing the destination
+# empty first (verified: keep_newer defaults to false, so it overwrites
+# existing files unconditionally); data/ was never part of the downloaded
+# zip, so it's untouched either way. Files from a prior version that
+# aren't in the new zip are left behind as harmless clutter - a real
+# tradeoff, but a far smaller one than the alternative.
 - name: Extract glowroot
   ansible.builtin.unarchive:
     src: /tmp/glowroot-dist.zip

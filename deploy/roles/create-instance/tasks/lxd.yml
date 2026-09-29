@@ -37,6 +37,17 @@
       - "!min"
   tags: [always] # DISCUSS: why is always needed here
 
+- name: Determine whether this run will trigger the OS-migration container rebuild
+  ansible.builtin.set_fact:
+    dhis2_needs_os_migration: >-
+      {{ dhis2_auto_upgrade | bool
+         and GUEST_OS == '24.04'
+         and ansible_facts['distribution_version'] == '22.04' }}
+
+- name: Migrate /opt/dhis2 to a persistent volume before the OS-migration rebuild
+  ansible.builtin.include_tasks: migrate-dhis2-data.yml
+  when: dhis2_needs_os_migration
+
 - name: Delete container if OS is incompatible with target DHIS2 version
   become: true
   vars:
@@ -44,10 +55,7 @@
   community.general.lxd_container:
     name: "{{ inventory_hostname }}"
     state: absent
-  when:
-    - dhis2_auto_upgrade | bool
-    - GUEST_OS == '24.04'
-    - ansible_facts['distribution_version'] == '22.04'
+  when: dhis2_needs_os_migration
   register: deleted_incompatible_container
 
 - name: Recreate container with correct OS after deletion
@@ -68,12 +76,15 @@
       server: "{{ lxd_source_server | default('https://cloud-images.ubuntu.com/releases') }}"
       protocol: "{{ lxd_source_protocol | default('simplestreams') }}"
       alias: "{{ GUEST_OS | default(guest_os) }}/{{ guest_os_arch | default('amd64') }}"
-    devices:
-      eth0:
-        nictype: bridged
-        parent: "{{ lxd_bridge_interface | default('lxdbr1') }}"
-        type: nic
-        ipv4.address: "{{ ansible_host | ansible.utils.ipaddr(lxd_network) }}"
+    devices: >-
+      {{ {'eth0': {'nictype': 'bridged', 'parent': lxd_bridge_interface | default('lxdbr1'),
+                   'type': 'nic', 'ipv4.address': ansible_host | ansible.utils.ipaddr(lxd_network)}}
+         | combine({'dhis2_data': {'type': 'disk', 'pool': lxd_storage_pool | default('default'),
+                                    'source': inventory_hostname ~ '-dhis2-data', 'path': '/opt/dhis2'}}
+                    if dhis2_needs_os_migration else {})
+         | combine({'glowroot_data': {'type': 'disk', 'pool': lxd_storage_pool | default('default'),
+                                       'source': inventory_hostname ~ '-glowroot-data', 'path': '/opt/glowroot/data'}}
+                    if glowroot_data_needs_migration | default(false) else {}) }}
   when: deleted_incompatible_container.changed
   register: create_lxd_container_status
 

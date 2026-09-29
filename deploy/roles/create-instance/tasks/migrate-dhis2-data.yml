@@ -1,0 +1,173 @@
+---
+# Included from lxd.yml, gated on dhis2_needs_os_migration - moves /opt/dhis2
+# onto a persistent LXD storage volume before the OS-migration container
+# rebuild (see "Delete container if OS is incompatible..." in lxd.yml)
+# destroys the old container. The volume survives that deletion; the
+# recreated container re-attaches it directly at /opt/dhis2, already
+# populated, so app files/uploaded documents/dhis.conf are never lost.
+
+- name: Ensure persistent storage volume exists for /opt/dhis2
+  vars:
+    ansible_connection: local
+  ansible.builtin.command:
+    cmd: lxc storage volume create {{ lxd_storage_pool | default('default') }} {{ inventory_hostname }}-dhis2-data
+  register: create_dhis2_volume
+  changed_when: create_dhis2_volume.rc == 0
+  failed_when:
+    - create_dhis2_volume.rc != 0
+    - "'already exists' not in create_dhis2_volume.stderr"
+
+- name: Ensure the volume has correct UID-shifting for unprivileged containers
+  vars:
+    ansible_connection: local
+  ansible.builtin.command:
+    cmd: lxc storage volume set {{ lxd_storage_pool | default('default') }} {{ inventory_hostname }}-dhis2-data security.shifted=true
+  changed_when: true
+
+- name: Stop Tomcat before migrating /opt/dhis2 off the container being deleted
+  ansible.builtin.systemd:
+    # tomcat_version (pre-install.yml) isn't set yet this early in main.yml -
+    # compute it the same way, from the OLD container's still-current OS
+    # (it hasn't been deleted yet at this point), not the target OS.
+    name: tomcat{{ ansible_facts['distribution_version'] | tomcat_version }}
+    state: stopped
+
+# Staged at a separate path first, not directly at /opt/dhis2 - mounting an
+# empty volume there would hide the existing data before it can be copied
+# (verified live: files disappear the instant the mount lands, and come
+# straight back the instant it's removed - nothing is deleted, only shadowed,
+# but there'd be nothing left to copy from if we mounted at the real path
+# first).
+- name: Attach persistent volume at a staging path on the old container
+  vars:
+    ansible_connection: local
+  community.general.lxd_container:
+    name: "{{ inventory_hostname }}"
+    state: started
+    devices:
+      eth0:
+        nictype: bridged
+        parent: "{{ lxd_bridge_interface | default('lxdbr1') }}"
+        type: nic
+        ipv4.address: "{{ ansible_host | ansible.utils.ipaddr(lxd_network) }}"
+      dhis2_data_migrate:
+        type: disk
+        pool: "{{ lxd_storage_pool | default('default') }}"
+        source: "{{ inventory_hostname }}-dhis2-data"
+        path: /mnt/dhis2-migrate
+
+- name: Copy /opt/dhis2 into the persistent volume before the container is deleted
+  ansible.builtin.command:
+    cmd: cp -a /opt/dhis2/. /mnt/dhis2-migrate/
+
+# cp -a preserves ownership as reported inside the container, but a
+# security.shifted custom volume's idmap doesn't always translate a
+# non-root owner (tomcat) through the shift correctly during the copy -
+# verified live: root-owned files (dhis.conf, dhis2.war) came through
+# fine, tomcat-owned ones (files/, logs/) ended up owned by an unrelated
+# raw UID instead. A blanket chown would fix those but wrongly overwrite
+# the root-owned ones too, so mirror each path's *actual* source
+# ownership onto its destination counterpart instead of assuming one
+# owner for everything.
+- name: Restore per-file ownership after the copy (idmap shift doesn't always preserve it)
+  ansible.builtin.shell:
+    cmd: >-
+      cd /opt/dhis2 &&
+      find . -exec chown --reference={} /mnt/dhis2-migrate/{} \;
+  changed_when: true
+
+- name: Verify the copy is identical before the container gets deleted
+  ansible.builtin.command:
+    cmd: diff -rq /opt/dhis2 /mnt/dhis2-migrate
+  register: dhis2_migrate_diff
+  changed_when: false
+  failed_when: false
+
+- name: Fail loudly if the migration copy doesn't match - do not delete the container
+  ansible.builtin.fail:
+    msg: "/opt/dhis2 migration verification failed for {{ inventory_hostname }}: {{ dhis2_migrate_diff.stdout }}"
+  when: dhis2_migrate_diff.stdout | default('') | length > 0
+
+# Glowroot runs in the same container. Only migrate it if it's actually
+# installed and has collected data - a fresh instance, or one with
+# app_monitoring set to something other than glowroot, has neither.
+- name: Check whether Glowroot has collected data to preserve
+  ansible.builtin.stat:
+    path: /opt/glowroot/data
+  register: glowroot_data_check
+
+- name: Set fact for whether Glowroot data needs migrating
+  ansible.builtin.set_fact:
+    glowroot_data_needs_migration: "{{ glowroot_data_check.stat.exists }}"
+
+- name: Ensure persistent storage volume exists for /opt/glowroot/data
+  vars:
+    ansible_connection: local
+  ansible.builtin.command:
+    cmd: lxc storage volume create {{ lxd_storage_pool | default('default') }} {{ inventory_hostname }}-glowroot-data
+  register: create_glowroot_volume
+  changed_when: create_glowroot_volume.rc == 0
+  failed_when:
+    - create_glowroot_volume.rc != 0
+    - "'already exists' not in create_glowroot_volume.stderr"
+  when: glowroot_data_needs_migration
+
+- name: Ensure the Glowroot volume has correct UID-shifting for unprivileged containers
+  vars:
+    ansible_connection: local
+  ansible.builtin.command:
+    cmd: lxc storage volume set {{ lxd_storage_pool | default('default') }} {{ inventory_hostname }}-glowroot-data security.shifted=true
+  changed_when: true
+  when: glowroot_data_needs_migration
+
+- name: Attach Glowroot persistent volume at a staging path on the old container
+  vars:
+    ansible_connection: local
+  community.general.lxd_container:
+    name: "{{ inventory_hostname }}"
+    state: started
+    devices:
+      eth0:
+        nictype: bridged
+        parent: "{{ lxd_bridge_interface | default('lxdbr1') }}"
+        type: nic
+        ipv4.address: "{{ ansible_host | ansible.utils.ipaddr(lxd_network) }}"
+      dhis2_data_migrate:
+        type: disk
+        pool: "{{ lxd_storage_pool | default('default') }}"
+        source: "{{ inventory_hostname }}-dhis2-data"
+        path: /mnt/dhis2-migrate
+      glowroot_data_migrate:
+        type: disk
+        pool: "{{ lxd_storage_pool | default('default') }}"
+        source: "{{ inventory_hostname }}-glowroot-data"
+        path: /mnt/glowroot-migrate
+  when: glowroot_data_needs_migration
+
+- name: Copy /opt/glowroot/data into the persistent volume before the container is deleted
+  ansible.builtin.command:
+    cmd: cp -a /opt/glowroot/data/. /mnt/glowroot-migrate/
+  when: glowroot_data_needs_migration
+
+- name: Restore per-file ownership after the Glowroot copy
+  ansible.builtin.shell:
+    cmd: >-
+      cd /opt/glowroot/data &&
+      find . -exec chown --reference={} /mnt/glowroot-migrate/{} \;
+  changed_when: true
+  when: glowroot_data_needs_migration
+
+- name: Verify the Glowroot copy is identical before the container gets deleted
+  ansible.builtin.command:
+    cmd: diff -rq /opt/glowroot/data /mnt/glowroot-migrate
+  register: glowroot_migrate_diff
+  changed_when: false
+  failed_when: false
+  when: glowroot_data_needs_migration
+
+- name: Fail loudly if the Glowroot migration copy doesn't match - do not delete the container
+  ansible.builtin.fail:
+    msg: "/opt/glowroot/data migration verification failed for {{ inventory_hostname }}: {{ glowroot_migrate_diff.stdout }}"
+  when:
+    - glowroot_data_needs_migration
+    - glowroot_migrate_diff.stdout | default('') | length > 0
