@@ -77,6 +77,8 @@ ansible_connection=lxd
 postgresql_version=16
 
 # monitoring
+# grafana (or prometheus / grafana/prometheus) also installs Loki on the monitoring
+# host unless loki_enabled=false; allow extra memory and disk for log storage.
 server_monitoring=munin
 app_monitoring=glowroot
 

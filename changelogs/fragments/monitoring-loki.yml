@@ -1,0 +1,18 @@
+---
+minor_changes:
+  - >-
+    monitoring - install Loki 3.x on the monitoring host alongside
+    Grafana/Prometheus, with filesystem storage under /var/lib/loki,
+    compactor-based retention (loki_retention_period, default 720h), a Loki
+    Grafana datasource, a Prometheus scrape job for Loki, and a UFW rule
+    allowing the proxy hosts to push logs to port 3100. Disable with
+    loki_enabled=false.
+bugfixes:
+  - >-
+    monitoring - server_monitoring=grafana/prometheus no longer runs the whole
+    Grafana/Prometheus install twice (prometheus-server.yml was a symlink to
+    grafana-server.yml and both were included).
+  - >-
+    monitoring - the Prometheus datasource registration now uses
+    grafana_username/grafana_password like the dashboard import, instead of
+    hardcoded admin/admin.

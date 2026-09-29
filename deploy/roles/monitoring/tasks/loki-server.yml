@@ -1,0 +1,58 @@
+---
+# The loki package comes from apt.grafana.com, added by grafana-server.yml.
+- name: Loki | Install loki
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    name: "loki{{ ('=' ~ loki_version) if (loki_version | default('') | trim != '') else '' }}"
+    state: present
+  notify: Restart Loki
+
+# The packaged config stores data under /tmp/loki; keep it somewhere durable.
+- name: Loki | Ensure data directory exists
+  ansible.builtin.file:
+    path: "{{ loki_data_dir }}"
+    state: directory
+    owner: loki
+    group: loki
+    mode: "0750"
+
+- name: Loki | Deploy configuration
+  ansible.builtin.template:
+    src: loki-config.yml.j2
+    dest: /etc/loki/config.yml
+    owner: root
+    group: loki
+    mode: "0640"
+  notify: Restart Loki
+
+- name: Loki | Ensure service is enabled and started
+  ansible.builtin.systemd:
+    name: loki
+    state: started
+    enabled: true
+
+# Log shippers on the proxy push to Loki. This is service-to-service traffic
+# (like Prometheus scraping), so it stays open when monitoring is locked to the
+# VPN; Loki has no UI and is only queried locally by Grafana.
+- name: Loki | Allow log push from proxy
+  community.general.ufw:
+    rule: allow
+    port: "{{ loki_http_port }}"
+    src: "{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}"
+    proto: tcp
+    comment: "Allow Loki push from {{ item }}"
+    state: enabled
+  loop: "{{ groups['web'] }}"
+
+- name: Loki | Flushing handlers
+  ansible.builtin.meta: flush_handlers
+
+- name: Loki | Wait for Loki to become ready
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ loki_http_port }}/ready"
+    status_code: 200
+  register: monitoring_loki_ready
+  until: monitoring_loki_ready.status == 200
+  retries: 30
+  delay: 2

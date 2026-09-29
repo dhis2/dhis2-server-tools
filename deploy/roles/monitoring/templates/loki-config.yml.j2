@@ -1,0 +1,47 @@
+# {{ ansible_managed }}
+auth_enabled: false
+
+server:
+  http_listen_port: {{ loki_http_port }}
+  grpc_listen_port: {{ loki_grpc_port }}
+  log_level: info
+
+common:
+  instance_addr: 127.0.0.1
+  path_prefix: {{ loki_data_dir }}
+  storage:
+    filesystem:
+      chunks_directory: {{ loki_data_dir }}/chunks
+      rules_directory: {{ loki_data_dir }}/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+# Never edit an existing entry: Loki reads stored chunks with the schema in
+# effect at their time. To change the schema, append a new entry with a future
+# "from" date.
+schema_config:
+  configs:
+    - from: 2024-04-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+compactor:
+  working_directory: {{ loki_data_dir }}/compactor
+  retention_enabled: true
+  delete_request_store: filesystem
+
+limits_config:
+  retention_period: {{ loki_retention_period }}
+  ingestion_rate_mb: {{ loki_ingestion_rate_mb }}
+  ingestion_burst_size_mb: {{ loki_ingestion_burst_size_mb }}
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+
+analytics:
+  reporting_enabled: false
