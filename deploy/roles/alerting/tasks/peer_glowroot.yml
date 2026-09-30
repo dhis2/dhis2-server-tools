@@ -55,4 +55,4 @@
   no_log: true
   register: alerting_glowroot_hub_patch
   changed_when: "'CHANGED' in (alerting_glowroot_hub_patch.stdout | default(''))"
-  notify: Restart Tomcat
+  notify: Restart Tomcat (alerting)
