@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.1](https://github.com/dhis2/dhis2-server-tools/compare/v1.13.0...v1.13.1) (2026-09-30)
+
+
+### 🐛 Bug Fixes
+
+* rename alerting role's Restart Tomcat handler to avoid collision ([2f96dde](https://github.com/dhis2/dhis2-server-tools/commit/2f96dde5e615b9c5e7b8787b7d2669ead2c59e83))
+* rename alerting role's Restart Tomcat handler to avoid collision ([ea4737f](https://github.com/dhis2/dhis2-server-tools/commit/ea4737fa7ce2fe88e58dcd466bbf312c39c73b2f))
+
 ## [1.13.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.12.0...v1.13.0) (2026-09-29)
 
 
