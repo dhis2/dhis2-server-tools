@@ -21,7 +21,15 @@ http {
                            '$status\t$body_bytes_sent\t"$http_referer"\t"$http_user_agent"\t'
                            '$request_time';
 
-    access_log /usr/local/openresty/nginx/logs/perf.log performance;
+    # Site-specific http{}-level configuration: extra log formats, maps,
+    # lua_shared_dict, limit_req_zone, proxy_cache_path, ... Ansible creates
+    # http.d/ but never writes files into it, so anything placed there
+    # survives playbook runs (static/<fqdn>.conf is the server{}-level
+    # equivalent). Included before access_log so a custom log_format defined
+    # here can be selected with openresty_access_log_format.
+    include /usr/local/openresty/nginx/conf/http.d/*.conf;
+
+    access_log /usr/local/openresty/nginx/logs/perf.log {{ openresty_access_log_format | default('performance') }};
 
     sendfile        on;
     tcp_nopush      on;

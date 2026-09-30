@@ -61,6 +61,7 @@
   loop:
     - '/usr/local/openresty/nginx/conf/conf.d/upstream'
     - '/usr/local/openresty/nginx/conf/static'
+    - '/usr/local/openresty/nginx/conf/http.d'
 
 - name: Deploy main nginx.conf
   ansible.builtin.template:

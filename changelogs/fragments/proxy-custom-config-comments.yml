@@ -1,0 +1,7 @@
+---
+minor_changes:
+  - >-
+    create-instance - the generated nginx/OpenResty site and default configs
+    now point to the static/ (server{}) and, for OpenResty, http.d/ (http{})
+    files for customisations, instead of a custom/ directory that was never
+    included.
