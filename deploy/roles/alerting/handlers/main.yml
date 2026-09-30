@@ -24,7 +24,7 @@
     name: grafana-server
     state: restarted
 
-- name: Restart Tomcat
+- name: Restart Tomcat (alerting)
   ansible.builtin.systemd:
     name: "tomcat{{ tomcat_version | default('9') }}"
     state: restarted
