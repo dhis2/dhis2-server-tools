@@ -154,13 +154,21 @@ argument_specs:
         default: 10485760
       crowdsec_appsec_body_size_exceeded_action:
         description: >-
-          What AppSec does with a body over crowdsec_appsec_max_body_size. partial inspects
-          the first crowdsec_appsec_max_body_size bytes and lets the rest through; allow
-          skips body inspection; drop blocks the request and raises an alert against the
-          sender's IP, which blocks DHIS2 imports larger than the limit.
+          What AppSec does with a body over crowdsec_appsec_max_body_size. partial lets
+          the request through and inspects form bodies up to the limit; JSON bodies over
+          the limit skip body rules (URI, query-string and header rules still apply).
+          allow skips body inspection; drop blocks the request and raises an alert against
+          the sender's IP, which blocks DHIS2 imports larger than the limit.
         type: str
         default: "partial"
         choices: ["partial", "allow", "drop"]
+      crowdsec_memory_max:
+        description: >-
+          systemd MemoryMax for the crowdsec service, e.g. 1G or 768M; empty removes the
+          limit. The engine idles around 150 MiB and buffers up to
+          crowdsec_appsec_max_body_size per in-flight AppSec request.
+        type: str
+        default: "1G"
       crowdsec_allowlist:
         description: >-
           IPs and CIDRs CrowdSec never acts on: no AppSec inspection, no local or

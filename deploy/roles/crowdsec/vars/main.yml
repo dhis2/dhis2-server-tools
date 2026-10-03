@@ -20,6 +20,8 @@ crowdsec_bouncer_conf: "/etc/crowdsec/bouncers/crowdsec-openresty-bouncer.conf"
 # crowdsec_enabled=false may remove.
 crowdsec_managed_marker: "/etc/crowdsec/config.yaml.local"
 
+crowdsec_systemd_dropin: "/etc/systemd/system/crowdsec.service.d/override.conf"
+
 crowdsec_allowlist_name: "dhis2"
 crowdsec_appsec_collections:
   - crowdsecurity/appsec-virtual-patching

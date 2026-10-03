@@ -37,10 +37,17 @@ crowdsec_appsec_port: 7422
 # passthrough lets requests through while AppSec is unreachable; deny blocks them.
 crowdsec_appsec_failure_action: "passthrough"
 # CrowdSec blocks any request body over its limit by default. DHIS2 takes bodies up to
-# 100M (data and metadata imports), so bodies over the limit are inspected up to the
-# limit and then let through.
+# 100M (data and metadata imports), so bodies over the limit are let through instead.
+# Form bodies are still inspected up to the limit; JSON bodies over the limit skip body
+# rules entirely (URI, query-string and header rules still apply). Raising the limit
+# costs engine memory and past ~50 MiB the bouncer times out and passes the request through.
 crowdsec_appsec_max_body_size: 10485760       # bytes
 crowdsec_appsec_body_size_exceeded_action: "partial"  # partial, allow, or drop
+
+# systemd MemoryMax for the engine (empty = no limit). Idle it uses ~150 MiB; AppSec
+# buffers up to crowdsec_appsec_max_body_size per in-flight request. systemd restarts
+# the engine if it is killed at the limit; stream-mode bans hold in the bouncer meanwhile.
+crowdsec_memory_max: "1G"
 
 # IPs/CIDRs CrowdSec never blocks: no WAF inspection, no local or community-blocklist
 # bans. Use it for trusted networks, e.g. a facility's shared carrier-NAT egress IP.
