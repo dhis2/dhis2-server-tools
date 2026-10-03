@@ -193,11 +193,38 @@
     crowdsec_openresty_acquis_extra: "{{ crowdsec_openresty_acquis.files | map(attribute='path') | reject('equalto', '/etc/crowdsec/acquis.d/openresty.yaml') | list }}"
   when: proxy == 'openresty'
 
+- name: Crowdsec | Create the systemd drop-in directory
+  ansible.builtin.file:
+    path: "{{ crowdsec_systemd_dropin | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: crowdsec_memory_max | length > 0
+
+- name: Crowdsec | Template the systemd memory limit
+  ansible.builtin.template:
+    src: systemd-override.conf.j2
+    dest: "{{ crowdsec_systemd_dropin }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: crowdsec_memory_max | length > 0
+  notify: Restart crowdsec
+
+- name: Crowdsec | Remove the systemd memory limit
+  ansible.builtin.file:
+    path: "{{ crowdsec_systemd_dropin }}"
+    state: absent
+  when: crowdsec_memory_max | length == 0
+  notify: Restart crowdsec
+
 - name: Crowdsec | Ensure Security Engine is running and enabled
   ansible.builtin.systemd:
     name: crowdsec
     state: started
     enabled: true
+    daemon_reload: true
 
 # Bouncer packages auto-register against the LAPI during their own postinst (see
 # configure-bouncer-*.yml) and need it reachable at that point, so config overrides

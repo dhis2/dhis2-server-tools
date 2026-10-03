@@ -13,3 +13,4 @@
   ansible.builtin.systemd:
     name: crowdsec
     state: restarted
+    daemon_reload: true

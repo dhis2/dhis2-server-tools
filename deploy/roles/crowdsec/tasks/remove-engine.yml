@@ -13,6 +13,11 @@
 # Not purged: /etc/crowdsec and /var/lib/crowdsec keep the machine and Central API
 # credentials and local decisions, so re-enabling picks up where it left off.
 # `apt purge crowdsec` wipes them.
+- name: Crowdsec | Remove the systemd memory limit drop-in
+  ansible.builtin.file:
+    path: "{{ crowdsec_systemd_dropin }}"
+    state: absent
+
 - name: Crowdsec | Remove the Security Engine package
   ansible.builtin.apt:
     name: crowdsec

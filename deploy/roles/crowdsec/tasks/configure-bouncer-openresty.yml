@@ -18,6 +18,15 @@
     state: latest
   notify: Crowdsec | Reload OpenResty
 
+# The package ships the conffile world-readable; it holds the bouncer's LAPI API key.
+# Only the OpenResty master (root) reads it, in init_by_lua_block.
+- name: Crowdsec | Restrict the bouncer config to root
+  ansible.builtin.file:
+    path: "{{ crowdsec_bouncer_conf }}"
+    owner: root
+    group: root
+    mode: "0600"
+
 - name: Crowdsec | Read OpenResty bouncer config
   ansible.builtin.slurp:
     src: "{{ crowdsec_bouncer_conf }}"
@@ -67,3 +76,41 @@
   diff: false
   no_log: true
   notify: Crowdsec | Reload OpenResty
+
+- name: Crowdsec | Flush handlers so OpenResty runs the final bouncer config
+  ansible.builtin.meta: flush_handlers
+
+# A bouncer that never pulls (edited crowdsec_openresty.conf without the
+# init_worker_by_lua_block, a stale API key, an unreachable API_URL) lets every request
+# through without an error anywhere. Stream mode pulls every 10 s, so a pull newer than
+# the start of this check proves the whole path. Live mode pulls per request, so this
+# only applies to stream.
+- name: Crowdsec | Verify the OpenResty bouncer enforces decisions
+  when: crowdsec_bouncer_mode == 'stream'
+  block:
+    - name: Crowdsec | Note the time before checking the bouncer
+      ansible.builtin.command: date -u +%Y-%m-%dT%H:%M:%SZ
+      register: crowdsec_bouncer_check_start
+      changed_when: false
+
+    - name: Crowdsec | Wait for the OpenResty bouncer to pull decisions from the LAPI
+      ansible.builtin.command: cscli bouncers list -o json
+      register: crowdsec_bouncer_pull
+      changed_when: false
+      retries: 12
+      delay: 5
+      until: >-
+        crowdsec_bouncer_pull.stdout | from_json
+        | selectattr('name', 'match', '^crowdsec-openresty-bouncer')
+        | map(attribute='last_pull') | select('string')
+        | map('regex_replace', '\.\d+Z$', 'Z')
+        | select('>=', crowdsec_bouncer_check_start.stdout) | list | length > 0
+  rescue:
+    - name: Crowdsec | Fail with the bouncer diagnosis
+      ansible.builtin.fail:
+        msg: >-
+          crowdsec-openresty-bouncer has not pulled decisions from the LAPI since
+          {{ crowdsec_bouncer_check_start.stdout | default('the check started') }}, so bans
+          are not enforced. Check that {{ crowdsec_openresty_conf_dir }}/crowdsec_openresty.conf
+          is the package's own file (dpkg --verify crowdsec-openresty-bouncer), that API_KEY in
+          {{ crowdsec_bouncer_conf }} matches `cscli bouncers list`, and OpenResty's error.log.

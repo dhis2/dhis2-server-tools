@@ -27,6 +27,57 @@
         url: http://127.0.0.1/
         status_code: 200
 
+    - name: Verify | Read the bouncer config mode
+      ansible.builtin.stat:
+        path: /etc/crowdsec/bouncers/crowdsec-openresty-bouncer.conf
+      register: verify_bouncer_conf
+
+    - name: Verify | The bouncer config (API key) is root-only
+      ansible.builtin.assert:
+        that:
+          - verify_bouncer_conf.stat.mode == '0600'
+          - verify_bouncer_conf.stat.pw_name == 'root'
+
+    - name: Verify | Read the engine's memory limit
+      ansible.builtin.command: systemctl show crowdsec -p MemoryMax --value
+      register: verify_memory_max
+      changed_when: false
+
+    - name: Verify | The engine has a memory ceiling
+      ansible.builtin.assert:
+        that:
+          - verify_memory_max.stdout != 'infinity'
+
+    # A decision made by hand proves the bouncer's stream path end to end: pull from the
+    # LAPI, cache, enforce in the access phase. AppSec blocks below don't exercise it.
+    - name: Verify | Enforce a manual ban through the bouncer
+      block:
+        - name: Verify | Ban the loopback client
+          ansible.builtin.command: cscli decisions add -i 127.0.0.1 -d 2m --reason molecule
+          changed_when: true
+
+        - name: Verify | The banned client gets 403 within one stream pull
+          ansible.builtin.uri:
+            url: http://127.0.0.1/
+            status_code: 403
+          register: verify_ban
+          retries: 15
+          delay: 2
+          until: verify_ban.status == 403
+      always:
+        - name: Verify | Lift the manual ban
+          ansible.builtin.command: cscli decisions delete -i 127.0.0.1
+          changed_when: true
+
+        - name: Verify | The client is served again
+          ansible.builtin.uri:
+            url: http://127.0.0.1/
+            status_code: 200
+          register: verify_unban
+          retries: 15
+          delay: 2
+          until: verify_unban.status == 200
+
     - name: Verify | AppSec blocks a virtual-patching match
       ansible.builtin.uri:
         url: http://127.0.0.1/.env
