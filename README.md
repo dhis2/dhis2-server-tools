@@ -324,3 +324,4 @@ At this point you should have DHIS2 up and running.
 - [LXC container management](./docs/Basic-LXC-container-Management.md)
 - [Service management with systemctl](./docs/Systemd-Service-Management.md)
 - [SSH connection](./docs/SSH-Connection.md)
+- [CrowdSec WAF and IP banning](./docs/CrowdSec-WAF.md)

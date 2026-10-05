@@ -1,0 +1,7 @@
+{{ ansible_managed | comment }}
+filenames:
+  - {{ crowdsec_openresty_logs_dir }}/access.log
+  - {{ crowdsec_openresty_logs_dir }}/error.log
+labels:
+  type: nginx
+source: file
