@@ -19,7 +19,7 @@
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    mode: "0750"
   when: crowdsec_appsec_active | bool
 
 - name: Crowdsec | Template AppSec body-size limits
@@ -28,7 +28,7 @@
     dest: /etc/crowdsec/appsec-configs/dhis2-body-limits.yaml
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
   when: crowdsec_appsec_active | bool
   notify: Restart crowdsec
 
@@ -38,7 +38,7 @@
     dest: /etc/crowdsec/acquis.d/appsec.yaml
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
   when: crowdsec_appsec_active | bool
   notify: Restart crowdsec
 

@@ -152,7 +152,7 @@
     dest: /etc/crowdsec/acquis.d/openresty.yaml
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
   when: proxy == 'openresty'
   notify: Restart crowdsec
 
@@ -199,7 +199,7 @@
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    mode: "0750"
   when: crowdsec_memory_max | length > 0
 
 - name: Crowdsec | Template the systemd memory limit
@@ -208,7 +208,7 @@
     dest: "{{ crowdsec_systemd_dropin }}"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
   when: crowdsec_memory_max | length > 0
   notify: Restart crowdsec
 
