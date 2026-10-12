@@ -37,9 +37,10 @@
     cmd: curl -fsSL https://openresty.org/package/pubkey.gpg | gpg --dearmor -o /usr/share/keyrings/openresty-archive-keyring.gpg
     creates: /usr/share/keyrings/openresty-archive-keyring.gpg
 
+# openresty.org keeps arm64 builds under a separate path with no shared index.
 - name: Add OpenResty official repository
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/openresty-archive-keyring.gpg] https://openresty.org/package/ubuntu {{ ansible_distribution_release }} main"
+    repo: "deb [signed-by=/usr/share/keyrings/openresty-archive-keyring.gpg] https://openresty.org/package/{{ 'arm64/' if ansible_architecture == 'aarch64' else '' }}ubuntu {{ ansible_distribution_release }} main"
     state: present
     filename: openresty
 
