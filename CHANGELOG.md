@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.2](https://github.com/dhis2/dhis2-server-tools/compare/v1.13.1...v1.13.2) (2026-10-12)
+
+
+### 🐛 Bug Fixes
+
+* **proxy:** use the arm64 OpenResty repository on aarch64 hosts ([cb7187c](https://github.com/dhis2/dhis2-server-tools/commit/cb7187c4e6697e92f5edf5bcbed882a4ef966d3d))
+* **proxy:** use the arm64 OpenResty repository on aarch64 hosts ([030ad64](https://github.com/dhis2/dhis2-server-tools/commit/030ad64d3659719670983b260c202e459bf5b055))
+
 ## [1.13.1](https://github.com/dhis2/dhis2-server-tools/compare/v1.13.0...v1.13.1) (2026-09-30)
 
 
