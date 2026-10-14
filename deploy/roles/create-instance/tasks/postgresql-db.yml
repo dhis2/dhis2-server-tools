@@ -97,7 +97,7 @@
     - inventory_hostname == hostvars[item]['database_host']
   notify: Reload Postgres
 
-- name: creating postgis,btree_gin and pg_trgm extensions
+- name: Creating postgis,btree_gin and pg_trgm extensions
   become: true
   become_user: postgres
   community.postgresql.postgresql_ext:

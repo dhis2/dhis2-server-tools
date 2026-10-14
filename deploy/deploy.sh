@@ -57,10 +57,28 @@ ansible_install() {
         sed -i 's/#$nrconf{restart} = '"'"'i'"'"';/$nrconf{restart} = '"'"'a'"'"';/g' /etc/needrestart/needrestart.conf
         sed -i "s/#\$nrconf{kernelhints} = -1;/\$nrconf{kernelhints} = -1;/g" /etc/needrestart/needrestart.conf
     fi
+    # Pre-seed grub-pc's boot-device debconf answer before any apt operation
+    # that might install/reconfigure it. On QEMU/KVM VMs this question can be
+    # genuinely unanswered until a kernel-related update pulls grub-pc in as
+    # a dependency - DEBIAN_FRONTEND=noninteractive alone doesn't help then,
+    # since with no existing answer to fall back to, grub-install fails
+    # outright ("/multiselect does not exist") instead of just proceeding.
+    # Harmless to seed even if grub-pc never ends up installed (e.g. UEFI
+    # boots use grub-efi instead and never ask this).
+    root_src="$(findmnt -no SOURCE / 2>/dev/null)"
+    boot_disk="$(lsblk -ndo pkname "$root_src" 2>/dev/null | head -n1)"
+    # lsblk pkname only resolves a partition to its parent disk - if root is
+    # mounted directly on a whole disk (no partition table), it returns
+    # nothing, and the disk's own name (e.g. sda) is already what's needed.
+    [[ -z "$boot_disk" ]] && boot_disk="$(basename "${root_src:-}" 2>/dev/null)"
+    if [[ -n "$boot_disk" ]]; then
+        echo "grub-pc grub-pc/install_devices multiselect /dev/${boot_disk}" | sudo debconf-set-selections
+        echo "grub-pc grub-pc/install_devices_empty boolean false" | sudo debconf-set-selections
+    fi
     sudo apt -yq update
-    sudo apt install -yq git software-properties-common sshpass
+    sudo DEBIAN_FRONTEND=noninteractive apt install -yq git software-properties-common sshpass
     sudo apt-add-repository --yes --update ppa:ansible/ansible
-    sudo apt install -yq ansible
+    sudo DEBIAN_FRONTEND=noninteractive apt install -yq ansible
     return 0
 }
 
@@ -80,12 +98,22 @@ if ! command -v ansible &> /dev/null; then
     ansible-galaxy collection install community.general
 fi
 
-# Ensure required collections are installed/upgraded. community.mysql is
-# needed only when Doris is being provisioned - the doris role's own
-# preflight check (roles/doris/tasks/main.yml) fails fast with install
-# instructions in that case, instead of installing it unconditionally here
-# on every deploy regardless of whether Doris is even configured.
-ansible-galaxy collection install community.general --upgrade
+# Ensure required collections are installed. community.mysql is needed only
+# when Doris is being provisioned - the doris role's own preflight check
+# (roles/doris/tasks/main.yml) fails fast with install instructions in that
+# case, instead of installing it unconditionally here on every deploy
+# regardless of whether Doris is even configured.
+#
+# No --upgrade here deliberately: plain "install" short-circuits instantly
+# once satisfied (see the identical check a few lines up, gated on ansible
+# not yet being installed), but --upgrade forces ansible-galaxy through its
+# full dependency-resolution map against the Galaxy API on every single
+# deploy run, every time - genuinely slow for a collection the size of
+# community.general, not stuck/network-broken, just an expensive check paid
+# on every run for something that changes rarely. Run
+# `ansible-galaxy collection install community.general --upgrade` by hand
+# when you actually want to pick up a newer release.
+ansible-galaxy collection install community.general
 
 # Check if any host explicitly uses ssh connection (per-host or per-group override)
 # Hosts may use lxd (default) or ssh individually — Ansible handles per-host connection natively.
