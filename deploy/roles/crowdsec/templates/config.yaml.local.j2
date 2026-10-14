@@ -1,0 +1,11 @@
+{{ ansible_managed | comment }}
+# Overrides for /etc/crowdsec/config.yaml, merged in by crowdsec's own .local patcher
+# (pkg/csconfig: csyaml.NewPatcher(configFile, ".local")). Left in place across
+# `apt upgrade` of the crowdsec package, unlike editing config.yaml directly.
+api:
+  server:
+    listen_uri: "127.0.0.1:{{ crowdsec_lapi_port }}"
+prometheus:
+  enabled: {{ crowdsec_metrics_enabled | bool | lower }}
+  listen_addr: "{{ crowdsec_metrics_listen_addr }}"
+  listen_port: {{ crowdsec_metrics_port }}

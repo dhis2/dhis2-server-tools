@@ -1,0 +1,116 @@
+---
+- name: Crowdsec | Install OpenResty bouncer prerequisites
+  ansible.builtin.apt:
+    name:
+      - openresty-opm
+      - gettext-base
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# crowdsec-openresty-bouncer's postinst auto-registers a fresh API key with the local LAPI
+# (cscli bouncers add) and drops crowdsec_openresty.conf into conf.d/. The proxy role's
+# nginx.conf already includes conf.d/*.conf inside http {}, so no explicit include is
+# needed; adding one declares lua_package_path twice and fails `openresty -t`.
+- name: Crowdsec | Install OpenResty bouncer package
+  ansible.builtin.apt:
+    name: crowdsec-openresty-bouncer
+    state: latest
+  notify: Crowdsec | Reload OpenResty
+
+# The package ships the conffile world-readable; it holds the bouncer's LAPI API key.
+# Only the OpenResty master (root) reads it, in init_by_lua_block.
+- name: Crowdsec | Restrict the bouncer config to root
+  ansible.builtin.file:
+    path: "{{ crowdsec_bouncer_conf }}"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Crowdsec | Read OpenResty bouncer config
+  ansible.builtin.slurp:
+    src: "{{ crowdsec_bouncer_conf }}"
+  register: crowdsec_openresty_bouncer_conf
+  no_log: true
+
+# A failed registration leaves the package's envsubst placeholder (API_KEY=${API_KEY}) in
+# place. OpenResty still starts, and every request is let through.
+- name: Crowdsec | Assert OpenResty bouncer auto-registered with a real API key
+  ansible.builtin.assert:
+    that:
+      - "(crowdsec_openresty_bouncer_conf.content | b64decode) is regex('^API_KEY=(?!\\$\\{|<)\\S+$', multiline=True)"
+    fail_msg: >-
+      crowdsec-openresty-bouncer failed to auto-register against the local LAPI
+      (cscli/crowdsec wasn't reachable during package install). Run
+      `cscli bouncers add crowdsec-openresty-bouncer` manually and set API_KEY in
+      {{ crowdsec_bouncer_conf }}, then re-run this role.
+
+# diff: false on the edits below - the file holds the bouncer's API key.
+- name: Crowdsec | Configure OpenResty bouncer LAPI URL, AppSec and remediation behavior
+  ansible.builtin.lineinfile:
+    path: "{{ crowdsec_bouncer_conf }}"
+    regexp: "^{{ item.key }}="
+    line: "{{ item.key }}={{ item.value }}"
+  diff: false
+  loop:
+    - { key: "API_URL", value: "{{ crowdsec_lapi_url }}" }
+    - { key: "MODE", value: "{{ crowdsec_bouncer_mode }}" }
+    - { key: "BOUNCING_ON_TYPE", value: "{{ crowdsec_bouncer_bouncing_on_type }}" }
+    - { key: "FALLBACK_REMEDIATION", value: "{{ crowdsec_bouncer_fallback_remediation }}" }
+    # Empty is the package's own default and means 403.
+    - { key: "RET_CODE", value: "{{ crowdsec_bouncer_ret_code }}" }
+    # Empty turns AppSec off in the bouncer.
+    - { key: "APPSEC_URL", value: "{{ crowdsec_appsec_url if crowdsec_appsec_active | bool else '' }}" }
+    - { key: "APPSEC_FAILURE_ACTION", value: "{{ crowdsec_appsec_failure_action }}" }
+    - { key: "CAPTCHA_PROVIDER", value: "{{ crowdsec_bouncer_captcha_provider }}" }
+    - { key: "SITE_KEY", value: "{{ crowdsec_bouncer_captcha_site_key }}" }
+  loop_control:
+    label: "{{ item.key }}"
+  notify: Crowdsec | Reload OpenResty
+
+- name: Crowdsec | Configure OpenResty bouncer captcha secret key
+  ansible.builtin.lineinfile:
+    path: "{{ crowdsec_bouncer_conf }}"
+    regexp: "^SECRET_KEY="
+    line: "SECRET_KEY={{ crowdsec_bouncer_captcha_secret_key }}"
+  diff: false
+  no_log: true
+  notify: Crowdsec | Reload OpenResty
+
+- name: Crowdsec | Flush handlers so OpenResty runs the final bouncer config
+  ansible.builtin.meta: flush_handlers
+
+# A bouncer that never pulls (edited crowdsec_openresty.conf without the
+# init_worker_by_lua_block, a stale API key, an unreachable API_URL) lets every request
+# through without an error anywhere. Stream mode pulls every 10 s, so a pull newer than
+# the start of this check proves the whole path. Live mode pulls per request, so this
+# only applies to stream.
+- name: Crowdsec | Verify the OpenResty bouncer enforces decisions
+  when: crowdsec_bouncer_mode == 'stream'
+  block:
+    - name: Crowdsec | Note the time before checking the bouncer
+      ansible.builtin.command: date -u +%Y-%m-%dT%H:%M:%SZ
+      register: crowdsec_bouncer_check_start
+      changed_when: false
+
+    - name: Crowdsec | Wait for the OpenResty bouncer to pull decisions from the LAPI
+      ansible.builtin.command: cscli bouncers list -o json
+      register: crowdsec_bouncer_pull
+      changed_when: false
+      retries: 12
+      delay: 5
+      until: >-
+        crowdsec_bouncer_pull.stdout | from_json
+        | selectattr('name', 'match', '^crowdsec-openresty-bouncer')
+        | map(attribute='last_pull') | select('string')
+        | map('regex_replace', '\.\d+Z$', 'Z')
+        | select('>=', crowdsec_bouncer_check_start.stdout) | list | length > 0
+  rescue:
+    - name: Crowdsec | Fail with the bouncer diagnosis
+      ansible.builtin.fail:
+        msg: >-
+          crowdsec-openresty-bouncer has not pulled decisions from the LAPI since
+          {{ crowdsec_bouncer_check_start.stdout | default('the check started') }}, so bans
+          are not enforced. Check that {{ crowdsec_openresty_conf_dir }}/crowdsec_openresty.conf
+          is the package's own file (dpkg --verify crowdsec-openresty-bouncer), that API_KEY in
+          {{ crowdsec_bouncer_conf }} matches `cscli bouncers list`, and OpenResty's error.log.

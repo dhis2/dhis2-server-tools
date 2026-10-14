@@ -1,0 +1,9 @@
+{{ ansible_managed | comment }}
+# Loaded after crowdsecurity/appsec-default (see acquis.d/appsec.yaml). By default AppSec
+# blocks every request whose body is over 10 MiB, raising an alert against the sender's
+# IP, which would stop DHIS2 data and metadata imports.
+name: dhis2/body-limits
+on_load:
+  - apply:
+      - SetMaxBodySize({{ crowdsec_appsec_max_body_size | int }})
+      - SetBodySizeExceededAction("{{ crowdsec_appsec_body_size_exceeded_action }}")

@@ -1,0 +1,4 @@
+{{ ansible_managed | comment }}
+# CrowdSec's nginx parser reads the combined layout, not the tab-separated perf.log.
+# Buffered: one write per 64k instead of per request; CrowdSec sees a request up to 5 s late.
+access_log {{ crowdsec_openresty_logs_dir }}/access.log combined buffer=64k flush=5s;

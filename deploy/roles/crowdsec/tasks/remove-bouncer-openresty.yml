@@ -1,0 +1,30 @@
+---
+# The postinst registered the bouncer with the LAPI and kept the API key in the package's
+# conffile. Delete the registration and purge the conffile together, so re-enabling
+# registers a new key instead of reusing one the LAPI no longer accepts.
+- name: Crowdsec | List LAPI bouncer registrations
+  ansible.builtin.command: cscli bouncers list -o json
+  register: crowdsec_bouncer_registrations
+  changed_when: false
+  failed_when: false
+
+- name: Crowdsec | Delete the OpenResty bouncer's LAPI registrations
+  ansible.builtin.command:
+    argv: [cscli, bouncers, delete, "{{ item }}"]
+  loop: >-
+    {{ ((crowdsec_bouncers | selectattr('type', 'equalto', 'crowdsec-openresty-bouncer') | map(attribute='name') | list)
+        + (crowdsec_bouncers | selectattr('name', 'match', '^crowdsec-openresty-bouncer') | map(attribute='name') | list))
+       | unique }}
+  vars:
+    crowdsec_bouncers: >-
+      {{ (crowdsec_bouncer_registrations.stdout | from_json | default([], true))
+         if crowdsec_bouncer_registrations.rc == 0 else [] }}
+  changed_when: true
+
+# Removes crowdsec_openresty.conf from conf.d/ along with the lua code.
+- name: Crowdsec | Purge the OpenResty bouncer package
+  ansible.builtin.apt:
+    name: crowdsec-openresty-bouncer
+    state: absent
+    purge: true
+  notify: Crowdsec | Reload OpenResty
