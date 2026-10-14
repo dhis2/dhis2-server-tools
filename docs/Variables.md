@@ -132,6 +132,18 @@ dhis2_version: 2.39
     <br> <ul><li><code>glowroot</code></li></ul>
     <br>Example: <code>app_monitoring=glowroot</code> </td>
   </tr>
+  <tr>
+    <td style="vertical-align: top; text-align: left;"><code>dhis2_log_max_size</code></td>
+    <td> Sets <code>logging.file.max_size</code> in <code>dhis.conf</code> - max size of each rolling DHIS2 log file before it rotates. <strong>Does not apply to <code>dhis-audit.log</code></strong>, which rotates on its own daily cron schedule regardless of size. <br>Default=<code>100MB</code> (matches DHIS2's own default) </td>
+  </tr>
+  <tr>
+    <td style="vertical-align: top; text-align: left;"><code>dhis2_log_max_archives</code></td>
+    <td> Sets <code>logging.file.max_archives</code> in <code>dhis.conf</code> - max number of rolled-over archive files kept for <code>dhis.log</code> and the other general/analytics/sync logs before old ones are deleted. <strong>Does not apply to <code>dhis-audit.log</code></strong> - DHIS2 hardcodes unlimited retention for audit archives (deleting audit trail data is left to the operator); see <code>dhis2_audit_log_retention_days</code>. <br>Default=<code>5</code> (DHIS2's own default is <code>1</code>) </td>
+  </tr>
+  <tr>
+    <td style="vertical-align: top; text-align: left;"><code>dhis2_audit_log_retention_days</code></td>
+    <td> Age in days after which rolled-over <code>dhis-audit.log.*</code> archives are deleted by a daily root cron job. DHIS2 core never prunes these itself, so without this they accumulate forever. <br>Default=<code>90</code> </td>
+  </tr>
 </table>
 
 ### PostgreSQL Variables { #dhis2_server_tools_postgresql_variables }
@@ -197,6 +209,7 @@ munin_users:
 | `SSL_TYPE`        | Choose whether to use `letsencrypt` or a `customssl` certificate.<br>**Options**:<br>- letsencrypt ← (default)<br>- customssl |
 | `munin_base_path` | Base path for accessing Munin, e.g., `https://domain.example.com/munin_base_path`. Defaults to `munin`. |
 | `munin_users`     | A list of users and passwords allowed to log into Munin. See example below. |
+| `openresty_log_rotate_days` | OpenResty only: number of daily rotations of `/usr/local/openresty/nginx/logs/*.log` kept by `/etc/logrotate.d/openresty` (compressed). The nginx and apache2 packages ship their own logrotate rules. Defaults to `14`. |
 
 **Example:**
 ```yaml

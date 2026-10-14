@@ -106,6 +106,22 @@
   notify: Restart Tomcat
   tags: [deploy-war]
 
+# DHIS2 core never deletes rolled-over dhis-audit.log archives itself
+# (Log4JLogConfigInitializer hardcodes DefaultRolloverStrategy withFileIndex
+# "nomax" for the audit appender - logging.file.max_archives in dhis.conf
+# does not apply to it). Retention is therefore left to the operator; prune
+# archives older than dhis2_audit_log_retention_days via a root cron job.
+- name: Add cron job to prune old dhis-audit.log archives
+  ansible.builtin.cron:
+    name: dhis2 audit log retention
+    cron_file: /etc/cron.d/dhis2-audit-log-retention
+    user: root
+    special_time: daily
+    job: >-
+      find /opt/dhis2/logs -maxdepth 1 -name 'dhis-audit.log.*'
+      -mtime +{{ dhis2_audit_log_retention_days | default(90) }} -delete
+  tags: [deploy-war, log-retention]
+
 - name: Open port 8080 (tomcat) access from from proxy
   community.general.ufw:
     rule: allow
