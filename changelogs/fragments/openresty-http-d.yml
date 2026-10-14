@@ -1,0 +1,11 @@
+---
+minor_changes:
+  - >-
+    proxy - OpenResty nginx.conf now includes
+    /usr/local/openresty/nginx/conf/http.d/*.conf at http{} level. Ansible
+    creates the directory but never writes into it, so site-specific
+    log formats, maps, lua_shared_dict, limit_req_zone and proxy_cache_path
+    directives survive playbook runs (previously they had to be re-added to
+    nginx.conf by hand after every run). New variable
+    openresty_access_log_format (default performance) selects the perf.log
+    format, e.g. one defined in http.d/.

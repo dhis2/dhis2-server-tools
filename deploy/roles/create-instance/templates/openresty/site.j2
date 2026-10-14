@@ -2,10 +2,11 @@
 # Any custom modifications made directly to this file will be overwritten
 # during future Ansible runs.
 
-# Please place any custom configurations in the following file
-# /usr/local/openresty/nginx/conf/custom/{{  hostvars[item]['fqdn']  }}.conf
-
-# configurations within that file will be included in this openresty configuration.
+# Put custom configuration in files that Ansible never overwrites:
+#   server{} level: /usr/local/openresty/nginx/conf/static/{{ hostvars[item]['fqdn'] | trim }}.conf
+#     (included in the https server block below)
+#   http{} level:   /usr/local/openresty/nginx/conf/http.d/*.conf
+#     (log formats, maps, lua_shared_dict, limit_req_zone, proxy_cache_path, ...)
 
 # Tomcat upstreams with keepalive — one per instance under this FQDN
 {% for instance in groups['instances']
@@ -61,11 +62,11 @@ server {
   {%if TLS_TYPE is undefined or TLS_TYPE == 'letsencrypt' -%}
   listen 80;
   server_name {{ hostvars[item]['fqdn'] | trim }};
-  return 302 https://$host:{{ https_port | default("$server_port") }}$request_uri;
+  return 301 https://$host$request_uri;
   {% else %}
   listen {{ http_port | default('80') }};
   server_name {{ hostvars[item]['fqdn'] | trim }};
-  return 302 https://$host:{{ https_port | default("$server_port") }}$request_uri;
+  return 301 https://$host{{ '' if (https_port | default(443) | int) == 443 else ':' ~ https_port }}$request_uri;
   {%endif-%}
 }
 
