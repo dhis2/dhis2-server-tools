@@ -1,0 +1,40 @@
+---
+# docker_compose_v2 lives in community.docker, which bare ansible-core does not
+# bundle and deploy.sh does not install. Same approach as the doris role's
+# community.mysql check: fail fast with the fix instead of "couldn't resolve
+# module" after Docker is already installed.
+- name: Preflight | Look for the community.docker collection
+  vars:
+    ansible_connection: local
+  ansible.builtin.command: ansible-galaxy collection list community.docker
+  register: chap_docker_collection
+  changed_when: false
+  failed_when: false
+  become: false
+  delegate_to: 127.0.0.1
+  run_once: true
+
+- name: Preflight | Fail when community.docker is not installed
+  ansible.builtin.fail:
+    msg: >-
+      The chap role needs the community.docker collection on the Ansible
+      controller (it deploys CHAP with docker_compose_v2), but it is not
+      installed. Install it with:
+      ansible-galaxy collection install community.docker
+  run_once: true
+  when: "'community.docker' not in chap_docker_collection.stdout"
+
+- name: Preflight | CHAP images are amd64 only
+  ansible.builtin.assert:
+    that: (guest_os_arch | default('amd64')) == 'amd64'
+    fail_msg: "chap-core publishes linux/amd64 images only (guest_os_arch={{ guest_os_arch }})"
+  when: ansible_connection == 'lxd'
+
+- name: Provision CHAP host ({{ ansible_connection }})
+  ansible.builtin.include_tasks: "{{ ansible_connection }}.yml"
+
+- name: Install Docker Engine and Compose plugin
+  ansible.builtin.include_tasks: docker.yml
+
+- name: Deploy CHAP stack
+  ansible.builtin.include_tasks: deploy.yml

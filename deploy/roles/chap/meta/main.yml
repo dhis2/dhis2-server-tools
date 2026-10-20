@@ -1,0 +1,7 @@
+---
+galaxy_info:
+  author: DHIS2
+  description: Deploy CHAP (chap-core) with Docker Compose
+  license: BSD-3-Clause
+  min_ansible_version: "2.15"
+dependencies: []

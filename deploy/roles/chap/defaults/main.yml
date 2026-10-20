@@ -1,0 +1,33 @@
+---
+# CHAP (Climate & Health Analytics Platform) - https://github.com/dhis2-chap/chap-core
+# Deployed from upstream's compose.ghcr.yml (prebuilt GHCR images) with
+# community.docker.docker_compose_v2.
+
+# Release tag of chap-core; selects both the compose file and the image tags
+# (latest = newest release, master = master branch, vX.Y.Z = pinned).
+chap_version: v2.4.0
+chap_compose_url: "https://raw.githubusercontent.com/dhis2-chap/chap-core/{{ chap_version }}/compose.ghcr.yml"
+chap_dir: /opt/chap
+
+chap_postgres_user: chap
+chap_postgres_db: chap_core
+
+# Optional. Unset = no API authentication. Use at least 32 characters
+# (openssl rand -hex 32).
+# chap_api_token:
+
+# Path prefix when CHAP is served behind the reverse proxy, e.g. /chap
+chap_root_path: ""
+
+# Image pull policy for docker_compose_v2: always | missing | never | policy.
+# "policy" honours each service's pull_policy; with a pinned chap_version,
+# "missing" avoids a registry round-trip on every run.
+chap_pull: missing
+# The worker image is ~3 GB compressed - allow time for the first pull.
+chap_wait_timeout: 900
+
+# Upstream's worker healthcheck (celery inspect ping) has timeout: 10s, but
+# each probe starts a fresh Python that imports chap_core - 12-15s on a slow
+# vCPU (e.g. QEMU's generic CPU model). Raised via compose.override.yml so
+# docker_compose_v2's wait does not fail on a worker that is actually up.
+chap_worker_healthcheck_timeout: 60s
