@@ -52,6 +52,13 @@ backup  ansible_host=172.19.2.100
 # integration server/container
 [integration]
 
+# CHAP (Climate & Health Analytics Platform), deployed with Docker Compose.
+# Run: ansible-playbook playbooks/chap.yml   (amd64 only; ~15GB free disk for images)
+# LXD containers get security.nesting=true so Docker can run inside them.
+# EXAMPLE (lxd): chap-core  ansible_host=172.19.2.40  lxd_memory_limit=8GB
+# EXAMPLE (ssh): chap-core  ansible_host=192.168.1.60  ansible_connection=ssh  ansible_user=ubuntu  chap_version=v2.4.0
+[chap]
+
 # variables applying to all hosts, 
 [all:vars]
 # if you do not set fqdn, you dhis2 will be set up with selfsigned certificate
