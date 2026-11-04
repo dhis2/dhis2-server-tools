@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.3](https://github.com/dhis2/dhis2-server-tools/compare/v1.13.2...v1.13.3) (2026-11-03)
+
+
+### 🐛 Bug Fixes
+
+* **doris:** SSH-host hardening, tarball timeout, grub-pc pre-seed, pg_hba reload race ([ffea941](https://github.com/dhis2/dhis2-server-tools/commit/ffea94185fcd0cc396ef993e4d3741128788aa14))
+
 ## [1.13.2](https://github.com/dhis2/dhis2-server-tools/compare/v1.13.1...v1.13.2) (2026-10-12)
 
 
