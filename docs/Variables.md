@@ -197,6 +197,7 @@ munin_users:
 | `SSL_TYPE`        | Choose whether to use `letsencrypt` or a `customssl` certificate.<br>**Options**:<br>- letsencrypt ← (default)<br>- customssl |
 | `munin_base_path` | Base path for accessing Munin, e.g., `https://domain.example.com/munin_base_path`. Defaults to `munin`. |
 | `munin_users`     | A list of users and passwords allowed to log into Munin. See example below. |
+| `openresty_access_log_format` | OpenResty only: `log_format` name used for `/usr/local/openresty/nginx/logs/perf.log`. The template defines `main` and `performance`; a custom format can be defined in `/usr/local/openresty/nginx/conf/http.d/*.conf`. Defaults to `performance`. |
 
 **Example:**
 ```yaml

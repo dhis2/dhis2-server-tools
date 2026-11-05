@@ -1,0 +1,8 @@
+---
+bugfixes:
+  - >-
+    create-instance - nginx/OpenResty HTTP to HTTPS redirect. With https_port
+    unset it redirected to https://<host>:$server_port/..., i.e. port 80,
+    which fails. It now redirects to https://<host>/... and only adds a port
+    when https_port is set to something other than 443. The redirect is
+    now a 301 instead of a 302.
