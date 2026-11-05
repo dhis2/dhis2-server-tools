@@ -1,0 +1,8 @@
+---
+minor_changes:
+  - >-
+    create-instance - add a daily root cron job that deletes rolled-over
+    dhis-audit.log.* archives older than dhis2_audit_log_retention_days
+    (default 90). DHIS2 core never prunes audit log archives itself
+    (Log4JLogConfigInitializer hardcodes unlimited retention for the audit
+    appender), so without this they accumulate on disk forever.
