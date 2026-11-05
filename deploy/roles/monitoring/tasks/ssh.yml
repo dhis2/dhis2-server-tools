@@ -5,6 +5,46 @@
       - network
       - "!min"
 
+# Pre-seed grub-pc's boot-device debconf answer on this host before any apt
+# task that might install/reconfigure it. On QEMU/KVM VMs this question can
+# be genuinely unanswered until a kernel-related update pulls grub-pc in as
+# a dependency, and DEBIAN_FRONTEND=noninteractive/--force-confdef alone
+# don't help then - with no existing answer to fall back to, grub-install
+# fails outright ("/multiselect does not exist") instead of just proceeding.
+# Harmless to seed even if grub-pc never ends up installed (UEFI boots use
+# grub-efi instead and never ask this). Needs its own hardware-subset gather
+# since the facts call above only gathers network. Strips a trailing
+# partition suffix (sda2 -> sda, nvme0n1p2 -> nvme0n1) so this works whether
+# root sits on a partition or directly on a whole, unpartitioned disk.
+- name: Gather hardware facts for grub-pc pre-seed
+  ansible.builtin.setup:
+    gather_subset:
+      - hardware
+      - "!min"
+
+- name: Determine boot disk for grub-pc pre-seed
+  ansible.builtin.set_fact:
+    grub_boot_disk: "{{ (ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='device') | first | default('')) | regex_replace('^(/dev/(?:[a-z]+|nvme\\d+n\\d+))(?:p?\\d+)?$', '\\1') }}"
+
+- name: Pre-seed grub-pc install_devices answer
+  ansible.builtin.debconf:
+    name: grub-pc
+    question: "{{ item.question }}"
+    value: "{{ item.value }}"
+    vtype: "{{ item.vtype }}"
+  loop:
+    - { question: "grub-pc/install_devices", value: "{{ grub_boot_disk }}", vtype: "multiselect" }
+    - { question: "grub-pc/install_devices_empty", value: "false", vtype: "boolean" }
+  # A freshly-booted VM's own boot-time package management (cloud-init,
+  # unattended-upgrades) can still be holding debconf's database lock when
+  # this runs - "DbDriver config: ... is locked by another process". That
+  # lock is transient by nature, so retry instead of failing outright.
+  register: monitoring_grubpc_preseed
+  retries: 6
+  delay: 10
+  until: monitoring_grubpc_preseed is not failed
+  when: grub_boot_disk | default('') | length > 0
+
 - name: Installing acl package
   ansible.builtin.apt:
     name: acl
