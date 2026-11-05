@@ -1,0 +1,58 @@
+---
+# virtual-patching: in-band rules for known CVEs, each scoped to the vulnerable URL or
+# parameter. generic-rules: a few broad ones (FreeMarker SSTI, WordPress uploads).
+- name: Crowdsec | Install AppSec rule collections
+  ansible.builtin.command:
+    cmd: "cscli collections install {{ item }}"
+    creates: "/etc/crowdsec/collections/{{ item | basename }}.yaml"
+  loop: "{{ crowdsec_appsec_collections }}"
+  register: crowdsec_appsec_collection_install
+  until: crowdsec_appsec_collection_install is succeeded
+  retries: 3
+  delay: 10
+  when: crowdsec_appsec_active | bool
+  notify: Restart crowdsec
+
+- name: Crowdsec | Ensure the local AppSec config directory exists
+  ansible.builtin.file:
+    path: /etc/crowdsec/appsec-configs
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  when: crowdsec_appsec_active | bool
+
+- name: Crowdsec | Template AppSec body-size limits
+  ansible.builtin.template:
+    src: appsec-body-limits.yaml.j2
+    dest: /etc/crowdsec/appsec-configs/dhis2-body-limits.yaml
+    owner: root
+    group: root
+    mode: "0640"
+  when: crowdsec_appsec_active | bool
+  notify: Restart crowdsec
+
+- name: Crowdsec | Template AppSec acquisition
+  ansible.builtin.template:
+    src: acquis-appsec.yaml.j2
+    dest: /etc/crowdsec/acquis.d/appsec.yaml
+    owner: root
+    group: root
+    mode: "0640"
+  when: crowdsec_appsec_active | bool
+  notify: Restart crowdsec
+
+# The collections stay installed: their scenarios only act on AppSec events, and none
+# arrive once the listener is gone.
+- name: Crowdsec | Remove AppSec listener
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/crowdsec/acquis.d/appsec.yaml
+    - /etc/crowdsec/appsec-configs/dhis2-body-limits.yaml
+  when: not (crowdsec_appsec_active | bool)
+  notify: Restart crowdsec
+
+- name: Crowdsec | Flush handlers so the AppSec listener is up before the bouncer uses it
+  ansible.builtin.meta: flush_handlers

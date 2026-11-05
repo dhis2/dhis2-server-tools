@@ -1,0 +1,9 @@
+{{ ansible_managed | comment }}
+# AppSec listener the OpenResty bouncer forwards each request to (APPSEC_URL).
+source: appsec
+listen_addr: "127.0.0.1:{{ crowdsec_appsec_port }}"
+appsec_configs:
+  - crowdsecurity/appsec-default
+  - dhis2/body-limits
+labels:
+  type: appsec

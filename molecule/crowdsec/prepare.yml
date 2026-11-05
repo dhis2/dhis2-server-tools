@@ -1,0 +1,40 @@
+---
+# Stands in for the parts of the play that run before the crowdsec role: the proxy role's
+# real OpenResty install, and a static-file default vhost in place of create-instance's
+# DHIS2 vhosts. The bouncer runs in the access phase, so a vhost that answers with
+# `return` (rewrite phase) would never reach it.
+- name: Prepare
+  hosts: web
+  become: true
+  tasks:
+    - name: Prepare | Install ufw
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+        update_cache: true
+
+    - name: Prepare | Install OpenResty with the proxy role
+      ansible.builtin.include_role:
+        name: proxy
+        tasks_from: openresty-install.yml
+
+    - name: Prepare | Static-file default vhost
+      ansible.builtin.copy:
+        dest: /usr/local/openresty/nginx/conf/conf.d/default.conf
+        content: |
+          server {
+            listen 80 default_server;
+            client_max_body_size 100M;
+            root /usr/local/openresty/nginx/html;
+            location / { try_files $uri $uri/ =404; }
+          }
+        owner: root
+        group: root
+        mode: "0640"
+
+    - name: Prepare | Start OpenResty with the vhost
+      ansible.builtin.service:
+        name: openresty
+        state: restarted
+        enabled: true
+      changed_when: false

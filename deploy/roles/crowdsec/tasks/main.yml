@@ -1,0 +1,50 @@
+---
+# Value checks (bouncer mode, remediation types, ...) live in meta/argument_specs.yml.
+# These cover only what argument_specs can't express. roles/pre-install/tasks/main.yml
+# runs the same checks before anything is deployed; these catch runs that skip that
+# play (--limit).
+- name: Crowdsec | Pre-flight | Assert supported connection type
+  ansible.builtin.assert:
+    that:
+      - ansible_connection | default('lxd') == 'lxd'
+    fail_msg: "crowdsec role only supports ansible_connection=lxd."
+  when: crowdsec_enabled | bool
+  tags: [always]
+
+# The bouncer is OpenResty-only. crowdsec-nginx-bouncer hard-depends on Ubuntu's
+# libnginx-mod-http-lua, which needs the virtual package nginx-abi-1.24.0-1 - only Ubuntu's
+# own nginx-core provides it. The nginx.org package the proxy role installs provides no
+# nginx-abi at all, and nginx.org ships no lua module, so apt can never resolve it.
+- name: Crowdsec | Pre-flight | Assert the bouncer runs on OpenResty
+  ansible.builtin.assert:
+    that:
+      - proxy == 'openresty' or not (crowdsec_bouncer_enabled | bool)
+    fail_msg: >-
+      The CrowdSec bouncer requires proxy=openresty (current: proxy={{ proxy }}).
+      nginx.org packages can't load the lua module crowdsec-nginx-bouncer depends on,
+      and the apache2 bouncer isn't implemented. Set proxy=openresty, or set
+      crowdsec_bouncer_enabled=false to run the Security Engine alone (detection only,
+      no blocking).
+  when: crowdsec_enabled | bool
+  tags: [always]
+
+# Without keys the bouncer fails to load its captcha plugin and serves every captcha
+# decision as a ban.
+- name: Crowdsec | Pre-flight | Assert captcha keys are set when captcha is enforced
+  ansible.builtin.assert:
+    that:
+      - >-
+        (crowdsec_bouncer_bouncing_on_type == 'ban' and crowdsec_bouncer_fallback_remediation == 'ban')
+        or (crowdsec_bouncer_captcha_site_key | length > 0 and crowdsec_bouncer_captcha_secret_key | length > 0)
+    fail_msg: >-
+      crowdsec_bouncer_bouncing_on_type={{ crowdsec_bouncer_bouncing_on_type }} and
+      crowdsec_bouncer_fallback_remediation={{ crowdsec_bouncer_fallback_remediation }}
+      need crowdsec_bouncer_captcha_site_key and crowdsec_bouncer_captcha_secret_key.
+      Set both, or set both options to ban.
+  when:
+    - crowdsec_enabled | bool
+    - crowdsec_bouncer_enabled | bool
+  tags: [always]
+
+- name: Crowdsec | Deploy or remove
+  ansible.builtin.import_tasks: deploy.yml

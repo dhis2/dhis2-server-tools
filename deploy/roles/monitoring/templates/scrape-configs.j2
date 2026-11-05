@@ -20,3 +20,12 @@
       - targets:
           - {{ lxd_network.split('/')[0] }}:9100
 {% endif %}
+{% for web_host in groups['web'] %}
+{# crowdsec_metrics_expose defaults to true in the crowdsec role whenever this template is used #}
+{% if hostvars[web_host]['crowdsec_enabled'] | default(false) | bool and hostvars[web_host]['crowdsec_metrics_enabled'] | default(true) | bool and hostvars[web_host]['crowdsec_metrics_expose'] | default(true) | bool %}
+  - job_name: crowdsec-{{ web_host }}
+    static_configs:
+      - targets:
+         - {{ hostvars[web_host]['service_ip'] | default(hostvars[web_host]['ansible_host']) }}:{{ hostvars[web_host]['crowdsec_metrics_port'] | default(6060) }}
+{% endif %}
+{% endfor %}

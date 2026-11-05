@@ -1,0 +1,143 @@
+---
+- name: Verify
+  hosts: web
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Verify | OpenResty config is valid
+      ansible.builtin.command: openresty -t
+      changed_when: false
+
+    - name: Verify | CrowdSec and OpenResty are running
+      ansible.builtin.command: systemctl is-active crowdsec openresty
+      changed_when: false
+
+    - name: Verify | List bouncer registrations
+      ansible.builtin.command: cscli bouncers list -o json
+      register: verify_bouncers
+      changed_when: false
+
+    - name: Verify | Exactly one OpenResty bouncer is registered
+      ansible.builtin.assert:
+        that:
+          - verify_bouncers.stdout | from_json | selectattr('name', 'match', '^crowdsec-openresty-bouncer') | list | length == 1
+
+    - name: Verify | A normal request is served
+      ansible.builtin.uri:
+        url: http://127.0.0.1/
+        status_code: 200
+
+    - name: Verify | Read the bouncer config mode
+      ansible.builtin.stat:
+        path: /etc/crowdsec/bouncers/crowdsec-openresty-bouncer.conf
+      register: verify_bouncer_conf
+
+    - name: Verify | The bouncer config (API key) is root-only
+      ansible.builtin.assert:
+        that:
+          - verify_bouncer_conf.stat.mode == '0600'
+          - verify_bouncer_conf.stat.pw_name == 'root'
+
+    - name: Verify | Read the engine's memory limit
+      ansible.builtin.command: systemctl show crowdsec -p MemoryMax --value
+      register: verify_memory_max
+      changed_when: false
+
+    - name: Verify | The engine has a memory ceiling
+      ansible.builtin.assert:
+        that:
+          - verify_memory_max.stdout != 'infinity'
+
+    # A decision made by hand proves the bouncer's stream path end to end: pull from the
+    # LAPI, cache, enforce in the access phase. AppSec blocks below don't exercise it.
+    - name: Verify | Enforce a manual ban through the bouncer
+      block:
+        - name: Verify | Ban the loopback client
+          ansible.builtin.command: cscli decisions add -i 127.0.0.1 -d 2m --reason molecule
+          changed_when: true
+
+        - name: Verify | The banned client gets 403 within one stream pull
+          ansible.builtin.uri:
+            url: http://127.0.0.1/
+            status_code: 403
+          register: verify_ban
+          retries: 15
+          delay: 2
+          until: verify_ban.status == 403
+      always:
+        - name: Verify | Lift the manual ban
+          ansible.builtin.command: cscli decisions delete -i 127.0.0.1
+          changed_when: true
+
+        - name: Verify | The client is served again
+          ansible.builtin.uri:
+            url: http://127.0.0.1/
+            status_code: 200
+          register: verify_unban
+          retries: 15
+          delay: 2
+          until: verify_unban.status == 200
+
+    - name: Verify | AppSec blocks a virtual-patching match
+      ansible.builtin.uri:
+        url: http://127.0.0.1/.env
+        status_code: 403
+
+    - name: Verify | Create a 12 MiB body, over the AppSec inspection limit
+      ansible.builtin.command:
+        cmd: truncate -s 12M /tmp/verify-12m.bin
+        creates: /tmp/verify-12m.bin
+
+    # partial mode: inspected up to the limit and let through, so the static vhost answers
+    # the POST (404/405) instead of the bouncer's 403.
+    - name: Verify | A large import-sized body isn't blocked
+      ansible.builtin.uri:
+        url: http://127.0.0.1/api/dataValueSets
+        method: POST
+        src: /tmp/verify-12m.bin
+        remote_src: true
+        status_code: [404, 405]
+
+    - name: Verify | access.log is read and parsed
+      ansible.builtin.command: cscli metrics show acquisition -o json
+      register: verify_acquisition
+      changed_when: false
+      until: >-
+        ((verify_acquisition.stdout | from_json).acquisition
+         | default({}))['file:/usr/local/openresty/nginx/logs/access.log']['parsed'] | default(0) | int > 0
+      retries: 10
+      delay: 2
+
+    - name: Verify | Find acquisition files reading the OpenResty logs
+      ansible.builtin.find:
+        paths: [/etc/crowdsec, /etc/crowdsec/acquis.d]
+        patterns: ["*.yaml", "*.yml"]
+        contains: '.*/usr/local/openresty/nginx/logs'
+      register: verify_openresty_acquis
+
+    - name: Verify | Only the role's acquisition file reads them
+      ansible.builtin.assert:
+        that:
+          - verify_openresty_acquis.files | map(attribute='path') | list == ['/etc/crowdsec/acquis.d/openresty.yaml']
+
+    - name: Verify | Read the allowlist
+      ansible.builtin.command: cscli allowlists inspect dhis2 -o json
+      register: verify_allowlist
+      changed_when: false
+
+    - name: Verify | The allowlist holds crowdsec_allowlist
+      ansible.builtin.assert:
+        that:
+          - (verify_allowlist.stdout | from_json)['items'] | map(attribute='value') | list == ['192.0.2.10']
+
+    # No [monitoring] host here, so crowdsec_metrics_expose defaults to false.
+    - name: Verify | Metrics listen on loopback only
+      ansible.builtin.command: ss -Hltn sport = :6060
+      register: verify_metrics_listen
+      changed_when: false
+
+    - name: Verify | Metrics aren't on a routable address
+      ansible.builtin.assert:
+        that:
+          - verify_metrics_listen.stdout is search('127\.0\.0\.1:6060')
+          - verify_metrics_listen.stdout is not search('0\.0\.0\.0:6060')

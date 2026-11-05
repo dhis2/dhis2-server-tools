@@ -1,0 +1,43 @@
+---
+- name: Crowdsec | Remove the OpenResty access log CrowdSec reads
+  ansible.builtin.file:
+    path: "{{ crowdsec_openresty_conf_dir }}/crowdsec_access_log.conf"
+    state: absent
+  notify: Crowdsec | Reload OpenResty
+
+- name: Crowdsec | Close the metrics port
+  ansible.builtin.import_tasks: prometheus-metrics.yml
+  vars:
+    crowdsec_metrics_exposed: false
+
+# Not purged: /etc/crowdsec and /var/lib/crowdsec keep the machine and Central API
+# credentials and local decisions, so re-enabling picks up where it left off.
+# `apt purge crowdsec` wipes them.
+- name: Crowdsec | Remove the systemd memory limit drop-in
+  ansible.builtin.file:
+    path: "{{ crowdsec_systemd_dropin }}"
+    state: absent
+
+- name: Crowdsec | Remove the Security Engine package
+  ansible.builtin.apt:
+    name: crowdsec
+    state: absent
+    allow_change_held_packages: true
+
+- name: Crowdsec | Remove the CrowdSec apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by={{ crowdsec_keyring }}] {{ crowdsec_repo_url }} any main"
+    state: absent
+    filename: crowdsec
+
+- name: Crowdsec | Remove the CrowdSec signing key
+  ansible.builtin.file:
+    path: "{{ crowdsec_keyring }}"
+    state: absent
+
+# Last, so an interrupted removal is retried on the next run. Without the marker, later
+# runs with crowdsec_enabled=false skip removal.
+- name: Crowdsec | Remove the role-managed marker
+  ansible.builtin.file:
+    path: "{{ crowdsec_managed_marker }}"
+    state: absent
