@@ -1,0 +1,63 @@
+---
+- name: Create CHAP project directory
+  ansible.builtin.file:
+    path: "{{ chap_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+# Generated on the target, not the controller, so the role works the same
+# whether it is run from the deployment server or a workstation. The file
+# survives reruns; deleting it would orphan the existing chap-db volume.
+- name: Generate CHAP database password
+  ansible.builtin.shell: umask 077 && openssl rand -hex 24 > {{ chap_dir }}/.postgres_password
+  args:
+    creates: "{{ chap_dir }}/.postgres_password"
+
+- name: Read CHAP database password
+  ansible.builtin.slurp:
+    src: "{{ chap_dir }}/.postgres_password"
+  register: chap_postgres_password_file
+  no_log: true
+
+- name: Fetch compose.ghcr.yml for chap-core {{ chap_version }}
+  ansible.builtin.get_url:
+    url: "{{ chap_compose_url }}"
+    dest: "{{ chap_dir }}/compose.yml"
+    mode: "0644"
+    force: true
+
+- name: Write CHAP compose override
+  ansible.builtin.template:
+    src: compose.override.yml.j2
+    dest: "{{ chap_dir }}/compose.override.yml"
+    mode: "0644"
+
+- name: Write CHAP environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ chap_dir }}/.env"
+    mode: "0600"
+  vars:
+    chap_postgres_password: "{{ chap_postgres_password_file.content | b64decode | trim }}"
+  no_log: true
+
+- name: Bring up the CHAP stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ chap_dir }}"
+    files: [compose.yml, compose.override.yml]
+    state: present
+    pull: "{{ chap_pull }}"
+    wait: true
+    wait_timeout: "{{ chap_wait_timeout }}"
+
+- name: Wait for the CHAP API to report healthy
+  ansible.builtin.uri:
+    url: http://127.0.0.1:8000/health
+    return_content: true
+  register: chap_health
+  retries: 24
+  delay: 5
+  until: chap_health.status == 200
+  changed_when: false

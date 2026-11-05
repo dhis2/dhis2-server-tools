@@ -1,0 +1,9 @@
+---
+- name: CHAP setup
+  gather_facts: false
+  become: true
+  hosts: chap
+  vars_files:
+    - ../vars/vars.yml
+  roles:
+    - role: chap

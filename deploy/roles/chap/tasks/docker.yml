@@ -1,0 +1,36 @@
+---
+# Docker CE from Docker's own repo: Ubuntu's docker.io does not reliably ship
+# the Compose v2 plugin that docker_compose_v2 drives.
+- name: Remove conflicting distro Docker packages
+  ansible.builtin.apt:
+    name: [docker.io, docker-compose, docker-compose-v2, podman-docker, containerd, runc]
+    state: absent
+
+- name: Install Docker repository prerequisites
+  ansible.builtin.apt:
+    name: [ca-certificates, python3-debian]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Add Docker apt repository
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: [deb]
+    uris: https://download.docker.com/linux/ubuntu
+    suites: ["{{ ansible_facts['distribution_release'] }}"]
+    components: [stable]
+    architectures: [amd64]
+    signed_by: https://download.docker.com/linux/ubuntu/gpg
+
+- name: Install Docker Engine and Compose plugin
+  ansible.builtin.apt:
+    name: [docker-ce, docker-ce-cli, containerd.io, docker-buildx-plugin, docker-compose-plugin]
+    state: present
+    update_cache: true
+
+- name: Ensure Docker is running and enabled
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
