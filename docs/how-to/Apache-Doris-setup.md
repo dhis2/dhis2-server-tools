@@ -192,7 +192,7 @@ sudo systemctl start doris-be
 
 ---
 
-## Step 11: Connect to Doris via MySQL Client *(Optional)*
+## Step 11: Connect to Doris via MySQL Client
 
 You’ll need the MySQL client to register a backend (BE) node:
 
@@ -214,7 +214,35 @@ ALTER SYSTEM ADD BACKEND "127.0.0.1:9050";
 
 ---
 
-## Step 12: Configure DHIS2 to Use Doris for Analytics
+## Step 12: Create the Analytics Database and User
+
+Still connected as `root`, create the database DHIS2 writes analytics tables
+to, and the user DHIS2 connects as:
+
+```sql
+CREATE DATABASE IF NOT EXISTS analytics;
+CREATE USER IF NOT EXISTS 'doris_user'@'%' IDENTIFIED BY '<doris_database_password>';
+GRANT ALL ON *.*.* TO 'doris_user'@'%';
+```
+
+This is the same grant the `doris` Ansible role applies. In Doris, grants
+name `catalog.database.table`, so `*.*.*` covers every catalog, not only the
+`analytics` database in the `internal` catalog. DHIS2 needs that wider scope:
+
+- On startup it drops and recreates a JDBC catalog (`pg_dhis`) which reads
+  from the DHIS2 PostgreSQL database.
+- During analytics table generation it runs `REFRESH TABLE` on tables in that
+  catalog, so that Doris picks up columns added since the catalog was created.
+
+A grant limited to `analytics.*` or `internal.analytics.*` is not enough,
+because creating and refreshing the catalog need privileges at the catalog
+level. If the refresh is refused, recent DHIS2 versions log a warning
+(`Failed to refresh table ...`) and replicate using the cached, possibly
+outdated, table schema.
+
+---
+
+## Step 13: Configure DHIS2 to Use Doris for Analytics
 
 ```properties
 # Analytics database management system
