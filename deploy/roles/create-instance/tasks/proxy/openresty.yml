@@ -59,10 +59,7 @@
     - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
 
-# crowdsec_*.conf files belong to the crowdsec role: crowdsec_openresty.conf is owned by the
-# crowdsec-openresty-bouncer package (not a conffile, so apt never restores it) and
-# crowdsec_access_log.conf is templated by the role. Both load via the conf.d/*.conf
-# wildcard in nginx.conf.
+# crowdsec_*.conf belong to the crowdsec role and its bouncer package; apt never restores them.
 - name: Find files to delete in /usr/local/openresty/nginx/conf/conf.d/
   ansible.builtin.find:
     paths: /usr/local/openresty/nginx/conf/conf.d/

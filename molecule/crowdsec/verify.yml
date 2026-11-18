@@ -58,8 +58,6 @@
         that:
           - verify_memory_max.stdout != 'infinity'
 
-    # A decision made by hand proves the bouncer's stream path end to end: pull from the
-    # LAPI, cache, enforce in the access phase. AppSec blocks below don't exercise it.
     - name: Verify | Enforce a manual ban through the bouncer
       block:
         - name: Verify | Ban the loopback client
@@ -98,8 +96,6 @@
         cmd: truncate -s 12M /tmp/verify-12m.bin
         creates: /tmp/verify-12m.bin
 
-    # partial mode: inspected up to the limit and let through, so the static vhost answers
-    # the POST (404/405) instead of the bouncer's 403.
     - name: Verify | A large import-sized body isn't blocked
       ansible.builtin.uri:
         url: http://127.0.0.1/api/dataValueSets
@@ -140,7 +136,6 @@
         that:
           - (verify_allowlist.stdout | from_json)['items'] | map(attribute='value') | list == ['192.0.2.10']
 
-    # No [monitoring] host here, so crowdsec_metrics_expose defaults to false.
     - name: Verify | Metrics listen on loopback only
       ansible.builtin.command: ss -Hltn sport = :6060
       register: verify_metrics_listen

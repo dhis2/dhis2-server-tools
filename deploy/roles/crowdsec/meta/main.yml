@@ -7,9 +7,8 @@ galaxy_info:
   platforms:
     - name: Ubuntu
       versions:
-        - jammy    # 22.04
-        - noble    # 24.04
-        # Bouncer is OpenResty-only on both - see the pre-flight assert in tasks/main.yml.
+        - jammy
+        - noble
   galaxy_tags:
     - crowdsec
     - waf

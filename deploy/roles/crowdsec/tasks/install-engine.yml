@@ -14,12 +14,7 @@
     group: root
     mode: "0755"
 
-# get_url downloads to a temp file and moves it into place only on success, so a failed
-# download leaves nothing that a later run could mistake for the key. apt reads the
-# ASCII-armored key directly because of the .asc extension.
-# The checksum pins the key (primary fingerprint 6A89E3C2303A901A889971D3376ED5326E93CD0C,
-# no expiry). A key file that doesn't match it is deleted and downloaded again, so
-# updating the checksum for a rotated key replaces the key on existing hosts.
+# sha256 of the key with fingerprint 6A89E3C2303A901A889971D3376ED5326E93CD0C; update it when CrowdSec rotates the key.
 - name: Crowdsec | Download CrowdSec signing key
   ansible.builtin.get_url:
     url: https://packagecloud.io/crowdsec/crowdsec/gpgkey
@@ -33,9 +28,6 @@
   retries: 3
   delay: 5
 
-# Hosts set up with the key dearmored into /usr/share/keyrings: apt refuses two entries for
-# the same repo with different Signed-By values, and a failed curl there left a 0-byte
-# keyring that apt rejects on every update.
 - name: Crowdsec | Remove the repo entry signed by the dearmored keyring
   ansible.builtin.apt_repository:
     repo: "deb [signed-by={{ crowdsec_legacy_keyring }}] {{ crowdsec_repo_url }} any main"
@@ -54,9 +46,6 @@
     state: present
     filename: crowdsec
 
-# The crowdsec package's postinst runs debconf-driven prompts (crowdsec/lapi, crowdsec/capi)
-# the first time it configures. Preseeding avoids it hanging/defaulting unpredictably under
-# DEBIAN_FRONTEND=noninteractive (which the apt module already sets).
 - name: Crowdsec | Preseed LAPI debconf question (always run a local API here)
   ansible.builtin.debconf:
     name: crowdsec
@@ -80,8 +69,6 @@
     update_cache: true
     cache_valid_time: 3600
 
-# The proxy role runs `apt upgrade` on every deploy, which would otherwise move a pinned
-# engine to the newest version in the repo.
 - name: Crowdsec | Hold the Security Engine at the pinned version
   ansible.builtin.dpkg_selections:
     name: crowdsec
@@ -96,9 +83,6 @@
     mode: "0640"
   notify: Restart crowdsec
 
-# The postinst writes the agent's LAPI URL once, from the default listen_uri, before the
-# template above runs. Keep it in step with crowdsec_lapi_port, or the engine can't reach
-# its own LAPI and crash-loops.
 - name: Crowdsec | Point the engine's agent at the local API
   ansible.builtin.lineinfile:
     path: /etc/crowdsec/local_api_credentials.yaml
@@ -107,9 +91,6 @@
   diff: false
   notify: Restart crowdsec
 
-# The crowdsec/capi debconf answer is only read on first install. An empty credentials
-# file is how the engine runs with the Central API off ("push and pull to Central API
-# disabled"); the package's own postinst leaves it that way when crowdsec/capi is false.
 - name: Crowdsec | Check Central API credentials
   ansible.builtin.stat:
     path: /etc/crowdsec/online_api_credentials.yaml
@@ -134,8 +115,6 @@
   when: not (crowdsec_online_api_enabled | bool)
   notify: Restart crowdsec
 
-# A conf.d file rather than a line in the proxy role's nginx.conf, so --tags crowdsec on an
-# existing deployment sets it up too. nginx.conf includes conf.d/*.conf inside http {}.
 - name: Crowdsec | Write the OpenResty access log CrowdSec reads
   ansible.builtin.template:
     src: openresty-access-log.conf.j2
@@ -146,10 +125,6 @@
   when: proxy == 'openresty'
   notify: Crowdsec | Reload OpenResty
 
-# The postinst (cscli setup unattended) generates setup.openresty.yaml with a logs/*.log
-# glob, which also tails the tab-separated perf.log that the nginx parser can't read.
-# Once a hand-managed file exists in acquis.d, later unattended runs (on every package
-# upgrade) stop without regenerating theirs.
 - name: Crowdsec | Template OpenResty log acquisition
   ansible.builtin.template:
     src: acquis-openresty.yaml.j2
@@ -160,9 +135,6 @@
   when: proxy == 'openresty'
   notify: Restart crowdsec
 
-# A second file reading the same logs makes the engine count every request twice, so
-# scenarios ban at half their thresholds. Match on content, not on the generated file's
-# name, which differs between crowdsec releases.
 - name: Crowdsec | Find other acquisition files reading the OpenResty logs
   ansible.builtin.find:
     paths:
@@ -230,8 +202,5 @@
     enabled: true
     daemon_reload: true
 
-# Bouncer packages auto-register against the LAPI during their own postinst (see
-# configure-bouncer-*.yml) and need it reachable at that point, so config overrides
-# must be live before we get there.
 - name: Crowdsec | Flush handlers so config overrides apply before the bouncer installs
   ansible.builtin.meta: flush_handlers

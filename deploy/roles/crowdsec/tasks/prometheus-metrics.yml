@@ -1,14 +1,10 @@
 ---
-# The role's rules are found by their comment, so a changed metrics port or monitoring
-# address, crowdsec_metrics_expose turned off, or the role removed leaves no rule open.
 - name: Crowdsec | List firewall rules
   ansible.builtin.command: ufw show added
   register: crowdsec_ufw_rules
   changed_when: false
   check_mode: false
 
-# `ufw show added` prints them as:
-# ufw allow from <src> to any port <port> proto tcp comment '<comment>'
 - name: Crowdsec | Delete metrics rules for an old port or monitoring address
   community.general.ufw:
     rule: allow

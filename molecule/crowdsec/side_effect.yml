@@ -1,5 +1,4 @@
 ---
-# Switching off: first the bouncer alone, then CrowdSec entirely.
 - name: Side effect | Switch the bouncer off
   hosts: web
   become: true
@@ -93,7 +92,6 @@
         url: http://127.0.0.1/
         status_code: 200
 
-# Removal must be a no-op once done: the marker is gone, so the role does nothing.
 - name: Side effect | Rerun with CrowdSec off
   hosts: web
   become: true

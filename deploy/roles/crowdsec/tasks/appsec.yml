@@ -1,6 +1,4 @@
 ---
-# virtual-patching: in-band rules for known CVEs, each scoped to the vulnerable URL or
-# parameter. generic-rules: a few broad ones (FreeMarker SSTI, WordPress uploads).
 - name: Crowdsec | Install AppSec rule collections
   ansible.builtin.command:
     cmd: "cscli collections install {{ item }}"
@@ -42,8 +40,6 @@
   when: crowdsec_appsec_active | bool
   notify: Restart crowdsec
 
-# The collections stay installed: their scenarios only act on AppSec events, and none
-# arrive once the listener is gone.
 - name: Crowdsec | Remove AppSec listener
   ansible.builtin.file:
     path: "{{ item }}"

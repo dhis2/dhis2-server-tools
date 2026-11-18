@@ -1,8 +1,4 @@
 ---
-# A centralized allowlist, not an s02-enrich whitelist parser: the parser only drops
-# locally detected alerts, while an allowlist also keeps community-blocklist entries and
-# AppSec blocks off the listed IPs, and adding an entry deletes its existing bans. The
-# role owns this one allowlist entirely. AppSec re-reads allowlists about once a minute.
 - name: Crowdsec | Read the role's allowlist
   ansible.builtin.command: "cscli allowlists inspect {{ crowdsec_allowlist_name }} -o json"
   register: crowdsec_allowlist_current
@@ -11,7 +7,6 @@
     - crowdsec_allowlist_current.rc != 0
     - "'not found' not in crowdsec_allowlist_current.stderr"
 
-# cscli stores each value exactly as given, so plain string comparison is enough.
 - name: Crowdsec | Compare the allowlist with crowdsec_allowlist
   ansible.builtin.set_fact:
     crowdsec_allowlist_missing: "{{ crowdsec_allowlist | map('string') | list | difference(crowdsec_allowlist_present) }}"

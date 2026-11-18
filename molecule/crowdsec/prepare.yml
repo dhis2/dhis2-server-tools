@@ -1,8 +1,4 @@
 ---
-# Stands in for the parts of the play that run before the crowdsec role: the proxy role's
-# real OpenResty install, and a static-file default vhost in place of create-instance's
-# DHIS2 vhosts. The bouncer runs in the access phase, so a vhost that answers with
-# `return` (rewrite phase) would never reach it.
 - name: Prepare
   hosts: web
   become: true
@@ -13,7 +9,6 @@
         state: present
         update_cache: true
 
-    # As an earlier run with another metrics port would have left it; the role deletes it.
     - name: Prepare | Add a metrics rule for an old port
       community.general.ufw:
         rule: allow

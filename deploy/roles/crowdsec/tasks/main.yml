@@ -1,8 +1,4 @@
 ---
-# Value checks (bouncer mode, remediation types, ...) live in meta/argument_specs.yml.
-# These cover only what argument_specs can't express. roles/pre-install/tasks/main.yml
-# runs the same checks before anything is deployed; these catch runs that skip that
-# play (--limit).
 - name: Crowdsec | Pre-flight | Assert supported connection type
   ansible.builtin.assert:
     that:
@@ -11,10 +7,6 @@
   when: crowdsec_enabled | bool
   tags: [always]
 
-# The bouncer is OpenResty-only. crowdsec-nginx-bouncer hard-depends on Ubuntu's
-# libnginx-mod-http-lua, which needs the virtual package nginx-abi-1.24.0-1 - only Ubuntu's
-# own nginx-core provides it. The nginx.org package the proxy role installs provides no
-# nginx-abi at all, and nginx.org ships no lua module, so apt can never resolve it.
 - name: Crowdsec | Pre-flight | Assert the bouncer runs on OpenResty
   ansible.builtin.assert:
     that:
@@ -28,8 +20,6 @@
   when: crowdsec_enabled | bool
   tags: [always]
 
-# Without keys the bouncer fails to load its captcha plugin and serves every captcha
-# decision as a ban.
 - name: Crowdsec | Pre-flight | Assert captcha keys are set when captcha is enforced
   ansible.builtin.assert:
     that:

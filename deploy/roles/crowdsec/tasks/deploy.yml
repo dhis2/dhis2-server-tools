@@ -1,12 +1,10 @@
 ---
-# import_tasks, not include_tasks: the sub-tags must reach the tasks inside so that
-# --tags crowdsec-install / crowdsec-configure / crowdsec-remove select them.
+# import_tasks, not include_tasks, so --tags crowdsec-install/-configure/-remove reach the tasks inside.
 - name: Crowdsec | Install and configure Security Engine
   ansible.builtin.import_tasks: install-engine.yml
   when: crowdsec_enabled | bool
   tags: [crowdsec-install]
 
-# Before the bouncer: its APPSEC_URL should point at a listener that's already up.
 - name: Crowdsec | Configure AppSec (WAF)
   ansible.builtin.import_tasks: appsec.yml
   when: crowdsec_enabled | bool
@@ -29,8 +27,6 @@
     - crowdsec_bouncer_enabled | bool
   tags: [crowdsec-configure]
 
-# Switching off. crowdsec_bouncer_enabled=false removes the bouncer and keeps the engine.
-# crowdsec_enabled=false removes both, but only from a host this role set up.
 - name: Crowdsec | Check for a role-managed install
   ansible.builtin.stat:
     path: "{{ crowdsec_managed_marker }}"

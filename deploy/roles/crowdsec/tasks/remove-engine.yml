@@ -10,9 +10,6 @@
   vars:
     crowdsec_metrics_exposed: false
 
-# Not purged: /etc/crowdsec and /var/lib/crowdsec keep the machine and Central API
-# credentials and local decisions, so re-enabling picks up where it left off.
-# `apt purge crowdsec` wipes them.
 - name: Crowdsec | Remove the systemd memory limit drop-in
   ansible.builtin.file:
     path: "{{ crowdsec_systemd_dropin }}"
@@ -35,8 +32,7 @@
     path: "{{ crowdsec_keyring }}"
     state: absent
 
-# Last, so an interrupted removal is retried on the next run. Without the marker, later
-# runs with crowdsec_enabled=false skip removal.
+# Last, so an interrupted removal is retried on the next run.
 - name: Crowdsec | Remove the role-managed marker
   ansible.builtin.file:
     path: "{{ crowdsec_managed_marker }}"

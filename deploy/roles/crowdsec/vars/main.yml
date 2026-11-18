@@ -1,30 +1,25 @@
 ---
-# Role-internal constants and derived values - not for override.
 crowdsec_lapi_url: "http://127.0.0.1:{{ crowdsec_lapi_port }}"
 crowdsec_appsec_url: "http://127.0.0.1:{{ crowdsec_appsec_port }}"
 crowdsec_appsec_active: "{{ crowdsec_appsec_enabled | bool and crowdsec_bouncer_enabled | bool }}"
 
 crowdsec_metrics_exposed: "{{ crowdsec_metrics_enabled | bool and crowdsec_metrics_expose | bool }}"
 crowdsec_metrics_listen_addr: "{{ (service_ip | default(ansible_host)) if crowdsec_metrics_exposed | bool else '127.0.0.1' }}"
-# Each [monitoring] host's service_ip, or ansible_host where service_ip isn't set.
 crowdsec_metrics_scrapers: >-
   {{ (crowdsec_monitoring_hostvars | selectattr('service_ip', 'defined') | map(attribute='service_ip') | list)
      + (crowdsec_monitoring_hostvars | rejectattr('service_ip', 'defined') | map(attribute='ansible_host') | list) }}
 crowdsec_monitoring_hostvars: "{{ groups['monitoring'] | default([]) | map('extract', hostvars) | list }}"
-# Identifies the role's ufw rules, so ones for an old port or address can be found and deleted.
+# Existing ufw rules are found by this text; changing it orphans them.
 crowdsec_metrics_ufw_comment: "Allow crowdsec metrics scrape from prometheus/grafana server"
 
 crowdsec_repo_url: "https://packagecloud.io/crowdsec/crowdsec/any"
 crowdsec_keyring: "/etc/apt/keyrings/crowdsec.asc"
-# Where the key used to be dearmored to with curl | gpg; see install-engine.yml.
 crowdsec_legacy_keyring: "/usr/share/keyrings/crowdsec-archive-keyring.gpg"
 
 crowdsec_openresty_conf_dir: "/usr/local/openresty/nginx/conf/conf.d"
 crowdsec_openresty_logs_dir: "/usr/local/openresty/nginx/logs"
 crowdsec_bouncer_conf: "/etc/crowdsec/bouncers/crowdsec-openresty-bouncer.conf"
 
-# Templated by this role only, so its presence marks a role-managed install that
-# crowdsec_enabled=false may remove.
 crowdsec_managed_marker: "/etc/crowdsec/config.yaml.local"
 
 crowdsec_systemd_dropin: "/etc/systemd/system/crowdsec.service.d/override.conf"

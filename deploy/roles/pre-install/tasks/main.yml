@@ -1,7 +1,5 @@
 ---
-# Same checks as roles/crowdsec/tasks/main.yml, which only runs at the end of the proxy
-# role, after postgres and the proxy are already deployed. Failing here stops the run
-# before anything changes. The defaults mirror roles/crowdsec/defaults/main.yml.
+# Mirrors roles/crowdsec/tasks/main.yml so a bad config fails before anything is deployed.
 - name: Pre-flight | Assert CrowdSec settings on [web] hosts
   ansible.builtin.assert:
     that:

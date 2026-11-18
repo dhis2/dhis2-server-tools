@@ -17,8 +17,7 @@
     - server_monitoring | trim == 'munin'
   tags: [securing-munin]
 
-# Not gated on crowdsec_enabled: with it false, the role removes CrowdSec from hosts it
-# set up earlier and does nothing on the rest.
+# Not gated on crowdsec_enabled: with it false, the role removes CrowdSec it set up earlier.
 - name: Crowdsec | Install, configure or remove engine and bouncer
   ansible.builtin.include_role:
     name: crowdsec

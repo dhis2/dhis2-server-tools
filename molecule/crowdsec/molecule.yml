@@ -1,8 +1,4 @@
 ---
-# CrowdSec on OpenResty: install, idempotence, enforcement (verify.yml), then switching it
-# off (side_effect.yml). The role's own pre-flight accepts only ansible_connection=lxd, so
-# the playbooks drive tasks/deploy.yml - everything after those asserts - over docker.
-# MOLECULE_CROWDSEC_IMAGE overrides the image, e.g. with one that has the packages cached.
 dependency:
   name: galaxy
   options:
@@ -43,7 +39,6 @@ provisioner:
       all:
         proxy: openresty
         crowdsec_enabled: true
-        # Keep CI runs from registering throwaway machines with CrowdSec's Central API.
         crowdsec_online_api_enabled: false
         crowdsec_allowlist: ["192.0.2.10"]
 verifier:
