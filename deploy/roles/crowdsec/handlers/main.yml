@@ -1,0 +1,13 @@
+---
+# Order matters: OpenResty reloads first, so access.log exists when the engine restarts.
+- name: Crowdsec | Reload OpenResty
+  ansible.builtin.service:
+    name: openresty
+    state: reloaded
+  when: proxy | default('') == 'openresty'
+
+- name: Restart crowdsec
+  ansible.builtin.systemd:
+    name: crowdsec
+    state: restarted
+    daemon_reload: true

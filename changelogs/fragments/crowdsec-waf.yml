@@ -1,0 +1,24 @@
+---
+minor_changes:
+  - |
+    Add a ``crowdsec`` role: CrowdSec Security Engine with AppSec (WAF) and the
+    OpenResty bouncer on the ``[web]`` host, enabled with ``crowdsec_enabled=true``
+    (requires ``proxy=openresty`` and ``ansible_connection=lxd``). Log-based
+    scenarios and the community blocklist ban IPs; AppSec blocks known-CVE and
+    generic attacks in-band. Includes a managed allowlist, optional captcha
+    remediation, Prometheus metrics scraped from the ``[monitoring]`` host, a
+    systemd memory ceiling, and clean switch-off of the bouncer or the whole
+    engine. See ``docs/CrowdSec-WAF.md``.
+known_issues:
+  - |
+    OpenResty's ``access.log``, ``error.log`` and ``perf.log`` are not rotated.
+    CrowdSec adds the combined ``access.log``; log rotation for OpenResty is a
+    separate change.
+  - |
+    AppSec fails open: a request whose AppSec check times out goes through
+    uninspected. Many concurrent uploads near the 100 MB limit can cause it.
+  - |
+    Behind a load balancer or CDN that only sets ``X-Forwarded-For``, CrowdSec
+    sees every client as the load balancer's address. Use PROXY protocol
+    (``use_proxy_protocol=true`` with ``proxy_protocol_trusted_cidr`` set to the
+    load balancer's address) or expose the proxy directly.

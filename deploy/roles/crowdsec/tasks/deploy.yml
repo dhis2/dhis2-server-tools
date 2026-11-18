@@ -1,0 +1,49 @@
+---
+# import_tasks, not include_tasks, so --tags crowdsec-install/-configure/-remove reach the tasks inside.
+- name: Crowdsec | Install and configure Security Engine
+  ansible.builtin.import_tasks: install-engine.yml
+  when: crowdsec_enabled | bool
+  tags: [crowdsec-install]
+
+- name: Crowdsec | Configure AppSec (WAF)
+  ansible.builtin.import_tasks: appsec.yml
+  when: crowdsec_enabled | bool
+  tags: [crowdsec-configure]
+
+- name: Crowdsec | Manage the allowlist
+  ansible.builtin.import_tasks: allowlist.yml
+  when: crowdsec_enabled | bool
+  tags: [crowdsec-configure]
+
+- name: Crowdsec | Open or close the metrics port to the monitoring host
+  ansible.builtin.import_tasks: prometheus-metrics.yml
+  when: crowdsec_enabled | bool
+  tags: [crowdsec-configure]
+
+- name: Crowdsec | Configure OpenResty bouncer
+  ansible.builtin.import_tasks: configure-bouncer-openresty.yml
+  when:
+    - crowdsec_enabled | bool
+    - crowdsec_bouncer_enabled | bool
+  tags: [crowdsec-configure]
+
+- name: Crowdsec | Check for a role-managed install
+  ansible.builtin.stat:
+    path: "{{ crowdsec_managed_marker }}"
+  register: crowdsec_managed
+  when: not (crowdsec_enabled | bool)
+  tags: [crowdsec-configure, crowdsec-remove]
+
+- name: Crowdsec | Remove OpenResty bouncer
+  ansible.builtin.import_tasks: remove-bouncer-openresty.yml
+  when: >-
+    (crowdsec_enabled | bool and not (crowdsec_bouncer_enabled | bool))
+    or (not (crowdsec_enabled | bool) and crowdsec_managed.stat.exists | default(false))
+  tags: [crowdsec-configure, crowdsec-remove]
+
+- name: Crowdsec | Remove Security Engine
+  ansible.builtin.import_tasks: remove-engine.yml
+  when:
+    - not (crowdsec_enabled | bool)
+    - crowdsec_managed.stat.exists | default(false)
+  tags: [crowdsec-remove]
