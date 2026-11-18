@@ -38,6 +38,16 @@
           - verify_bouncer_conf.stat.mode == '0600'
           - verify_bouncer_conf.stat.pw_name == 'root'
 
+    - name: Verify | Read the bouncer package state
+      ansible.builtin.command: dpkg-query -W -f=${Status} crowdsec-openresty-bouncer
+      register: verify_bouncer_pkg
+      changed_when: false
+
+    - name: Verify | The bouncer is held, so apt upgrade leaves it to the role
+      ansible.builtin.assert:
+        that:
+          - verify_bouncer_pkg.stdout is match('hold ok installed')
+
     - name: Verify | Read the engine's memory limit
       ansible.builtin.command: systemctl show crowdsec -p MemoryMax --value
       register: verify_memory_max

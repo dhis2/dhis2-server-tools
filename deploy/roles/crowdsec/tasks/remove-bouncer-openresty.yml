@@ -27,4 +27,5 @@
     name: crowdsec-openresty-bouncer
     state: absent
     purge: true
+    allow_change_held_packages: true
   notify: Crowdsec | Reload OpenResty

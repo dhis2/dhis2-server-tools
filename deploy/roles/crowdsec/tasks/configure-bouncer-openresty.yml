@@ -16,7 +16,16 @@
   ansible.builtin.apt:
     name: crowdsec-openresty-bouncer
     state: latest
+    allow_change_held_packages: true
   notify: Crowdsec | Reload OpenResty
+
+# The proxy role's `apt upgrade` would otherwise upgrade the bouncer, and its postinst
+# doesn't reload OpenResty, which keeps running the old Lua. Held, it is upgraded only by
+# the task above, which reloads.
+- name: Crowdsec | Hold the OpenResty bouncer so only this role upgrades it
+  ansible.builtin.dpkg_selections:
+    name: crowdsec-openresty-bouncer
+    selection: hold
 
 # The package ships the conffile world-readable; it holds the bouncer's LAPI API key.
 # Only the OpenResty master (root) reads it, in init_by_lua_block.
