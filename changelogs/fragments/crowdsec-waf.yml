@@ -14,3 +14,10 @@ known_issues:
     OpenResty's ``access.log``, ``error.log`` and ``perf.log`` are not rotated.
     CrowdSec adds the combined ``access.log``; log rotation for OpenResty is a
     separate change.
+  - |
+    AppSec fails open: a request whose AppSec check times out goes through
+    uninspected. Many concurrent uploads near the 100 MB limit can cause it.
+  - |
+    Behind a load balancer or CDN that only sets ``X-Forwarded-For``, CrowdSec
+    sees every client as the load balancer's address. Use PROXY protocol
+    (``use_proxy_protocol=true``) or expose the proxy directly.

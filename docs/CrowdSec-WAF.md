@@ -23,6 +23,10 @@ request gets a 403.
   proxy role installs cannot load it, and apache2 has no bouncer. With another
   proxy, set `crowdsec_bouncer_enabled=false` to run the engine alone
   (detection only, nothing is blocked).
+- Clients reach the proxy directly, or through a load balancer that sends PROXY
+  protocol (`use_proxy_protocol=true`). Behind a load balancer or CDN that only
+  sets `X-Forwarded-For`, every request seems to come from its address, so one
+  ban blocks all users. The default LXD setup keeps the client address.
 - Tested on Ubuntu 24.04 and 22.04.
 
 ## Enable
@@ -125,15 +129,24 @@ Requests are inspected in full up to `crowdsec_appsec_max_body_size`
 (10 MiB). DHIS2 accepts imports up to 100 MB, so larger bodies are let through
 rather than blocked:
 
-- URI, query string and headers are always inspected.
+- URI, query string and headers are inspected.
 - Form bodies are inspected up to the limit.
 - JSON bodies over the limit are not body-inspected.
 
-Raising the limit costs engine memory per in-flight request, and past about
-50 MiB the bouncer's AppSec call times out and lets the request through
-anyway. Keep the default unless you have a specific reason.
+AppSec fails open (`passthrough`). A request goes through uninspected, URI and
+headers included, if the engine is down or the bouncer's AppSec check times
+out (500 ms). Large bodies slow the check down: in testing, a single 99 MiB
+upload was inspected in under 0.1 s, but of 16 sent at once 3 timed out and
+passed, and of 32, 11 did. A smaller server reaches that point sooner. Each
+such request logs `Fallback because of err: timeout` in OpenResty's
+`error.log`. Bans still apply to these requests; only the WAF check is
+skipped.
 
-AppSec fails open (`passthrough`): if the engine is down, requests go through.
+Raising the limit costs engine memory per in-flight request and makes
+timeouts more likely. Keep the default unless you have a specific reason.
+`crowdsec_appsec_failure_action=deny` closes the gap but blocks requests,
+imports included, whenever AppSec is slow or restarting.
+
 Stream-mode bans still hold in the bouncer during an engine restart.
 
 ## Prometheus and Grafana
