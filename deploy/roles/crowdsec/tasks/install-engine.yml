@@ -17,10 +17,14 @@
 # get_url downloads to a temp file and moves it into place only on success, so a failed
 # download leaves nothing that a later run could mistake for the key. apt reads the
 # ASCII-armored key directly because of the .asc extension.
+# The checksum pins the key (primary fingerprint 6A89E3C2303A901A889971D3376ED5326E93CD0C,
+# no expiry). A key file that doesn't match it is deleted and downloaded again, so
+# updating the checksum for a rotated key replaces the key on existing hosts.
 - name: Crowdsec | Download CrowdSec signing key
   ansible.builtin.get_url:
     url: https://packagecloud.io/crowdsec/crowdsec/gpgkey
     dest: "{{ crowdsec_keyring }}"
+    checksum: sha256:cd5729fe6f95d29efc48f1cfe63e0d4a3088506cf99f3cf74b572c4b70429980
     owner: root
     group: root
     mode: "0644"
