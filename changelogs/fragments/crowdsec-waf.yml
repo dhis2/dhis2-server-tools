@@ -20,4 +20,5 @@ known_issues:
   - |
     Behind a load balancer or CDN that only sets ``X-Forwarded-For``, CrowdSec
     sees every client as the load balancer's address. Use PROXY protocol
-    (``use_proxy_protocol=true``) or expose the proxy directly.
+    (``use_proxy_protocol=true`` with ``proxy_protocol_trusted_cidr`` set to the
+    load balancer's address) or expose the proxy directly.

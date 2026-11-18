@@ -5,6 +5,7 @@
   changed_when: false
   check_mode: false
 
+# Lines read: ufw allow from <src> to any port <port> proto tcp comment '<comment>'
 - name: Crowdsec | Delete metrics rules for an old port or monitoring address
   community.general.ufw:
     rule: allow

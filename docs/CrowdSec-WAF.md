@@ -24,9 +24,15 @@ request gets a 403.
   proxy, set `crowdsec_bouncer_enabled=false` to run the engine alone
   (detection only, nothing is blocked).
 - Clients reach the proxy directly, or through a load balancer that sends PROXY
-  protocol (`use_proxy_protocol=true`). Behind a load balancer or CDN that only
-  sets `X-Forwarded-For`, every request seems to come from its address, so one
-  ban blocks all users. The default LXD setup keeps the client address.
+  protocol. For the latter set `use_proxy_protocol=true` and
+  `proxy_protocol_trusted_cidr` to the load balancer's address or range: the
+  PROXY header is only trusted from that range, which defaults to the LXD
+  network. Without both, or behind a load balancer or CDN that only sets
+  `X-Forwarded-For`, every request seems to come from its address. A ban on
+  that address then blocks all users; if it is a private or Cloudflare
+  address, CrowdSec's default whitelists mean nobody is banned at all, and
+  only AppSec's per-request blocking is left. The default LXD setup keeps the
+  client address.
 - Tested on Ubuntu 24.04 and 22.04.
 
 ## Enable
@@ -134,8 +140,10 @@ rather than blocked:
 - JSON bodies over the limit are not body-inspected.
 
 AppSec fails open (`passthrough`). A request goes through uninspected, URI and
-headers included, if the engine is down or the bouncer's AppSec check times
-out (500 ms). Large bodies slow the check down: in testing, a single 99 MiB
+headers included, if the engine is down or a step of the bouncer's AppSec
+call times out (the bouncer's defaults: 100 ms to connect, 100 ms for each
+send, 500 ms waiting for the answer). Large bodies slow the check down: in
+testing, a single 99 MiB
 upload was inspected in under 0.1 s, but of 16 sent at once 3 timed out and
 passed, and of 32, 11 did. A smaller server reaches that point sooner. Each
 such request logs `Fallback because of err: timeout` in OpenResty's
@@ -176,6 +184,16 @@ With Munin (the default) there is no CrowdSec view; use `cscli metrics`.
   and the bouncer upgrade when the playbook runs. Hub rules (scenarios,
   AppSec virtual patches) do update daily on their own, through the package's
   `crowdsec-hubupdate.timer`.
+- **The bouncer package is held.** `apt upgrade` shows
+  `crowdsec-openresty-bouncer` as kept back. Its package scripts don't reload
+  OpenResty, which would keep running the old code, so the playbook upgrades
+  it and reloads. To upgrade it by hand:
+
+  ```
+  apt-get install --allow-change-held-packages crowdsec-openresty-bouncer
+  apt-mark hold crowdsec-openresty-bouncer
+  systemctl reload openresty
+  ```
 - **HTTP only.** The engine reads the proxy's logs; it does not watch SSH or
   other services on the host.
 
@@ -193,7 +211,8 @@ tail /usr/local/openresty/nginx/logs/error.log
 
 A hand-edited `conf.d/crowdsec_openresty.conf` is the usual cause; reinstall
 the bouncer package or run once with `crowdsec_bouncer_enabled=false` and then
-back on, which purges it and registers a fresh key.
+back on, which purges it and registers a fresh key. Reinstalling drops the
+package hold; run `apt-mark hold crowdsec-openresty-bouncer` afterwards.
 
 **A legitimate user is banned.** `cscli decisions list` shows the reason.
 `cscli decisions delete -i <ip>` lifts it; add the address to

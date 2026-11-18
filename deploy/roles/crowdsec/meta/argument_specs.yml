@@ -37,7 +37,8 @@ argument_specs:
           newest package in the CrowdSec apt repo. A pinned version is installed (up or
           down) and held with dpkg so `apt upgrade` leaves it alone. Only pins the crowdsec
           engine package - bouncer packages are versioned independently upstream and are
-          always installed at "latest". Don't pin below 1.7.8: the AppSec body-size hooks
+          always installed at "latest", and held so that only this role upgrades them
+          (and reloads the proxy). Don't pin below 1.7.8: the AppSec body-size hooks
           arrived in that release (with the 10 MiB limit they configure), and
           crowdsec_allowlist relies on allowlists clearing matching bans (1.6.9).
         type: str
