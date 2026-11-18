@@ -16,10 +16,12 @@
     allow_change_held_packages: true
   notify: Crowdsec | Reload OpenResty
 
+# The package scripts don't reload OpenResty; a missing hold may have let an upgrade through, so reload.
 - name: Crowdsec | Hold the OpenResty bouncer so only this role upgrades it
   ansible.builtin.dpkg_selections:
     name: crowdsec-openresty-bouncer
     selection: hold
+  notify: Crowdsec | Reload OpenResty
 
 - name: Crowdsec | Restrict the bouncer config to root
   ansible.builtin.file:
