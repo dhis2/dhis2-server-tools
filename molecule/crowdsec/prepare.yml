@@ -13,6 +13,15 @@
         state: present
         update_cache: true
 
+    # As an earlier run with another metrics port would have left it; the role deletes it.
+    - name: Prepare | Add a metrics rule for an old port
+      community.general.ufw:
+        rule: allow
+        src: 192.0.2.30
+        port: "6061"
+        proto: tcp
+        comment: Allow crowdsec metrics scrape from prometheus/grafana server
+
     - name: Prepare | Install OpenResty with the proxy role
       ansible.builtin.include_role:
         name: proxy

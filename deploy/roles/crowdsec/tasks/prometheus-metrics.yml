@@ -1,12 +1,36 @@
 ---
-# The rule is deleted again when metrics stop being exposed, so turning
-# crowdsec_metrics_expose off (or removing the role) doesn't leave the port open.
+# The role's rules are found by their comment, so a changed metrics port or monitoring
+# address, crowdsec_metrics_expose turned off, or the role removed leaves no rule open.
+- name: Crowdsec | List firewall rules
+  ansible.builtin.command: ufw show added
+  register: crowdsec_ufw_rules
+  changed_when: false
+  check_mode: false
+
+# `ufw show added` prints them as:
+# ufw allow from <src> to any port <port> proto tcp comment '<comment>'
+- name: Crowdsec | Delete metrics rules for an old port or monitoring address
+  community.general.ufw:
+    rule: allow
+    src: "{{ item.split()[3] }}"
+    port: "{{ item.split()[7] }}"
+    proto: tcp
+    delete: true
+  loop: >-
+    {{ crowdsec_ufw_rules.stdout_lines
+       | select('match', "^ufw allow from [^ ]+ to any port [0-9]+ proto tcp comment '"
+                         ~ (crowdsec_metrics_ufw_comment | regex_escape) ~ "'$")
+       | list }}
+  when: >-
+    not (crowdsec_metrics_exposed | bool)
+    or item.split()[7] != crowdsec_metrics_port | string
+    or item.split()[3] not in crowdsec_metrics_scrapers
+
 - name: Crowdsec | Allow metrics scrapes from the monitoring host(s) only
   community.general.ufw:
     rule: allow
     port: "{{ crowdsec_metrics_port | string }}"
-    src: "{{ hostvars[item]['service_ip'] | default(hostvars[item]['ansible_host']) }}"
+    src: "{{ item }}"
     proto: tcp
-    comment: "Allow crowdsec metrics scrape from prometheus/grafana server"
-    delete: "{{ not (crowdsec_metrics_exposed | bool) }}"
-  loop: "{{ groups['monitoring'] | default([]) }}"
+    comment: "{{ crowdsec_metrics_ufw_comment }}"
+  loop: "{{ crowdsec_metrics_scrapers if crowdsec_metrics_exposed | bool else [] }}"

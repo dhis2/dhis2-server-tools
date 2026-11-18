@@ -151,3 +151,13 @@
         that:
           - verify_metrics_listen.stdout is search('127\.0\.0\.1:6060')
           - verify_metrics_listen.stdout is not search('0\.0\.0\.0:6060')
+
+    - name: Verify | List firewall rules
+      ansible.builtin.command: ufw show added
+      register: verify_ufw_rules
+      changed_when: false
+
+    - name: Verify | No metrics rule is open, including the one prepare added for an old port
+      ansible.builtin.assert:
+        that:
+          - verify_ufw_rules.stdout is not search('crowdsec metrics')
