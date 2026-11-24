@@ -1,0 +1,25 @@
+---
+- name: Get host facts
+  ansible.builtin.setup:
+    gather_subset:
+      - hardware
+      - network
+      - "!min"
+
+- name: Preflight | CHAP images are amd64 only
+  ansible.builtin.assert:
+    that: ansible_facts['architecture'] == 'x86_64'
+    fail_msg: "chap-core publishes linux/amd64 images only (host is {{ ansible_facts['architecture'] }})"
+
+- name: Ensure timezone is {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"
+  when: timezone is defined and timezone | length > 0
+
+- name: Allow ssh on port 22
+  community.general.ufw:
+    rule: limit
+    port: "{{ ansible_port | default('22') }}"
+    src: "0.0.0.0/0"
+    proto: tcp
+    comment: Allow ssh access to the CHAP host

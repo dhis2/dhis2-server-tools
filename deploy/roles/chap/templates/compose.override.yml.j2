@@ -1,0 +1,6 @@
+# {{ ansible_managed }}
+# Layered on upstream's compose.ghcr.yml (fetched unmodified as compose.yml).
+services:
+  worker:
+    healthcheck:
+      timeout: {{ chap_worker_healthcheck_timeout }}
