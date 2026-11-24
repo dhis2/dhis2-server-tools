@@ -2,10 +2,9 @@
 # Any custom modifications made directly to this file will be overwritten
 # during future Ansible runs.
 
-# Please place any custom configurations in the following file
-# /etc/nginx/custom/default.conf
-
-# configurations in  /etc/nginx/static/default.conf are be included in this nginx configuration.
+# Put custom configuration in files that Ansible never overwrites:
+#   server{} level: /etc/nginx/static/default.conf
+#     (included in the https server block below)
 
 # Tomcat upstreams with keepalive — for instances without an FQDN
 {% for instance in groups['instances']
@@ -35,7 +34,7 @@ server {
 server {
   listen {{ http_port | default('80') }}{{ ' proxy_protocol' if use_proxy_protocol | default(false) and ansible_connection == 'lxd' else '' }};
   server_name _;
-  return 302 https://$host:{{ https_port | default("$server_port") }}$request_uri;
+  return 301 https://$host{{ '' if (https_port | default(443) | int) == 443 else ':' ~ https_port }}$request_uri;
 }
 
 # https block
