@@ -89,24 +89,24 @@ def get_dhis2_instance_specs(dhis2_version, dhis2_auto_upgrade, version_results)
         return {'jdk': 17,
                 'tomcat': 10,
                 'javax_jakartaee_convert': False,
-                'guest_os': ['24.04'],
+                'guest_os': ['24.04', '26.04'],
                 }
 
     if (version_eq(version_actual[:4], '2.41') or (version_eq(dhis2_version, '2.41') and str_to_bool(dhis2_auto_upgrade))):
         return {'jdk': 17,
                 'tomcat': 9,
-                'guest_os': ['22.04', '24.04']
+                'guest_os': ['22.04', '24.04', '26.04']
                 }
 
     if (version_gte(version_actual, '2.35') and version_lte(version_actual, '2.40')):
         return {'jdk': 11,
                 'tomcat': 9,
-                'guest_os': ['22.04', '24.04'],
+                'guest_os': ['22.04', '24.04', '26.04'],
                 }
 
     return {'jdk': 8,
             'tomcat': 9,
-            'guest_os': ['22.04', '24.04']
+            'guest_os': ['22.04', '24.04', '26.04']
             }
 
 
@@ -128,7 +128,8 @@ def lowercase(value):
 
 
 def tomcat_version(distribution_version):
-    if distribution_version == '24.04':
+    # Ubuntu 24.04 dropped tomcat9; 24.04 and later ship tomcat10 only.
+    if LooseVersion(to_text(distribution_version)) >= LooseVersion('24.04'):
         return 10
     else:
         return 9

@@ -14,12 +14,12 @@
     enabled: true
 
 # Defined here so --tags alerting works when monitoring/create-instance are skipped
-- name: Reload Prometheus
+- name: Reload Prometheus (alerting)
   ansible.builtin.systemd:
     name: prometheus
     state: reloaded
 
-- name: Restart Grafana
+- name: Restart Grafana (alerting)
   ansible.builtin.service:
     name: grafana-server
     state: restarted

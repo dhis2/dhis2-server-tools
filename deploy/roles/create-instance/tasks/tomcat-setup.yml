@@ -16,7 +16,7 @@
           'openjdk-' + ((java_version | default(JAVA_VERSION)) | string) + '-jre-headless',
           'tomcat-jakartaee-migration'
         ]
-        if ansible_facts['distribution_version'] == '24.04'
+        if ansible_facts['distribution_version'] is version('24.04', '>=')
         else [
           'unzip',
           'tomcat9',
