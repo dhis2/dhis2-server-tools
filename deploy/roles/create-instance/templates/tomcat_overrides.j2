@@ -1,4 +1,6 @@
 [Service]
+# Writable cache for fontconfig (Excel/PDF exports); the Debian unit creates it with CacheDirectory=
+Environment=XDG_CACHE_HOME=/var/cache/tomcat{{ tomcat_version }}
 ReadWritePaths=/opt/dhis2
 {% if app_monitoring is defined and app_monitoring == "glowroot"  %}
 ReadWritePaths=/opt/glowroot
