@@ -21,7 +21,9 @@ See `defaults/main.yml` for `doris_version`, `doris_user`, `doris_home`,
   host this instance's analytics queries should use. Required to opt in.
 - `apache_doris_db_user` / `apache_doris_db_password` — optional, default to
   `doris_user` and an auto-generated password stored under
-  `/opt/ansible/secrets/apache_doris_db_password`.
+  `/opt/ansible/secrets/apache_doris_db_password`. The user is granted
+  `ALL ON *.*.*`: DHIS2 creates and refreshes its own `pg_dhis` JDBC catalog,
+  which a grant on the `analytics` database alone does not allow.
 - `lxd_memory_limit`, `doris_fe_heap_size`, `doris_be_mem_limit` — optional
   memory tuning, unset = no limit.
 
