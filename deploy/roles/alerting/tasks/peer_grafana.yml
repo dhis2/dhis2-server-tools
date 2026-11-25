@@ -22,7 +22,7 @@
     owner: grafana
     group: grafana
     mode: '0640'
-  notify: Restart Grafana
+  notify: Restart Grafana (alerting)
 
 - name: Alerting | Provision Alertmanager datasource for silences UI
   ansible.builtin.template:
@@ -32,7 +32,7 @@
     group: grafana
     mode: '0640'
   no_log: true
-  notify: Restart Grafana
+  notify: Restart Grafana (alerting)
 
 - name: Alerting | Enable Grafana unified alerting
   community.general.ini_file:
@@ -41,4 +41,4 @@
     option: enabled
     value: 'true'
     mode: '0640'
-  notify: Restart Grafana
+  notify: Restart Grafana (alerting)
