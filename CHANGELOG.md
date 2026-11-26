@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.14.0](https://github.com/dhis2/dhis2-server-tools/compare/v1.13.3...v1.14.0) (2026-11-26)
+
+
+### 🎉 New Features
+
+* **proxy:** OpenResty http.d include; fix HTTPS redirect port ([2b31c4b](https://github.com/dhis2/dhis2-server-tools/commit/2b31c4ba827a2977400800420abf3583d48b993b))
+* support Ubuntu 26.04 hosts for DHIS2 instances ([4f2f98b](https://github.com/dhis2/dhis2-server-tools/commit/4f2f98b9e78d422f280bcc16543b8d052edfed91))
+
+
+### 🐛 Bug Fixes
+
+* alerting handler name collision; support Ubuntu 26.04 instances ([258492d](https://github.com/dhis2/dhis2-server-tools/commit/258492dbba64e0f6bd3e9e9b4f98572d1daa9946))
+* **alerting:** rename handlers that collided with the monitoring role ([8560287](https://github.com/dhis2/dhis2-server-tools/commit/8560287c7ade0d49b7ae2bc556bc98275990af0e))
+* make handler names unique per role, add CI check ([58607a9](https://github.com/dhis2/dhis2-server-tools/commit/58607a9bd288877d779e147b8888fd9389972b1b))
+* **proxy:** use Ubuntu's nginx on 26.04 when the CPU lacks x86-64-v3 ([dedff38](https://github.com/dhis2/dhis2-server-tools/commit/dedff38f1f23756175a7426bca1803b6a984f829))
+* unique handler names per role, nginx fallback on CPUs without x86-64-v3 ([b3c2a8a](https://github.com/dhis2/dhis2-server-tools/commit/b3c2a8a6f464a6a977206747c5b06b07ae8b786a))
+
 ## [1.13.3](https://github.com/dhis2/dhis2-server-tools/compare/v1.13.2...v1.13.3) (2026-11-03)
 
 
