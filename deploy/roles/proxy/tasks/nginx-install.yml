@@ -92,7 +92,7 @@
     owner: root
     group: root
     mode: "0640"
-  notify: Reload Nginx
+  notify: Reload Nginx (proxy)
 
 - name: Disabling nginx version show
   ansible.builtin.lineinfile:
@@ -100,7 +100,7 @@
     regex: .*server_tokens off
     line: "    server_tokens off;"
     insertafter: "http {"
-  notify: Reload Nginx
+  notify: Reload Nginx (proxy)
 
 - name: Nginx Perfomance Loging
   ansible.builtin.blockinfile:
@@ -115,7 +115,7 @@
     marker: "# {mark} PERFORMANCE LOG FORMAT"  # Add a marker to easily identify and update the block
     insertafter: "http {"
   tags: [nginx-perf-log]
-  notify: Reload Nginx
+  notify: Reload Nginx (proxy)
 
 - name: Nginx TCP optimizations
   ansible.builtin.blockinfile:
@@ -126,7 +126,7 @@
     marker: "# {mark} TCP OPTIMIZATIONS"
     insertafter: "http {"
   tags: [nginx-tcp]
-  notify: Reload Nginx
+  notify: Reload Nginx (proxy)
 
 - name: Nginx gzip compression
   ansible.builtin.blockinfile:
@@ -152,7 +152,7 @@
     marker: "# {mark} GZIP COMPRESSION"
     insertafter: "http {"
   tags: [nginx-gzip]
-  notify: Reload Nginx
+  notify: Reload Nginx (proxy)
 
 - name: Remove default nginx site
   ansible.builtin.file:
@@ -163,7 +163,7 @@
   ansible.builtin.command: openssl dhparam -out /etc/nginx/dhparams.pem 2048
   args:
     creates: /etc/nginx/dhparams.pem
-  notify: Reload Nginx
+  notify: Reload Nginx (proxy)
 
 - name: Creating nginx config directories
   ansible.builtin.file:
@@ -186,7 +186,7 @@
     mode: "0640"
     # force: false
   loop: "{{ groups['monitoring'] }}"
-  notify: Reload Nginx
+  notify: Reload Nginx (proxy)
   when:
     - groups['monitoring'] | length > 0
     - server_monitoring is defined
@@ -203,7 +203,7 @@
     owner: root
     group: root
     mode: "0640"
-  notify: Reload Nginx
+  notify: Reload Nginx (proxy)
   when:
     - groups['monitoring'] | length > 0
     - server_monitoring is defined

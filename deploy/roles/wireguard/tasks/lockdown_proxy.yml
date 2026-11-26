@@ -18,7 +18,7 @@
   loop: '{{ wireguard_nginx_monitoring_configs.files | default([]) }}'
   loop_control:
     label: '{{ item.path | basename }}'
-  notify: Reload Nginx
+  notify: Reload Nginx (wireguard)
   when:
     - proxy | default('nginx') == 'nginx'
     - wireguard_nginx_monitoring_configs.files | default([]) | length > 0
@@ -33,7 +33,7 @@
   loop: '{{ groups["instances"] }}'
   vars:
     wireguard_monitoring_locked: true
-  notify: Reload Nginx
+  notify: Reload Nginx (wireguard)
   when:
     - proxy | default('nginx') == 'nginx'
     - hostvars[item]['instance_state'] is undefined
@@ -54,7 +54,7 @@
   loop: '{{ wireguard_apache_monitoring_configs.files | default([]) }}'
   loop_control:
     label: '{{ item.path | basename }}'
-  notify: Reload Apache2
+  notify: Reload Apache2 (wireguard)
   when:
     - proxy | default('nginx') == 'apache2'
     - wireguard_apache_monitoring_configs.files | default([]) | length > 0
@@ -69,7 +69,7 @@
   loop: '{{ groups["instances"] }}'
   vars:
     wireguard_monitoring_locked: true
-  notify: Reload Apache2
+  notify: Reload Apache2 (wireguard)
   when:
     - proxy | default('nginx') == 'apache2'
     - hostvars[item]['instance_state'] is undefined

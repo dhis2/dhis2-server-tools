@@ -30,6 +30,9 @@ jobs:
         run: ansible-lint --fix all
         continue-on-error: true
 
+      - name: Check handler names are unique per role
+        run: python .github/scripts/check_handler_names.py deploy
+
   security:
     name: Security Scan
     runs-on: ubuntu-latest

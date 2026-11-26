@@ -33,5 +33,5 @@
   loop: "{{ munin_users | default([{'name': 'admin', 'password': 'district'}]) }}"
   loop_control:
     label: "{{ item.name }}"
-  notify: Reload {{ proxy | capitalize }}
+  notify: Reload {{ proxy | capitalize }} (proxy)
   tags: [securing-munin]

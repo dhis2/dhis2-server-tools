@@ -1,10 +1,10 @@
 ---
-- name: Restart Apache2
+- name: Restart Apache2 (monitoring)
   ansible.builtin.service:
     name: apache2
     state: restarted
 
-- name: Reload Apache2
+- name: Reload Apache2 (monitoring)
   ansible.builtin.service:
     name: apache2
     state: reloaded
@@ -14,12 +14,12 @@
     name: munin
     state: restarted
 
-- name: Restart Munin-Node
+- name: Restart Munin-Node (monitoring)
   ansible.builtin.service:
     name: munin-node
     state: restarted
 
-- name: Restart Grafana
+- name: Restart Grafana (monitoring)
   ansible.builtin.service:
     name: grafana-server
     state: restarted

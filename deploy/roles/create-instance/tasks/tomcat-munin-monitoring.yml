@@ -18,8 +18,7 @@
     owner: root
     group: root
     mode: "0644"
-  notify: Restart Munin-Node
-
+  notify: Restart Munin-Node (create-instance)
 - name: Ensure munin-node is running.
   ansible.builtin.service:
     name: munin-node
@@ -71,4 +70,4 @@
     - tomcat_jvm
     - tomcat_threads
     - tomcat_volume
-  notify: Restart Munin-Node
+  notify: Restart Munin-Node (create-instance)

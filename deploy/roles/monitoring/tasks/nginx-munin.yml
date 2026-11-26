@@ -7,4 +7,4 @@
   loop:
     - nginx_status
     - nginx_request
-  notify: Restart Munin-Node
+  notify: Restart Munin-Node (monitoring)

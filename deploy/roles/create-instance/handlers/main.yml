@@ -1,6 +1,6 @@
 ---
 # handlers file for ./roles/dhis2
-- name: Reload Postgres
+- name: Reload Postgres (create-instance)
   ansible.builtin.service:
     name: postgresql
     state: reloaded
@@ -33,30 +33,35 @@
     name: nginx
     state: restarted
 
-- name: Reload Nginx
+- name: Reload Nginx (create-instance)
   ansible.builtin.service:
     name: nginx
     state: reloaded
     enabled: true
 
-- name: Reload Apache2
+- name: Reload Apache2 (create-instance)
   ansible.builtin.service:
     name: apache2
     state: reloaded
     enabled: true
 
-- name: Reload Openresty
+- name: Reload Openresty (create-instance)
   ansible.builtin.service:
     name: openresty
     state: reloaded
     enabled: true
 
-- name: Restart Openresty
+- name: Restart Openresty (create-instance)
   ansible.builtin.service:
     name: openresty
     state: restarted
 
-- name: Restart Munin-Node
+- name: Restart Munin-Node (create-instance)
   ansible.builtin.service:
     name: munin-node
+    state: restarted
+
+- name: Restart Apache2 (create-instance)
+  ansible.builtin.service:
+    name: apache2
     state: restarted

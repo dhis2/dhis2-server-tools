@@ -6,25 +6,25 @@
   community.general.ufw:
     state: reloaded
 
-- name: Reload Nginx
+- name: Reload Nginx (proxy)
   ansible.builtin.service:
     name: nginx
     state: reloaded
     enabled: true
 
-- name: Reload Apache2
+- name: Reload Apache2 (proxy)
   ansible.builtin.service:
     name: apache2
     state: reloaded
     enabled: true
 
-- name: Reload Openresty
+- name: Reload Openresty (proxy)
   ansible.builtin.service:
     name: openresty
     state: reloaded
     enabled: true
 
-- name: Restart Openresty
+- name: Restart Openresty (proxy)
   ansible.builtin.service:
     name: openresty
     state: restarted

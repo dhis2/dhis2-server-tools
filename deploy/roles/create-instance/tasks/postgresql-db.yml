@@ -20,8 +20,7 @@
     - inventory_hostname == hostvars[item]['database_host']
     - lxd_host_ip is undefined
     - item in ansible_play_hosts
-  notify: Reload Postgres
-
+  notify: Reload Postgres (create-instance)
 - name: Firewall | Open port 5432 from dhis2 instances
   community.general.ufw:
     rule: allow
@@ -51,8 +50,7 @@
     - item in ansible_play_hosts
     - inventory_hostname == hostvars[item]['database_host']
     - lxd_host_ip is defined
-  notify: Reload Postgres
-
+  notify: Reload Postgres (create-instance)
 - name: Firewall | Open port 5432 from lxd_host_ip
   community.general.ufw:
     rule: allow
@@ -81,8 +79,7 @@
     - item in ansible_play_hosts
     - hostvars[item]['db_password'] is defined
     - inventory_hostname == hostvars[item]['database_host']
-  notify: Reload Postgres
-
+  notify: Reload Postgres (create-instance)
 - name: Creating dhis2 database/databases
   become: true
   become_user: postgres
@@ -95,8 +92,7 @@
     - hostvars[item]['instance_state'] is undefined
     - item in ansible_play_hosts
     - inventory_hostname == hostvars[item]['database_host']
-  notify: Reload Postgres
-
+  notify: Reload Postgres (create-instance)
 - name: creating postgis,btree_gin and pg_trgm extensions
   become: true
   become_user: postgres
@@ -113,7 +109,6 @@
   loop_control:
     loop_var: loop_item
     label: "{{ loop_item.1 }}"
-  notify: Reload Postgres
-
+  notify: Reload Postgres (create-instance)
 - name: Flushing Handlers
   ansible.builtin.meta: flush_handlers

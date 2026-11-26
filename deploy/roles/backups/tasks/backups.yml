@@ -180,8 +180,7 @@
     - item in ansible_play_hosts
     - hostvars[item]['db_password'] is defined
     - inventory_hostname == hostvars[item]['database_host']
-  notify: Reload Postgres
-
+  notify: Reload Postgres (backups)
 - name: Collect databases used by instances (local)
   connection: local
   ansible.builtin.set_fact:
@@ -239,8 +238,7 @@
   when:
     - inventory_hostname in used_databases
     - postgresql_version_info is defined
-  notify: Reload Postgres
-
+  notify: Reload Postgres (backups)
 # Backup user creation and .pgpass deployment
 - name: Set backup_user_password fact (generate if not defined)
   ansible.builtin.set_fact:

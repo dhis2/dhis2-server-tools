@@ -45,8 +45,7 @@
     state: link
     owner: root
     mode: "0644"
-  notify: Restart Apache2
-
+  notify: Restart Apache2 (monitoring)
 - name: Allow https access from proxy
   community.general.ufw:
     rule: allow
