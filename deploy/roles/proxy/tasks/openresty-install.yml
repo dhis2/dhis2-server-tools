@@ -71,8 +71,7 @@
     owner: root
     group: root
     mode: "0640"
-  notify: Reload Openresty
-
+  notify: Reload Openresty (proxy)
 - name: Create proxy_params file
   ansible.builtin.copy:
     dest: /usr/local/openresty/nginx/conf/proxy_params
@@ -100,14 +99,12 @@
     owner: root
     group: root
     mode: "0640"
-  notify: Reload Openresty
-
+  notify: Reload Openresty (proxy)
 - name: Generating Diffie-Hellman key parameters, takes a while, you may grab some coffee
   ansible.builtin.command: openssl dhparam -out /usr/local/openresty/nginx/conf/dhparams.pem 2048
   args:
     creates: /usr/local/openresty/nginx/conf/dhparams.pem
-  notify: Reload Openresty
-
+  notify: Reload Openresty (proxy)
 - name: Location configs {{ server_monitoring }}
   ansible.builtin.template:
     src: openresty/{{ server_monitoring | trim }}.j2
@@ -116,7 +113,7 @@
     group: root
     mode: "0640"
   loop: "{{ groups['monitoring'] }}"
-  notify: Reload Openresty
+  notify: Reload Openresty (proxy)
   when:
     - groups['monitoring'] | length > 0
     - server_monitoring is defined

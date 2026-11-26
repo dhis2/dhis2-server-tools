@@ -16,8 +16,7 @@
     owner: root
     group: root
     mode: "0644"
-  notify: Restart Munin-Node
-
+  notify: Restart Munin-Node (monitoring)
 - name: Ensure munin-node is running.
   ansible.builtin.service:
     name: munin-node

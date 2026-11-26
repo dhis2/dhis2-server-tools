@@ -26,8 +26,7 @@
     dest: /etc/default/ufw
     regexp: ^DEFAULT_FORWARD_POLICY\=
     line: DEFAULT_FORWARD_POLICY="ACCEPT"
-  notify: Reload UFW
-
+  notify: Reload UFW (pre-install)
 - name: Add rules for lxd bridge
   community.general.ufw:
     rule: allow

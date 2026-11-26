@@ -49,7 +49,7 @@
     # force: false, # this file dynamically changes e.g when dhis2_base_path is set
     mode: "0640"
   loop: "{{ groups['instances'] }}"
-  notify: Reload Nginx
+  notify: Reload Nginx (create-instance)
   when:
     - hostvars[item]['instance_state'] is undefined
 

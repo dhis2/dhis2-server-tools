@@ -1,6 +1,6 @@
 ---
 # handlers file for ./backups
-- name: Reload Postgres
+- name: Reload Postgres (backups)
   ansible.builtin.service:
     name: postgresql
     state: reloaded

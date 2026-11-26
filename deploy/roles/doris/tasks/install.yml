@@ -361,7 +361,7 @@
     - hostvars[item]['apache_doris_db'] is defined
     - hostvars[hostvars[item]['apache_doris_db']] is defined
     - inventory_hostname == hostvars[item]['database_host']
-  notify: Reload Postgres
+  notify: Reload Postgres (doris)
   tags:
     - pg_version
 

@@ -31,7 +31,7 @@
     group: root
     mode: "0640"
   loop: "{{ groups['instances'] }}"
-  notify: Reload Apache2
+  notify: Reload Apache2 (create-instance)
   when:
     - hostvars[item]['instance_state'] is undefined
 
@@ -68,7 +68,7 @@
   when:
     - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
-  notify: Restart Apache2
+  notify: Restart Apache2 (create-instance)
 
 - name: Generate  Apache config for instances with FQDN
   ansible.builtin.template:
@@ -81,8 +81,7 @@
   when:
     - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
-  notify: Reload Apache2
-
+  notify: Reload Apache2 (create-instance)
 - name: Generate dynamic Apache config for instances without FQDN
   ansible.builtin.template:
     src: apache2/default.j2
@@ -94,8 +93,7 @@
   when:
     - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
-  notify: Reload Apache2
-
+  notify: Reload Apache2 (create-instance)
 - name: Copy static Apache config for instances without FQDN
   ansible.builtin.copy:
     src: apache2/default.conf
@@ -107,8 +105,7 @@
   when:
     - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
-  notify: Reload Apache2
-
+  notify: Reload Apache2 (create-instance)
 - name: Start apache2 service
   ansible.builtin.service:
     name: apache2
@@ -122,8 +119,7 @@
   when:
     - (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
-  notify: Reload Apache2
-
+  notify: Reload Apache2 (create-instance)
 - name: Enable apache2 configuration, fqdn is not defined
   ansible.builtin.command: a2ensite default.conf
   args:
@@ -132,7 +128,6 @@
   when:
     - not (hostvars[item]['fqdn'] | default('') | string | trim | length > 0)
     - hostvars[item]['instance_state'] is undefined
-  notify: Reload Apache2
-
+  notify: Reload Apache2 (create-instance)
 - name: Flush Handlers
   ansible.builtin.meta: flush_handlers

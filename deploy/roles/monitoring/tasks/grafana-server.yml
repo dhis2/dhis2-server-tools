@@ -72,7 +72,7 @@
     option: domain
     value: "{{ fqdn }}"
     mode: "0640"
-  notify: Restart Grafana
+  notify: Restart Grafana (monitoring)
   when: fqdn is defined
   # loop: "{{ groups['instances'] }}"
   # when: hostvars[item]['fqdn'] is defined and hostvars[item]['fqdn'] != None and (hostvars[item]['fqdn'] | trim != "")
@@ -91,8 +91,7 @@
          if (wireguard_monitoring_locked | default(false) | bool)
          else '%(protocol)s://%(domain)s:%(http_port)s/grafana' }}
     mode: "0640"
-  notify: Restart Grafana
-
+  notify: Restart Grafana (monitoring)
 - name: Ensure path is properly set
   community.general.ini_file:
     path: /etc/grafana/grafana.ini
@@ -100,8 +99,7 @@
     option: serve_from_sub_path
     value: "{{ 'false' if (wireguard_monitoring_locked | default(false) | bool) else 'true' }}"
     mode: "0640"
-  notify: Restart Grafana
-
+  notify: Restart Grafana (monitoring)
 - name: Prometheous scraping configs
   ansible.builtin.blockinfile:
     block: "{{ lookup('ansible.builtin.template', 'scrape-configs.j2') }}"

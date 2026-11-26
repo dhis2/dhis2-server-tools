@@ -7,7 +7,7 @@
     state: restarted
 
 # Reload postgresql service
-- name: Reload Postgres
+- name: Reload Postgres (postgres)
   ansible.builtin.service:
     name: postgresql
     state: reloaded
@@ -17,13 +17,13 @@
     name: munin-node
     state: restarted
 
-- name: Reload Nginx
+- name: Reload Nginx (postgres)
   ansible.builtin.service:
     name: nginx
     state: reloaded
     enabled: true
 
-- name: Reload Apache2
+- name: Reload Apache2 (postgres)
   ansible.builtin.service:
     name: apache2
     state: reloaded

@@ -37,8 +37,7 @@
     name: "{{ item }}"
     state: present
   loop: ['ssl', 'cache', 'rewrite', 'proxy_http', 'headers']
-  notify: Reload Apache2
-
+  notify: Reload Apache2 (proxy)
 - name: Remove default apache2 site
   ansible.builtin.file:
     path: /etc/apache2/sites-enabled/000-default.conf
@@ -68,7 +67,7 @@
   loop: "{{ munin_users | default([{'name': 'admin', 'password': 'district'}]) }}"
   loop_control:
     label: "{{ item.name }}"
-  notify: Reload Apache2
+  notify: Reload Apache2 (proxy)
   when:
     - server_monitoring is defined
     - not (wireguard_monitoring_locked | default(false) | bool)

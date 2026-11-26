@@ -1,6 +1,6 @@
 ---
 # handlers file for ./roles/
-- name: Reload UFW
+- name: Reload UFW (pre-install)
   vars:
     ansible_connection: local
   become: true
@@ -24,7 +24,7 @@
     name: unattended-upgrades
     state: restarted
 
-- name: Restart Munin-Node
+- name: Restart Munin-Node (pre-install)
   ansible.builtin.service:
     name: munin-node
     state: restarted

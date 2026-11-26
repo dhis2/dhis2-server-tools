@@ -8,3 +8,8 @@
   ansible.builtin.systemd:
     name: doris-be
     state: restarted
+
+- name: Reload Postgres (doris)
+  ansible.builtin.service:
+    name: postgresql
+    state: reloaded
