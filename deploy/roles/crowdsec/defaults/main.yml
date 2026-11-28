@@ -1,0 +1,30 @@
+---
+crowdsec_enabled: false
+crowdsec_version: "latest"
+
+crowdsec_lapi_port: 8080
+
+crowdsec_metrics_enabled: true
+crowdsec_metrics_port: 6060
+crowdsec_metrics_expose: "{{ (server_monitoring | default('') | trim) in ['grafana', 'prometheus', 'grafana/prometheus'] and groups['monitoring'] | default([]) | length > 0 }}"
+
+crowdsec_online_api_enabled: true
+
+crowdsec_bouncer_enabled: true
+crowdsec_bouncer_mode: "stream"
+crowdsec_bouncer_bouncing_on_type: "ban"
+crowdsec_bouncer_fallback_remediation: "ban"
+crowdsec_bouncer_ret_code: ""
+crowdsec_bouncer_captcha_provider: "recaptcha"
+crowdsec_bouncer_captcha_site_key: ""
+crowdsec_bouncer_captcha_secret_key: ""
+
+crowdsec_appsec_enabled: true
+crowdsec_appsec_port: 7422
+crowdsec_appsec_failure_action: "passthrough"
+crowdsec_appsec_max_body_size: 10485760
+crowdsec_appsec_body_size_exceeded_action: "partial"
+
+crowdsec_memory_max: "1G"
+
+crowdsec_allowlist: []

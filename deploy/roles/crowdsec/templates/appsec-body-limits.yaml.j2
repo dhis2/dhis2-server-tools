@@ -1,0 +1,6 @@
+{{ ansible_managed | comment }}
+name: dhis2/body-limits
+on_load:
+  - apply:
+      - SetMaxBodySize({{ crowdsec_appsec_max_body_size | int }})
+      - SetBodySizeExceededAction("{{ crowdsec_appsec_body_size_exceeded_action }}")

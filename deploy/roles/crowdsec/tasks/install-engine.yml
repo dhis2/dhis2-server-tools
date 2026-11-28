@@ -1,0 +1,206 @@
+---
+- name: Crowdsec | Install apt prerequisites for the CrowdSec repo
+  ansible.builtin.apt:
+    name: ca-certificates
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Crowdsec | Ensure the apt keyrings directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# sha256 of the key with fingerprint 6A89E3C2303A901A889971D3376ED5326E93CD0C; update it when CrowdSec rotates the key.
+- name: Crowdsec | Download CrowdSec signing key
+  ansible.builtin.get_url:
+    url: https://packagecloud.io/crowdsec/crowdsec/gpgkey
+    dest: "{{ crowdsec_keyring }}"
+    checksum: sha256:cd5729fe6f95d29efc48f1cfe63e0d4a3088506cf99f3cf74b572c4b70429980
+    owner: root
+    group: root
+    mode: "0644"
+  register: crowdsec_key_download
+  until: crowdsec_key_download is succeeded
+  retries: 3
+  delay: 5
+
+- name: Crowdsec | Remove the repo entry signed by the dearmored keyring
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by={{ crowdsec_legacy_keyring }}] {{ crowdsec_repo_url }} any main"
+    state: absent
+    filename: crowdsec
+    update_cache: false
+
+- name: Crowdsec | Remove the dearmored keyring
+  ansible.builtin.file:
+    path: "{{ crowdsec_legacy_keyring }}"
+    state: absent
+
+- name: Crowdsec | Add CrowdSec official repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by={{ crowdsec_keyring }}] {{ crowdsec_repo_url }} any main"
+    state: present
+    filename: crowdsec
+
+- name: Crowdsec | Preseed LAPI debconf question (always run a local API here)
+  ansible.builtin.debconf:
+    name: crowdsec
+    question: crowdsec/lapi
+    vtype: boolean
+    value: "true"
+
+- name: Crowdsec | Preseed Central API / community blocklist debconf question
+  ansible.builtin.debconf:
+    name: crowdsec
+    question: crowdsec/capi
+    vtype: boolean
+    value: "{{ crowdsec_online_api_enabled | bool | lower }}"
+
+- name: Crowdsec | Install CrowdSec Security Engine
+  ansible.builtin.apt:
+    name: "{{ 'crowdsec' if crowdsec_version | string == 'latest' else 'crowdsec=' ~ (crowdsec_version | string) }}"
+    state: "{{ 'latest' if crowdsec_version | string == 'latest' else 'present' }}"
+    allow_downgrade: true
+    allow_change_held_packages: true
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Crowdsec | Hold the Security Engine at the pinned version
+  ansible.builtin.dpkg_selections:
+    name: crowdsec
+    selection: "{{ 'install' if crowdsec_version | string == 'latest' else 'hold' }}"
+
+- name: Crowdsec | Template local config overrides (LAPI bind address, Prometheus metrics)
+  ansible.builtin.template:
+    src: config.yaml.local.j2
+    dest: "{{ crowdsec_managed_marker }}"
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Restart crowdsec
+
+- name: Crowdsec | Point the engine's agent at the local API
+  ansible.builtin.lineinfile:
+    path: /etc/crowdsec/local_api_credentials.yaml
+    regexp: "^url:"
+    line: "url: {{ crowdsec_lapi_url }}"
+  diff: false
+  notify: Restart crowdsec
+
+- name: Crowdsec | Check Central API credentials
+  ansible.builtin.stat:
+    path: /etc/crowdsec/online_api_credentials.yaml
+  register: crowdsec_capi_credentials
+
+- name: Crowdsec | Register with the Central API
+  ansible.builtin.command: cscli capi register --error
+  when:
+    - crowdsec_online_api_enabled | bool
+    - crowdsec_capi_credentials.stat.size | default(0) == 0
+  changed_when: true
+  notify: Restart crowdsec
+
+- name: Crowdsec | Drop Central API credentials (no signal sharing, no community blocklist)
+  ansible.builtin.copy:
+    content: ""
+    dest: /etc/crowdsec/online_api_credentials.yaml
+    owner: root
+    group: root
+    mode: "0600"
+  diff: false
+  when: not (crowdsec_online_api_enabled | bool)
+  notify: Restart crowdsec
+
+- name: Crowdsec | Write the OpenResty access log CrowdSec reads
+  ansible.builtin.template:
+    src: openresty-access-log.conf.j2
+    dest: "{{ crowdsec_openresty_conf_dir }}/crowdsec_access_log.conf"
+    owner: root
+    group: root
+    mode: "0640"
+  when: proxy == 'openresty'
+  notify: Crowdsec | Reload OpenResty
+
+- name: Crowdsec | Template OpenResty log acquisition
+  ansible.builtin.template:
+    src: acquis-openresty.yaml.j2
+    dest: /etc/crowdsec/acquis.d/openresty.yaml
+    owner: root
+    group: root
+    mode: "0640"
+  when: proxy == 'openresty'
+  notify: Restart crowdsec
+
+- name: Crowdsec | Find other acquisition files reading the OpenResty logs
+  ansible.builtin.find:
+    paths:
+      - /etc/crowdsec
+      - /etc/crowdsec/acquis.d
+    patterns: ["*.yaml", "*.yml"]
+    # re.match per line, so anchored at the line start
+    contains: ".*{{ crowdsec_openresty_logs_dir | regex_escape }}"
+  register: crowdsec_openresty_acquis
+  when: proxy == 'openresty'
+
+- name: Crowdsec | Remove generated duplicates of the OpenResty log acquisition
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ crowdsec_openresty_acquis_extra | select('search', '/setup\\.[^/]+$') | list }}"
+  vars:
+    crowdsec_openresty_acquis_extra: "{{ crowdsec_openresty_acquis.files | map(attribute='path') | reject('equalto', '/etc/crowdsec/acquis.d/openresty.yaml') | list }}"
+  when: proxy == 'openresty'
+  notify: Restart crowdsec
+
+- name: Crowdsec | Assert no other acquisition file reads the OpenResty logs
+  ansible.builtin.assert:
+    that:
+      - crowdsec_openresty_acquis_extra | reject('search', '/setup\\.[^/]+$') | list | length == 0
+    fail_msg: >-
+      {{ crowdsec_openresty_acquis_extra | reject('search', '/setup\\.[^/]+$') | join(', ') }}
+      also read {{ crowdsec_openresty_logs_dir }}, which /etc/crowdsec/acquis.d/openresty.yaml
+      already covers. Every request would be counted twice. Remove those entries.
+    quiet: true
+  vars:
+    crowdsec_openresty_acquis_extra: "{{ crowdsec_openresty_acquis.files | map(attribute='path') | reject('equalto', '/etc/crowdsec/acquis.d/openresty.yaml') | list }}"
+  when: proxy == 'openresty'
+
+- name: Crowdsec | Create the systemd drop-in directory
+  ansible.builtin.file:
+    path: "{{ crowdsec_systemd_dropin | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  when: crowdsec_memory_max | length > 0
+
+- name: Crowdsec | Template the systemd memory limit
+  ansible.builtin.template:
+    src: systemd-override.conf.j2
+    dest: "{{ crowdsec_systemd_dropin }}"
+    owner: root
+    group: root
+    mode: "0640"
+  when: crowdsec_memory_max | length > 0
+  notify: Restart crowdsec
+
+- name: Crowdsec | Remove the systemd memory limit
+  ansible.builtin.file:
+    path: "{{ crowdsec_systemd_dropin }}"
+    state: absent
+  when: crowdsec_memory_max | length == 0
+  notify: Restart crowdsec
+
+- name: Crowdsec | Ensure Security Engine is running and enabled
+  ansible.builtin.systemd:
+    name: crowdsec
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: Crowdsec | Flush handlers so config overrides apply before the bouncer installs
+  ansible.builtin.meta: flush_handlers

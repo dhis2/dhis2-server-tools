@@ -1,0 +1,30 @@
+---
+crowdsec_lapi_url: "http://127.0.0.1:{{ crowdsec_lapi_port }}"
+crowdsec_appsec_url: "http://127.0.0.1:{{ crowdsec_appsec_port }}"
+crowdsec_appsec_active: "{{ crowdsec_appsec_enabled | bool and crowdsec_bouncer_enabled | bool }}"
+
+crowdsec_metrics_exposed: "{{ crowdsec_metrics_enabled | bool and crowdsec_metrics_expose | bool }}"
+crowdsec_metrics_listen_addr: "{{ (service_ip | default(ansible_host)) if crowdsec_metrics_exposed | bool else '127.0.0.1' }}"
+crowdsec_metrics_scrapers: >-
+  {{ (crowdsec_monitoring_hostvars | selectattr('service_ip', 'defined') | map(attribute='service_ip') | list)
+     + (crowdsec_monitoring_hostvars | rejectattr('service_ip', 'defined') | map(attribute='ansible_host') | list) }}
+crowdsec_monitoring_hostvars: "{{ groups['monitoring'] | default([]) | map('extract', hostvars) | list }}"
+# Existing ufw rules are found by this text; changing it orphans them.
+crowdsec_metrics_ufw_comment: "Allow crowdsec metrics scrape from prometheus/grafana server"
+
+crowdsec_repo_url: "https://packagecloud.io/crowdsec/crowdsec/any"
+crowdsec_keyring: "/etc/apt/keyrings/crowdsec.asc"
+crowdsec_legacy_keyring: "/usr/share/keyrings/crowdsec-archive-keyring.gpg"
+
+crowdsec_openresty_conf_dir: "/usr/local/openresty/nginx/conf/conf.d"
+crowdsec_openresty_logs_dir: "/usr/local/openresty/nginx/logs"
+crowdsec_bouncer_conf: "/etc/crowdsec/bouncers/crowdsec-openresty-bouncer.conf"
+
+crowdsec_managed_marker: "/etc/crowdsec/config.yaml.local"
+
+crowdsec_systemd_dropin: "/etc/systemd/system/crowdsec.service.d/override.conf"
+
+crowdsec_allowlist_name: "dhis2"
+crowdsec_appsec_collections:
+  - crowdsecurity/appsec-virtual-patching
+  - crowdsecurity/appsec-generic-rules

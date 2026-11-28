@@ -1,0 +1,8 @@
+{{ ansible_managed | comment }}
+api:
+  server:
+    listen_uri: "127.0.0.1:{{ crowdsec_lapi_port }}"
+prometheus:
+  enabled: {{ crowdsec_metrics_enabled | bool | lower }}
+  listen_addr: "{{ crowdsec_metrics_listen_addr }}"
+  listen_port: {{ crowdsec_metrics_port }}
